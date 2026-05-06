@@ -1,0 +1,24 @@
+/* Tailwind v3.4 entry point. The three @tailwind directives are the
+ * standard v3 layer injection points (preflight + base, components,
+ * utilities). Imported once from src/main.tsx so Vite + PostCSS pick
+ * them up; do not import from anywhere else.
+ *
+ * The body rule below is intentional, not placeholder. It pins a
+ * system-font stack so the smoke test (and future visual regressions)
+ * have a deterministic baseline before component-level fonts override.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+}

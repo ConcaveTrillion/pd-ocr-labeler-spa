@@ -9,7 +9,7 @@ every iteration.
 
 | Milestone | Status | Notes |
 |---|---|---|
-| **M0** Repo scaffold | 🟡 in progress | Iter 1 backend skeleton + tests; iter 2 frontend scaffold (files only); iter 3 `mise.toml` + Makefile + Makefile parse smoke tests; iter 4 `.pre-commit-config.yaml` mirroring pd-prep-for-pgdp + YAML-shape smoke tests; iter 5 **code-review checkpoint** → 9 findings filed in `BUGS_FOUND.md`; iter 6 fixed B-02 + B-03; iter 7 fixed B-01 + B-09; iter 8 fixed B-05 + B-06 + B-08; iter 9 fixed B-04 (Settings now `frozen=True` + `Settings(**overrides)` in `__main__`) + B-07 (`_build_env()` no-arg) and added `docs/DEVELOPMENT.md` with shape-pin tests; iter 10 **code-review checkpoint** → 5 new findings (B-11..B-15: 2 low, 3 nit; no blockers); iter 11 fixed B-12 + B-13 + B-14 + B-15; iter 12 fixed B-11 (post-commit pre-commit hook auto-runs `make refresh-version` so `__version__` stays current). **All review findings to date are closed.** Frontend `npm install` still blocked on Q-A8. Dockerfile / install scripts / Tailwind+shadcn / release workflow still pending for M0 acceptance gate. |
+| **M0** Repo scaffold | 🟡 in progress | Iter 1 backend skeleton + tests; iter 2 frontend scaffold (files only); iter 3 `mise.toml` + Makefile + Makefile parse smoke tests; iter 4 `.pre-commit-config.yaml` mirroring pd-prep-for-pgdp + YAML-shape smoke tests; iter 5 **code-review checkpoint** → 9 findings filed in `BUGS_FOUND.md`; iter 6 fixed B-02 + B-03; iter 7 fixed B-01 + B-09; iter 8 fixed B-05 + B-06 + B-08; iter 9 fixed B-04 (Settings now `frozen=True` + `Settings(**overrides)` in `__main__`) + B-07 (`_build_env()` no-arg) and added `docs/DEVELOPMENT.md` with shape-pin tests; iter 10 **code-review checkpoint** → 5 new findings (B-11..B-15: 2 low, 3 nit; no blockers); iter 11 fixed B-12 + B-13 + B-14 + B-15; iter 12 fixed B-11 (post-commit pre-commit hook auto-runs `make refresh-version` so `__version__` stays current); iter 13 wired Tailwind v3.4 (`tailwind.config.js`, `postcss.config.js`, `src/index.css` with three `@tailwind` directives, `main.tsx` imports it, devDependencies pin v3.x/v8.x/v10.x). **All review findings to date are closed.** Frontend `npm install` still blocked on Q-A8. Dockerfile / install scripts / shadcn / release workflow still pending for M0 acceptance gate. |
 | M1 Settings + adapters + AppState | ⬜ not started | Pre-conditions: M0. |
 | M2 Project discovery + load | ⬜ not started | Pre-conditions: M0, M1. |
 | M3 OCR config modal + first-page OCR | ⬜ not started | |
@@ -138,9 +138,18 @@ every iteration.
   (small, well-bounded: tailwind.config.js, postcss.config.js,
   src/index.css with `@tailwind` directives, file existence + grep
   tests). Iter 15 is the next code-review checkpoint.
-- [ ] Tailwind v3.4 + shadcn/ui wiring (`tailwind.config.ts`,
-  `postcss.config.js`, `src/index.css`, `components.json`).
-  Deferred from iter 2 to keep the smoke scaffold minimal.
+- [x] **Iter 13.** Tailwind v3.4 wiring: `frontend/tailwind.config.js`
+  (ESM, `content: ["./index.html", "./src/**/*.{ts,tsx}"]`),
+  `frontend/postcss.config.js` (tailwindcss + autoprefixer),
+  `frontend/src/index.css` (three `@tailwind` directives + body
+  font-family rule), `frontend/src/main.tsx` imports `./index.css`,
+  `package.json` devDependencies pinned `tailwindcss@^3.4.0` /
+  `postcss@^8.4.0` / `autoprefixer@^10.4.0`. Six new pytest shape
+  pins in `tests/unit/test_tailwind_config.py`. shadcn/ui generators
+  (`components.json` + the `ui/` primitives) deferred to a later sub-
+  task — they need npm available to run `pnpm dlx shadcn-ui init`.
+- [ ] shadcn/ui scaffold (`components.json`, generated `ui/`
+  primitives). Blocked on Q-A8 (Node not present in devcontainer).
 - [ ] `Dockerfile` (two-stage Node → Python wheel).
 - [ ] `install.sh` / `install.ps1` (uv tool installer).
 - [ ] `.github/workflows/release.yml` (CI gate including SPA-bundle
