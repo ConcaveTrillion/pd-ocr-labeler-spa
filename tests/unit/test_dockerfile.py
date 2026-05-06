@@ -208,13 +208,76 @@ def test_runtime_exposes_port_8080() -> None:
 def test_runtime_binds_host_to_all_interfaces() -> None:
     """Inside a container, listening on 127.0.0.1 makes the port
     unreachable from outside the container. The entrypoint or env vars
-    must set the host to 0.0.0.0."""
+    must set the host to 0.0.0.0.
+
+    The env-var path must use the prefix `Settings` actually reads
+    (``Settings.model_config["env_prefix"]``); see B-16. Using a
+    different spelling (e.g. ``PD_LABELER_HOST`` with an underscore
+    when Settings reads ``PDLABELER_HOST``) would silently no-op
+    because pydantic-settings drops envs that don't match the prefix.
+    """
+    from pd_ocr_labeler_spa.settings import Settings
+
+    prefix = Settings.model_config["env_prefix"]
+    assert prefix, "Settings must declare a non-empty env_prefix"
+
     text = _dockerfile_text()
     has_arg = "--host" in text and "0.0.0.0" in text
-    has_env = re.search(r"PD_LABELER_HOST\s*=\s*0\.0\.0\.0", text) is not None
+    has_env = re.search(rf"{re.escape(prefix)}HOST\s*=\s*0\.0\.0\.0", text) is not None
     assert has_arg or has_env, (
         "Runtime must bind to 0.0.0.0 (either via `--host 0.0.0.0` in "
-        "ENTRYPOINT/CMD or via `ENV PD_LABELER_HOST=0.0.0.0`)."
+        f"ENTRYPOINT/CMD or via `ENV {prefix}HOST=0.0.0.0`)."
+    )
+
+
+def test_dockerfile_env_lines_use_settings_prefix() -> None:
+    """B-16: any ``ENV PD…=…`` line in the Dockerfile must spell the
+    settings env prefix exactly. Pydantic-settings ignores envs that
+    don't match the prefix, so a stray ``PD_LABELER_*`` (with an
+    underscore) silently becomes dead code while looking purposeful.
+
+    We only constrain ``ENV`` lines that *look* labeler-targeted —
+    i.e. start with ``PD`` after the ``ENV`` keyword. Other ENV
+    keys (``PYTHONDONTWRITEBYTECODE``, ``UV_LINK_MODE``, ``PIP_…``)
+    are unrelated runtime/toolchain knobs and aren't covered.
+    """
+    from pd_ocr_labeler_spa.settings import Settings
+
+    prefix = Settings.model_config["env_prefix"]
+    assert prefix, "Settings must declare a non-empty env_prefix"
+
+    text = _dockerfile_text()
+
+    # Find every `ENV <KEY>=…` line (single or multi-key form). Multi-line
+    # ENV (`ENV A=1 \\\n    B=2`) is normalised by reading the joined
+    # source — we look at *all* tokens that look like `KEY=VALUE` after an
+    # ENV directive within a continuation block.
+    offending: list[str] = []
+    in_env_block = False
+    for raw in text.splitlines():
+        line = raw.strip()
+        # Strip line continuation marker for token scanning.
+        scan = line.rstrip("\\").rstrip()
+        if line.lower().startswith("env "):
+            in_env_block = True
+            scan = scan[len("ENV ") :].strip()
+        if not in_env_block:
+            continue
+        for token in scan.split():
+            # Each token in an ENV block looks like KEY=VALUE.
+            if "=" not in token:
+                continue
+            key = token.split("=", 1)[0]
+            if key.upper().startswith("PD") and not key.startswith(prefix):
+                offending.append(key)
+        # Continuation ends when the line does not end in a backslash.
+        if not raw.rstrip().endswith("\\"):
+            in_env_block = False
+
+    assert not offending, (
+        f"Dockerfile ENV keys starting with `PD` must use Settings "
+        f"prefix {prefix!r}; offenders: {offending}. "
+        "See B-16 — wrong-prefix envs are silently ignored by pydantic-settings."
     )
 
 

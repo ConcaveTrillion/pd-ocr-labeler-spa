@@ -336,7 +336,7 @@ behavior-or-AST style rather than dumb file-presence (improvement on
 iter-5). Findings below are quibbles — no blockers, no high.
 
 ## B-11 — `__version__` is stale: reports `dev6+g6b6835b13` while HEAD is `7e593cc` (iter-9, 9 commits past `v0.0.0`)
-- **Status:** ✅ **Fixed in iter 12 (2026-05-06)** — added a post-commit
+- **Status:** ✅ **Fixed in iter 12 (2026-05-06) — extended in iter 16 (2026-05-06) to cover rewrite/checkout (see B-17).** Added a post-commit
   hook to `.pre-commit-config.yaml` (`local` repo, `id: refresh-version`,
   `stages: [post-commit]`) that runs `make refresh-version` after every
   commit, plus `default_install_hook_types: [pre-commit, post-commit]`
@@ -490,6 +490,17 @@ auto-mounted `/openapi.json` + `/docs` + `/redoc`).
 7 findings. Severity legend: blocker > high > medium > low > nit.
 
 ## B-16 — Dockerfile sets `ENV PD_LABELER_HOST/PORT` but `Settings` reads `PDLABELER_*` (no underscore)
+- **Status:** ✅ **Fixed in iter 16 (2026-05-06)** — dropped the dead
+  `ENV PD_LABELER_HOST/PORT` block from the Dockerfile entirely
+  (suggestion (b) — argv `--host 0.0.0.0` already binds the host;
+  users override the port via `-e PDLABELER_PORT=…`). New regression
+  test `test_dockerfile_env_lines_use_settings_prefix` reads
+  `Settings.model_config["env_prefix"]` at runtime and walks every
+  `ENV PD…=…` line in the Dockerfile — any token starting with `PD`
+  that doesn't match the live prefix fails the test. The pre-existing
+  `test_runtime_binds_host_to_all_interfaces` was tightened to
+  source-of-truth the prefix from Settings as well, so the env-var
+  branch can never re-cement a wrong spelling.
 - **Severity:** high
 - **Where:** `Dockerfile:91` (`ENV PD_LABELER_HOST=0.0.0.0 PD_LABELER_PORT=8080`); cross-check `src/pd_ocr_labeler_spa/settings.py:29` (`env_prefix="PDLABELER_"`).
 - **Issue:** The runtime stage exports `PD_LABELER_HOST` and `PD_LABELER_PORT`, but `Settings` declares `env_prefix="PDLABELER_"` (no underscore between `PD` and `LABELER`). Pydantic-settings ignores the `PD_LABELER_*` envs; the bind-host fallback is the in-image `--host 0.0.0.0` argv (which works for `host` but `port` is silently uncovered by env). `tests/unit/test_settings.py:30` and `specs/02-backend.md §3` both use `PDLABELER_*`. The Dockerfile shape pin in `tests/unit/test_dockerfile.py:212-217` actually requires `PD_LABELER_HOST` (with the wrong underscore), so the test cements the wrong contract — both layers drifted together.
@@ -497,6 +508,26 @@ auto-mounted `/openapi.json` + `/docs` + `/redoc`).
 - **Suggested fix:** Either (a) replace `PD_LABELER_*` with `PDLABELER_*` in the Dockerfile and update the regex in `tests/unit/test_dockerfile.py::test_runtime_binds_host_to_all_interfaces`, OR (b) drop the `ENV` lines entirely and rely solely on the `--host 0.0.0.0 --no-browser` argv in `ENTRYPOINT` (cleanest — env is then unambiguously a user-override surface). Going with (b) avoids encoding an env-name in two more places. Also tighten the test to assert the `PDLABELER_` (no underscore) prefix is the only one referenced anywhere in the Dockerfile, mirroring the prefix that `Settings` actually reads.
 
 ## B-17 — Post-commit `make refresh-version` hook silently no-ops on `git rebase` / `git cherry-pick` / `git commit --amend`
+- **Status:** ✅ **Fixed in iter 16 (2026-05-06)** — chose suggestion
+  (a). New `scripts/refresh_version_git_hook.sh` centralises the
+  refresh body (`make refresh-version`, fail-soft on missing toolchain,
+  cd to repo root irrespective of cwd, accept-and-ignore the
+  stage-specific args git/pre-commit pass). `.pre-commit-config.yaml`
+  now wires three local hooks all pointing at that script:
+  `refresh-version-post-commit`, `refresh-version-post-rewrite`
+  (covers `git commit --amend` + `git rebase`), and
+  `refresh-version-post-checkout` (covers `git switch`/`git checkout`
+  + `git cherry-pick` when it lands HEAD on a different sha).
+  `default_install_hook_types` extended to `[pre-commit, post-commit,
+  post-rewrite, post-checkout]` so a single `pre-commit install`
+  wires every stage. Four regression tests in
+  `tests/unit/test_pre_commit_config.py`: hook stages declared,
+  script exists + is executable + invokes `make refresh-version`,
+  every refresh hook covers exactly one of the three required stages,
+  every refresh hook shares the same single script entry (prevents
+  the "three copies of `make refresh-version`" anti-pattern). Also
+  rewords B-22 (paired finding): see annotation below B-11's
+  Status line.
 - **Severity:** medium
 - **Where:** `.pre-commit-config.yaml:38-49` (`stages: [post-commit]`).
 - **Issue:** pre-commit's `post-commit` stage fires on `git commit` only. `git rebase`, `git cherry-pick`, `git commit --amend`, and many merge flows skip post-commit hooks (this is git's behaviour, not pre-commit's bug). After any of those, the editable install retains the **pre-rebase** version; `__version__` then drifts back to the symptom B-11 was supposed to eliminate, with no signal that the auto-refresh stopped working.
@@ -534,6 +565,11 @@ auto-mounted `/openapi.json` + `/docs` + `/redoc`).
 - **Suggested fix:** In the runtime stage, wrap the install step in a single RUN that installs git + ca-certificates, runs `pip install /tmp/*.whl && rm /tmp/*.whl`, then `apt-get purge --autoremove -y git ca-certificates && rm -rf /var/lib/apt/lists/*`. That keeps the install-time deps available without bloating the final layer. Cross-check with pgdp-prep's Dockerfile to keep the pattern consistent.
 
 ## B-22 — Iter-12 commit message claims "iter-10 review backlog now zero" but B-11's underlying class remains (see B-17)
+- **Status:** ✅ **Fixed in iter 16 (2026-05-06)** — paired with B-17.
+  B-11's Status line now reads "extended in iter 16 to cover
+  rewrite/checkout (see B-17)" so future readers don't take the
+  iter-12 framing at face value. No code change needed for B-22
+  itself; the fix is a doc-honesty annotation.
 - **Severity:** nit
 - **Where:** `e83bda1` commit message body (`**iter-10 review backlog now zero**`).
 - **Issue:** B-11 was titled "stale `__version__` after intermediate commits". The post-commit hook closes the *symptom* path observed at iter-10 (vanilla `git commit` not refreshing the install). It doesn't close the *class* (any non-`git commit` ref-changing operation, see B-17). The commit message overstates the fix. Iter-15 (this checkpoint) is the appropriate place to record the gap rather than letting it propagate as "B-11 is fully solved" into M1.

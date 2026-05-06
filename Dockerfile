@@ -85,8 +85,14 @@ RUN pip install /tmp/*.whl && rm /tmp/*.whl
 
 # Listen on 0.0.0.0:8080 inside the container; users map the port out.
 # `--no-browser` because there is no browser to open inside a container.
+#
+# Bind host is set via argv (`--host 0.0.0.0`) rather than via ENV because
+# `Settings` reads the `PDLABELER_` prefix (no underscore — see
+# `src/pd_ocr_labeler_spa/settings.py` env_prefix). Hardcoding an
+# `ENV PDLABELER_HOST=…` here would just duplicate the argv default and
+# also fight any user override of `--host`. Users can still override
+# the port at runtime by passing `-e PDLABELER_PORT=…` to `docker run`,
+# which Settings will pick up automatically.
 EXPOSE 8080
-ENV PD_LABELER_HOST=0.0.0.0 \
-    PD_LABELER_PORT=8080
 
 ENTRYPOINT ["pd-ocr-labeler-ui", "--host", "0.0.0.0", "--no-browser"]

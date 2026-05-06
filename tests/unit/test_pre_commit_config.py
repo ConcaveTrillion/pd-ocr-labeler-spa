@@ -80,47 +80,114 @@ def test_every_repo_pins_a_rev(config: dict) -> None:
         assert isinstance(rev, str) and rev, f"repo {entry['repo']!r} must pin a `rev`"
 
 
-def test_default_install_hook_types_includes_post_commit(config: dict) -> None:
-    """B-11: post-commit refresh-version hook only runs if it gets installed.
+def test_default_install_hook_types_includes_all_refresh_stages(config: dict) -> None:
+    """B-11 + B-17: refresh-version hooks only run if they get installed.
 
     `pre-commit install` (called by `make setup`) defaults to installing
-    only the pre-commit hook type. `default_install_hook_types` extends
-    that so a single `pre-commit install` also wires up post-commit,
-    keeping the developer setup story to one command.
+    only the `pre-commit` hook type. `default_install_hook_types`
+    extends that so one `pre-commit install` wires up every stage that
+    can leave the editable install's `__version__` stale:
+
+    * post-commit  — vanilla `git commit` (B-11).
+    * post-rewrite — `git commit --amend`, `git rebase` (B-17).
+    * post-checkout — `git switch`/`git checkout`,
+      and `git cherry-pick` when it lands HEAD on a different sha (B-17).
     """
     declared = config.get("default_install_hook_types")
     assert isinstance(declared, list), (
         "default_install_hook_types must be a list so `pre-commit install` "
-        "wires up the post-commit refresh-version hook for B-11"
+        "wires up every refresh-version stage (B-11 + B-17)"
     )
-    assert "post-commit" in declared, (
-        "post-commit must be in default_install_hook_types or B-11's auto-refresh hook is dormant"
+    required = {"pre-commit", "post-commit", "post-rewrite", "post-checkout"}
+    missing = required - set(declared)
+    assert not missing, (
+        f"default_install_hook_types missing {sorted(missing)} — "
+        "without these, the refresh-version hooks are dormant for "
+        "amend/rebase/cherry-pick (see B-17)."
     )
-    # Sanity: still installs the pre-commit hook by default.
-    assert "pre-commit" in declared
 
 
-def test_local_refresh_version_post_commit_hook_present(config: dict) -> None:
-    """B-11: `make refresh-version` runs after each commit so hatch-vcs
-    re-derives `__version__` from the new HEAD instead of staying frozen
-    at the last `uv sync`."""
-    local_entries = [e for e in config["repos"] if e["repo"] == "local"]
-    assert local_entries, "expected a `repo: local` entry hosting refresh-version"
+# The script all three refresh-version hooks share. Pinning the path
+# means the test breaks if a future edit forks the entry per-stage,
+# which is exactly the regression mode B-17 is meant to prevent.
+REFRESH_HOOK_SCRIPT = "scripts/refresh_version_git_hook.sh"
 
-    refresh_hooks = [
-        hook for entry in local_entries for hook in entry["hooks"] if hook.get("id") == "refresh-version"
-    ]
-    assert refresh_hooks, "missing `refresh-version` hook in the local repo"
-    assert len(refresh_hooks) == 1, "expected exactly one `refresh-version` hook"
 
-    hook = refresh_hooks[0]
-    assert hook.get("stages") == ["post-commit"], (
-        "refresh-version must be staged post-commit only — running it "
-        "pre-commit would block on `uv pip install` and slow every commit"
+def test_refresh_version_script_exists_and_is_executable() -> None:
+    """B-17: the centralised hook body lives at a known path and is
+    executable. pre-commit `language: script` invokes it directly,
+    so the +x bit matters at install time."""
+    script = REPO_ROOT / REFRESH_HOOK_SCRIPT
+    assert script.is_file(), f"missing {REFRESH_HOOK_SCRIPT}"
+    import os
+
+    mode = script.stat().st_mode
+    assert mode & 0o111, f"{REFRESH_HOOK_SCRIPT} must be executable (chmod +x); current mode is {oct(mode)}"
+    # Sanity: the script must call `make refresh-version` so it stays
+    # the single source of truth for the refresh path.
+    text = script.read_text(encoding="utf-8")
+    assert "make" in text and "refresh-version" in text, (
+        "refresh hook script must invoke `make refresh-version`"
     )
-    assert hook.get("language") == "system", "refresh-version shells out to make"
-    assert "make refresh-version" in (hook.get("entry") or ""), (
-        "hook entry must invoke `make refresh-version` (the canonical refresh path)"
+    # Don't bind os to module scope — only need it for stat above.
+    del os
+
+
+def _refresh_hooks(config: dict) -> list[dict]:
+    """Return every local-repo hook that's wired to the refresh script.
+    Identified by entry pointing at `scripts/refresh_version_git_hook.sh`,
+    not by id, so test stays robust if hook ids are renamed."""
+    out: list[dict] = []
+    for entry in config["repos"]:
+        if entry["repo"] != "local":
+            continue
+        for hook in entry["hooks"]:
+            if REFRESH_HOOK_SCRIPT in (hook.get("entry") or ""):
+                out.append(hook)
+    return out
+
+
+def test_refresh_version_hooks_cover_all_three_stages(config: dict) -> None:
+    """B-11 + B-17: post-commit catches vanilla commits;
+    post-rewrite catches amend/rebase; post-checkout catches
+    cherry-pick + branch switch. All three must be wired or
+    `__version__` drifts on the missing path."""
+    hooks = _refresh_hooks(config)
+    assert hooks, f"expected at least one local-repo hook with entry referencing {REFRESH_HOOK_SCRIPT!r}"
+
+    seen_stages: set[str] = set()
+    for hook in hooks:
+        stages = hook.get("stages") or []
+        assert isinstance(stages, list) and len(stages) == 1, (
+            f"each refresh hook must declare exactly one stage so the "
+            f"binding is unambiguous; got {stages!r} for hook {hook.get('id')!r}"
+        )
+        seen_stages.add(stages[0])
+
+    required = {"post-commit", "post-rewrite", "post-checkout"}
+    missing = required - seen_stages
+    assert not missing, (
+        f"refresh-version is missing stage coverage for {sorted(missing)} — "
+        "without these stages B-17's drift class is open."
     )
-    assert hook.get("always_run") is True, "refresh-version doesn't depend on staged files; must always_run"
-    assert hook.get("pass_filenames") is False, "make refresh-version takes no file arguments"
+
+
+def test_refresh_version_hooks_share_single_script_entry(config: dict) -> None:
+    """B-17: avoid the 'three copies of `make refresh-version`'
+    anti-pattern — every refresh hook must point at the same script
+    so a future change to the refresh body lands in one place."""
+    hooks = _refresh_hooks(config)
+    entries = {hook.get("entry") for hook in hooks}
+    assert entries == {REFRESH_HOOK_SCRIPT}, (
+        f"all refresh-version hooks must share entry {REFRESH_HOOK_SCRIPT!r}; got {sorted(entries)}"
+    )
+
+    for hook in hooks:
+        assert hook.get("language") == "script", (
+            f"hook {hook.get('id')!r} must use language: script (so pre-commit "
+            "invokes the file directly with the post-* hook args)"
+        )
+        assert hook.get("always_run") is True, (
+            f"hook {hook.get('id')!r} doesn't depend on staged files; must always_run"
+        )
+        assert hook.get("pass_filenames") is False, f"hook {hook.get('id')!r} takes no filename args"
