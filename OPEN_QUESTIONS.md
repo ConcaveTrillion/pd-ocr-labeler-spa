@@ -100,6 +100,42 @@ preservation isn't a concern; `301` has the broadest support.
 
 ---
 
+### Q-A8. Frontend toolchain availability in dev shell
+
+**Context.** Iteration 2 of the dev /loop scaffolded
+`frontend/` (package.json, tsconfig, vite/vitest configs, App.tsx,
+smoke test) but could not run `npm install` or `npx vitest` — neither
+`node` nor `npm` is on PATH in the current devcontainer. mise (which
+the spec/`mise.toml` plan would pin Node 24 via) is also not installed.
+
+This blocks the M0 acceptance gate clause "frontend `make
+frontend-install` and `make frontend-test` succeed" — the files are
+in place but unverified end-to-end.
+
+**Options.**
+
+- **(A)** Install Node 24 + mise into the devcontainer image (modify
+  `.devcontainer/Dockerfile` upstream of this repo) and re-run
+  `npm install` + `vitest run` from a follow-up iteration.
+- **(B)** Add a one-shot bootstrap script (e.g. `make
+  frontend-install` calls `corepack enable && corepack prepare
+  pnpm@latest --activate` after a manual node install) and document
+  the prerequisite in `DEVELOPMENT.md`.
+- **(C)** Defer to whichever iteration first lands `mise.toml` +
+  Makefile (planned M0 sub-task) and verify there.
+
+**Recommendation.** **(C)** — the next iteration that authors
+`mise.toml` + Makefile is the natural place to also `mise install`
+and verify `vitest run`. Until then the scaffold compiles by
+inspection (mirrors pgdp-prep's working setup) but is not
+runtime-verified.
+
+**Blocks.** M0 acceptance gate clause for frontend tests. (Numbered
+Q-A8 to avoid colliding with reserved Q-A5/A6/A7 in the M11 glyph
+annotations milestone.)
+
+---
+
 ## Resolution log
 
 All initial questions resolved by user on 2026-05-06. Decisions live

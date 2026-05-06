@@ -9,7 +9,7 @@ every iteration.
 
 | Milestone | Status | Notes |
 |---|---|---|
-| **M0** Repo scaffold | 🟡 in progress | Iter 1 (2026-05-06): backend skeleton + tests landed; frontend / Makefile / Dockerfile / install scripts pending. |
+| **M0** Repo scaffold | 🟡 in progress | Iter 1 backend skeleton + tests; iter 2 (2026-05-06) frontend scaffold (files only — npm install deferred, see Q-A8). Makefile / mise.toml / Dockerfile / install scripts pending. |
 | M1 Settings + adapters + AppState | ⬜ not started | Pre-conditions: M0. |
 | M2 Project discovery + load | ⬜ not started | Pre-conditions: M0, M1. |
 | M3 OCR config modal + first-page OCR | ⬜ not started | |
@@ -31,12 +31,22 @@ every iteration.
   `settings.py`, `bootstrap.py`, `__main__.py`, `api/healthz.py`,
   `api/env_js.py`, `static/.gitkeep`, `build_hooks/spa_check.py`,
   unit tests for `/healthz`, `/env.js`, settings, `build_app`.
-- [ ] **Iter 2 (next).** Frontend scaffold: `frontend/` with
-  Vite + React + TS + Tailwind + Vitest stub, plus a Vitest smoke
-  test. `frontend/src/api/{client,types}.ts` placeholder.
-- [ ] Makefile mirroring pd-prep-for-pgdp targets (`setup`, `test`,
-  `frontend-*`, `openapi-export`, `build`, `ci`).
-- [ ] `mise.toml` pinning Node 24 / Python 3.13.
+- [x] **Iter 2.** Frontend scaffold (files only): `frontend/`
+  package.json, tsconfig.{,app,node}.json, vite.config.ts,
+  vitest.config.ts, index.html, src/{main,App}.tsx, App smoke test
+  (`getByTestId("app-shell")`). React 19 + Vite 6 + Vitest 2;
+  mirrors pgdp-prep layout. **Not yet `npm install`-ed** — the
+  devcontainer lacks Node; tracked as Q-A8 in OPEN_QUESTIONS.md, to
+  be verified when `mise.toml` lands.
+- [ ] **Iter 3 (next).** `mise.toml` (Node 24 / Python 3.13) +
+  Makefile mirroring pd-prep-for-pgdp targets (`setup`, `test`,
+  `frontend-install`, `frontend-build`, `frontend-test`,
+  `frontend-dev`, `openapi-export`, `build`, `ci`). Then run
+  `make frontend-install` + `make frontend-test` end-to-end and
+  resolve Q-A8.
+- [ ] Tailwind v3.4 + shadcn/ui wiring (`tailwind.config.ts`,
+  `postcss.config.js`, `src/index.css`, `components.json`).
+  Deferred from iter 2 to keep the smoke scaffold minimal.
 - [ ] `.pre-commit-config.yaml` (ruff + ruff-format).
 - [ ] `Dockerfile` (two-stage Node → Python wheel).
 - [ ] `install.sh` / `install.ps1` (uv tool installer).
