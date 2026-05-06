@@ -63,14 +63,19 @@ jobs:
           # Pinned to match mise.toml. Bump both together so the
           # devcontainer and CI stay aligned.
           node-version: "24"
-          # B-31: prime the npm cache so `npm ci` is fast on warm
-          # runs. `cache: 'npm'` looks up `package-lock.json` to key
-          # the cache; before B-28's lockfile lands the lookup fails
-          # gracefully (no key → cache miss → no-op), so this is
-          # safe to enable now and pays off automatically once the
-          # lockfile is committed.
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+          # B-37: npm cache disabled until Q-A8 unblocks a checked-in
+          # `frontend/package-lock.json`. `actions/setup-node@v4`
+          # treats a missing `cache-dependency-path` target as a hard
+          # error ("Dependencies lock file is not found in …") rather
+          # than a graceful no-op — which would fail the workflow at
+          # the Setup Node.js step BEFORE the iter-26 two-pass install
+          # gets a chance to bootstrap the lockfile, silently
+          # re-opening B-28. Re-enable `cache: "npm"` +
+          # `cache-dependency-path: frontend/package-lock.json` in the
+          # iter that closes Q-A8 and lands the real lockfile.
+          # The uv cache is still primed below (`enable-cache: true`
+          # on setup-uv) — uv.lock exists today, so that side pays
+          # off immediately.
 
       - uses: astral-sh/setup-uv@v4
         with:
@@ -90,9 +95,16 @@ jobs:
           enable-cache: true
 
       - name: Build SPA bundle
-        # B-28 / B-19: keep this block IDENTICAL in shell to the
-        # corresponding block in `Dockerfile` (stage `spa`) — both run
-        # the same two-pass install so behaviour is unified.
+        # B-28 / B-19 / B-38: keep this block IDENTICAL in shell to
+        # the corresponding block in `Dockerfile` (stage `spa`) — both
+        # run the same two-pass install so behaviour is unified. The
+        # cross-file anti-drift test
+        # (`test_dockerfile_and_release_workflow_agree_on_npm_install_logic`)
+        # pins `npm ci`, `--package-lock-only`, AND `--include=dev`
+        # in both files so a future runner that sets
+        # `NODE_ENV=production` (or a future GHA default change) can't
+        # silently break `npm run build` here without also breaking
+        # docker.
         #
         # Two-pass install: `npm ci` is the right primitive for CI
         # (fails fast on lockfile drift, never mutates the lock), but
@@ -100,10 +112,16 @@ jobs:
         # devcontainer) means the lockfile cannot yet be generated and
         # committed by hand. Until Q-A8 is unblocked, the first pass
         # generates the lockfile in-place when missing
-        # (`npm install --package-lock-only`); the second pass is the
-        # canonical `npm ci`. Once a real, hand-curated lockfile is
-        # committed, the first pass becomes a fast no-op (the file
-        # already exists) and `npm ci` stays the source of truth.
+        # (`npm install --package-lock-only --include=dev`); the
+        # second pass is the canonical `npm ci --include=dev`. Once a
+        # real, hand-curated lockfile is committed, the first pass
+        # becomes a fast no-op (the file already exists) and `npm ci`
+        # stays the source of truth.
+        #
+        # `--include=dev` is explicit (not relying on the npm default)
+        # because `npm run build` needs vite + tsc devDependencies and
+        # we don't want a future `NODE_ENV=production` env to silently
+        # omit them.
         #
         # `npm run build` writes to `frontend/dist/`; the hatchling
         # build hook in pyproject.toml force-includes that directory
@@ -113,9 +131,9 @@ jobs:
         run: |
           cd frontend
           if [ ! -f package-lock.json ]; then
-            npm install --package-lock-only
+            npm install --package-lock-only --include=dev
           fi
-          npm ci
+          npm ci --include=dev
           npm run build
 
       - name: Build wheel + sdist

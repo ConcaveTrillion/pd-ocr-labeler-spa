@@ -447,18 +447,27 @@ def test_spa_stage_uses_npm_ci_with_lockfile_fallback() -> None:
 
 
 def test_dockerfile_and_release_workflow_agree_on_npm_install_logic() -> None:
-    """B-19 / B-28 (anti-drift): the Dockerfile spa stage and the
-    release workflow's Build SPA bundle step must use the SAME shape of
-    install logic.
+    """B-19 / B-28 / B-38 (anti-drift): the Dockerfile spa stage and
+    the release workflow's Build SPA bundle step must use the SAME
+    shape of install logic.
 
-    Concretely: both must contain the `--package-lock-only` bootstrap
-    AND the `npm ci` execution. If a future iter tightens one without
-    the other, the docker build and the GitHub Actions release will
-    disagree about lockfile policy — exactly the iter-25 review's B-28
-    finding pattern.
+    Concretely: both must contain
+      - the `--package-lock-only` bootstrap (B-28)
+      - the `npm ci` execution (B-19)
+      - `--include=dev` on BOTH the bootstrap install and the `npm
+        ci` (B-38) — so a future runner setting `NODE_ENV=production`
+        can't silently break `npm run build` (which needs vite + tsc
+        devDependencies) on one side without breaking the other.
 
-    We don't byte-compare (shell-vs-Dockerfile syntax differs); we just
-    require both load-bearing tokens to appear in both files.
+    If a future iter tightens one without the other, the docker build
+    and the GitHub Actions release will disagree about lockfile or
+    dev-dependency policy — exactly the iter-25 / iter-30 finding
+    pattern.
+
+    We don't byte-compare (shell-vs-Dockerfile syntax differs); we
+    require the load-bearing tokens to appear in both files AND we
+    pin `--include=dev` symmetry so the two stages can't drift on
+    flag-set even when both still pass the token-presence checks.
     """
     workflow = (REPO_ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
     dockerfile = _dockerfile_text()
@@ -468,6 +477,32 @@ def test_dockerfile_and_release_workflow_agree_on_npm_install_logic() -> None:
         assert "--package-lock-only" in text, (
             f"{label} must include the `--package-lock-only` bootstrap fallback (B-28 alignment)"
         )
+        # B-38: `--include=dev` must appear on BOTH passes (bootstrap
+        # + ci) so the dev-dep set is explicit, not implicit-via-npm-
+        # default. Match in non-comment lines only — `release.yml` has
+        # explanatory comments that name the flag.
+        if label == "release.yml":
+            # YAML: comments are `#`-prefixed. Strip them so a future
+            # comment-mention can't satisfy this on its own.
+            code = "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("#"))
+        else:
+            # Dockerfile: same line-leading `#` rule.
+            code = "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("#"))
+        # Two lines must each contain --include=dev: one with
+        # --package-lock-only, one with `npm ci`.
+        bootstrap_lines = [ln for ln in code.splitlines() if "--package-lock-only" in ln]
+        ci_lines = [ln for ln in code.splitlines() if re.search(r"\bnpm\s+ci\b", ln)]
+        assert bootstrap_lines, f"{label}: no `--package-lock-only` line found in code (non-comment)"
+        assert ci_lines, f"{label}: no `npm ci` line found in code (non-comment)"
+        for ln in bootstrap_lines:
+            assert "--include=dev" in ln, (
+                f"{label}: bootstrap install line must use `--include=dev` (B-38 symmetry); got: {ln!r}"
+            )
+        for ln in ci_lines:
+            assert "--include=dev" in ln, (
+                f"{label}: `npm ci` line must use `--include=dev` "
+                f"(B-38 symmetry — `npm run build` needs vite/tsc devDeps); got: {ln!r}"
+            )
 
 
 def test_dockerignore_excludes_essential_paths() -> None:

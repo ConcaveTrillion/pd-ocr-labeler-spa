@@ -161,24 +161,50 @@ def test_release_workflow_has_concurrency_block() -> None:
     )
 
 
-def test_setup_node_enables_npm_cache() -> None:
-    """B-31: `actions/setup-node` must opt into `cache: 'npm'` so warm
-    runs reuse `~/.npm` rather than re-downloading every dep.
+def test_setup_node_npm_cache_disabled_until_lockfile_lands() -> None:
+    """B-37: until Q-A8 unblocks Node in the devcontainer and a real
+    `frontend/package-lock.json` is committed, `actions/setup-node@v4`
+    must NOT declare `cache: "npm"`.
 
-    `cache-dependency-path: frontend/package-lock.json` is also
-    required because the lockfile lives under `frontend/` (not the
-    repo root) — without it, setup-node looks at the repo-root
-    `package-lock.json` (which doesn't exist), gets a cache miss
-    every run, and the `cache: 'npm'` setting is a no-op.
+    setup-node's npm-cache integration treats a missing lockfile at
+    `cache-dependency-path` as a hard error ("Dependencies lock file
+    is not found in …"), failing the workflow at the Setup Node.js
+    step BEFORE the iter-26 two-pass install gets a chance to
+    bootstrap the lockfile. Enabling the cache here would silently
+    re-open B-28.
+
+    YAML-walk the setup-node `with:` block (rather than regex over
+    text) so the explanatory comment that names the parameter doesn't
+    falsely trip this assertion. When Q-A8 lands the real lockfile,
+    flip this test to assert `cache: "npm"` IS set (and re-introduce
+    the `cache-dependency-path: frontend/package-lock.json` pin).
+
+    The uv cache (`astral-sh/setup-uv` `enable-cache: true`) is the
+    valid caching path today — `uv.lock` exists and the cache primes
+    without a setup-step hard-fail. See
+    `test_setup_uv_enables_cache`.
     """
-    text = _workflow_text()
-    assert re.search(r"cache:\s*[\"']?npm[\"']?", text), (
-        "setup-node must declare `cache: 'npm'` for B-31 caching"
-    )
-    assert "cache-dependency-path: frontend/package-lock.json" in text, (
-        "setup-node must point `cache-dependency-path` at "
-        "`frontend/package-lock.json` (the lockfile is under frontend/, not repo root)"
-    )
+    data = _load_workflow()
+    found_setup_node = False
+    for job_name, job in (data.get("jobs") or {}).items():
+        for step in job.get("steps") or []:
+            uses = (step.get("uses") or "").strip()
+            if uses.startswith("actions/setup-node@"):
+                found_setup_node = True
+                with_block = step.get("with") or {}
+                assert "cache" not in with_block, (
+                    "B-37: `actions/setup-node` must NOT declare a `cache:` key "
+                    "until Q-A8 unblocks a committed `frontend/package-lock.json`. "
+                    "setup-node hard-fails on missing lockfile when `cache:` is set, "
+                    "which would re-open B-28. Found in job "
+                    f"{job_name!r} with-block: {with_block!r}"
+                )
+                assert "cache-dependency-path" not in with_block, (
+                    "B-37: drop `cache-dependency-path` together with `cache:` — "
+                    "neither is meaningful without the other. Found in job "
+                    f"{job_name!r} with-block: {with_block!r}"
+                )
+    assert found_setup_node, "no `actions/setup-node` step found in release.yml"
 
 
 def test_setup_uv_enables_cache() -> None:

@@ -1152,6 +1152,19 @@ that almost certainly breaks the very M0-acceptance path iter 26 just
 fixed. Filed as B-37 below. Plus four lower-severity findings.
 
 ## B-37 — `actions/setup-node@v4` with `cache: "npm"` + `cache-dependency-path: frontend/package-lock.json` fails when the lockfile is absent — **undoes the iter-26 B-28 fix on first tag push**
+- **Status:** Fixed in iter 31 — dropped `cache: "npm"` and
+  `cache-dependency-path: frontend/package-lock.json` from
+  `actions/setup-node@v4`'s `with:` block in `release.yml`. Inline
+  comment explains the deferral and points the next maintainer at
+  Q-A8: "npm cache disabled until Q-A8 unblocks a checked-in
+  `frontend/package-lock.json`. Re-enable in the iter that closes
+  Q-A8." The uv cache (`enable-cache: true` on `astral-sh/setup-uv`)
+  is the valid caching path today — `uv.lock` exists and the cache
+  primes without a setup-step hard-fail. Replaced
+  `test_setup_node_enables_npm_cache` with
+  `test_setup_node_npm_cache_disabled_until_lockfile_lands` (YAML-walk
+  forbidding both `cache:` and `cache-dependency-path:` in the
+  setup-node `with:` block; flip when Q-A8 lands the real lockfile).
 - **Severity:** **high** (re-breaks the M0 release pipeline that iter 26 just unbroke)
 - **Where:** `.github/workflows/release.yml:61-73` (the `actions/setup-node@v4` `with:` block).
 - **Issue:** `actions/setup-node@v4` errors out when `cache:` is set
@@ -1209,6 +1222,19 @@ fixed. Filed as B-37 below. Plus four lower-severity findings.
   or remove the cache assertion entirely until Q-A8 lands.
 
 ## B-38 — `--include=dev` asymmetry between Dockerfile and `release.yml`; cross-file alignment test passes anyway
+- **Status:** Fixed in iter 31 — added `--include=dev` to BOTH npm
+  invocations in `release.yml`'s "Build SPA bundle" step (the
+  `--package-lock-only` bootstrap and the `npm ci` execution), so
+  the Dockerfile and the workflow are now flag-set-symmetric.
+  Tightened
+  `test_dockerfile_and_release_workflow_agree_on_npm_install_logic`
+  to assert each non-comment `--package-lock-only` line AND each
+  `npm ci` line in BOTH files contains `--include=dev` — so a future
+  runner setting `NODE_ENV=production` (or a future GHA default
+  change) can't silently break `npm run build` on one side without
+  failing the test. Updated the inline comment in `release.yml` to
+  document why the flag is explicit (vite/tsc are devDeps; `npm run
+  build` needs them).
 - **Severity:** low
 - **Where:** `Dockerfile:29,31` (`npm install --package-lock-only --include=dev` + `npm ci --include=dev`); `.github/workflows/release.yml:115-118` (no `--include=dev` flag); cross-file guard at `tests/unit/test_dockerfile.py::test_dockerfile_and_release_workflow_agree_on_npm_install_logic`.
 - **Issue:** The Dockerfile's spa stage explicitly uses
