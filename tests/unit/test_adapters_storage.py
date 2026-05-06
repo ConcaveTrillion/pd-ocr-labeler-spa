@@ -228,6 +228,62 @@ def test_filesystem_storage_async_methods_dispatch_blocking_io_to_threadpool() -
     )
 
 
+def test_filesystem_storage_init_does_not_create_root_directory(tmp_path: Path) -> None:
+    """B-54 pin: ``__init__`` must NOT create the root on the filesystem.
+
+    ``bootstrap.build_app`` constructs ``FilesystemStorage(...)`` for
+    its image cache. With default ``Settings()``, the cache root is
+    ``Path.home() / ".cache" / "pd-ocr-labeler"`` — and the previous
+    impl mkdir'd it on construction. That meant any ``build_app()``
+    invocation (e.g. the README smoke test, ``make openapi-export``
+    on a fresh container, an introspection probe) silently created
+    a directory in the developer's homedir as a side-effect of an
+    *import-shaped* operation.
+
+    The factory's "pure: same Settings always produces the same wired
+    graph" docstring (``bootstrap.py``) is true of *output*; this pin
+    enforces it of *side effect*. The mkdir is deferred to first
+    write — ``put_bytes`` already mkdir's parent dirs, which covers
+    the root.
+    """
+    from pd_ocr_labeler_spa.adapters.storage.filesystem import FilesystemStorage
+
+    nonexistent = tmp_path / "definitely-does-not-exist-yet"
+    assert not nonexistent.exists()
+
+    fs = FilesystemStorage(root=nonexistent)
+    # Constructing the storage must NOT have created the directory.
+    assert not nonexistent.exists(), (
+        f"FilesystemStorage.__init__ created {nonexistent!r} as a side effect — factory purity broken (B-54)."
+    )
+
+    # Sanity-check: the storage is still usable; first write creates
+    # the root via ``put_bytes``'s parent-mkdir path.
+    import asyncio
+
+    async def _go() -> None:
+        await fs.put_bytes("a/b.txt", b"x")
+
+    asyncio.run(_go())
+    assert nonexistent.exists()
+    assert (nonexistent / "a" / "b.txt").read_bytes() == b"x"
+
+    # And ``exists`` / ``list_keys`` on a freshly-built (un-written-to)
+    # storage do NOT create the root either — they observe non-existence
+    # and return ``False`` / ``[]``.
+    fresh_root = tmp_path / "fresh"
+    fresh_fs = FilesystemStorage(root=fresh_root)
+
+    async def _observe() -> None:
+        assert await fresh_fs.exists("anything") is False
+        assert await fresh_fs.list_keys("anything") == []
+
+    asyncio.run(_observe())
+    assert not fresh_root.exists(), (
+        "Pure observation methods (exists/list_keys) must not create the root (B-54)."
+    )
+
+
 def test_filesystem_storage_list_keys_file_prefix_returns_canonical_form(tmp_path: Path) -> None:
     """B-53 pin: ``list_keys`` returns root-relative posix keys for BOTH branches.
 

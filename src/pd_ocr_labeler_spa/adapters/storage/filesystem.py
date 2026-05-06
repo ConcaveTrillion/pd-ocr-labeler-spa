@@ -32,7 +32,12 @@ class FilesystemStorage:
     def __init__(self, root: Path, *, cdn_url_base: str = "/cdn") -> None:
         self._root = Path(root)
         self._cdn = cdn_url_base.rstrip("/")
-        self._root.mkdir(parents=True, exist_ok=True)
+        # B-54: do NOT mkdir the root here. ``__init__`` must be free
+        # of FS side effects so that ``bootstrap.build_app(Settings())``
+        # — which the docstring claims is "pure" — is actually pure.
+        # The root is created on first write via ``put_bytes``'s
+        # parent-mkdir, which covers every key by transitivity (the
+        # parent of any key path under root is at least the root itself).
 
     # ── path-traversal guard ─────────────────────────────────────────
     def _path(self, key: str) -> Path:

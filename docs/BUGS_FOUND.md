@@ -1824,6 +1824,19 @@ Iter 40 = next code-review checkpoint.
 
 ## B-52 — Iter-39's `_state_attr` falls back to `pragma: no cover` for the `AttributeError` branch — actual error UX shape is **untested** (only the `RuntimeError` for `get_storage` is covered)
 
+- **Status:** Fixed in iter 42 (2026-05-06).
+  Dropped the `# pragma: no cover` on `_state_attr`'s `AttributeError`
+  branch (`api/dependencies.py:38`) — the line is reached by the
+  unwired-FastAPI test. Replaced
+  `test_get_storage_raises_runtime_error_on_unwired_app` with
+  `test_provider_raises_runtime_error_on_unwired_app` parametrised
+  over all 5 providers (`get_settings`, `get_app_state`, `get_storage`,
+  `get_auth`, `get_ocr_engine`). Tightened the `pytest.raises(...)` to
+  `match=rf"app\.state\.{missing_attr}.*bootstrap\.build_app"` so the
+  *helpful* parts of the wiring-error message (the missing attribute
+  name AND the bootstrap pointer) are pinned, not just the exception
+  class.
+
 - **Severity:** low
 - **Where:** `src/pd_ocr_labeler_spa/api/dependencies.py:33-46` (`_state_attr`); `tests/unit/api/test_dependencies.py:202-217` (only `get_storage` failure path tested).
 - **Issue:** The `_state_attr` helper has `except AttributeError as exc:  # pragma: no cover - defensive` — yet I confirmed via direct call that this path *is* the one that triggers the wiring-clear `RuntimeError`. The pragma is wrong: the path IS exercised by `test_get_storage_raises_runtime_error_on_unwired_app`. More importantly, only ONE provider's failure mode is pinned — the other 4 (`get_settings`, `get_app_state`, `get_auth`, `get_ocr_engine`) aren't. If a future refactor changes `_state_attr`'s error message or replaces it with a different mechanism, only `get_storage` would catch it. The five providers all share the same code path, so the spec contract "every provider raises a wiring-clear `RuntimeError` on missing wiring" is asserted for 1/5, not 5/5.
@@ -1833,6 +1846,19 @@ Iter 40 = next code-review checkpoint.
 ---
 
 ## B-53 — `FilesystemStorage.list_keys` returns inconsistent key shapes for the `is_file()` short-circuit vs the `rglob` walk
+
+- **Status:** Fixed in iter 42 (2026-05-06).
+  `_walk()`'s `is_file()` branch now returns
+  `[base.relative_to(root).as_posix()]` — same canonical
+  root-relative posix form the `rglob` branch uses
+  (`adapters/storage/filesystem.py:108`). New regression test
+  `test_filesystem_storage_list_keys_file_prefix_returns_canonical_form`
+  exercises three non-canonical file prefixes
+  (`"page-images/foo.png"`, `"page-images/foo.png/"`,
+  `"./page-images/foo.png"`) and asserts each yields the same
+  canonical key `["page-images/foo.png"]`. Pre-fix run produced
+  `['page-images/foo.png/']` for the trailing-slash case (caught red
+  before the fix landed).
 
 - **Severity:** low
 - **Where:** `src/pd_ocr_labeler_spa/adapters/storage/filesystem.py:102-111`.
@@ -1856,6 +1882,23 @@ Iter 40 = next code-review checkpoint.
 
 ## B-54 — `FilesystemStorage.__init__` synchronously creates the data root; default `Settings()` causes `build_app()` to write to `~/.cache/pd-ocr-labeler/page-images/` on import
 
+- **Status:** Fixed in iter 42 (2026-05-06).
+  Removed `self._root.mkdir(parents=True, exist_ok=True)` from
+  `FilesystemStorage.__init__` (`adapters/storage/filesystem.py:32`).
+  The factory is now actually pure of FS side effects — `build_app()`
+  with default `Settings()` no longer touches the developer's homedir.
+  First write through `put_bytes` still creates the path via the
+  existing `path.parent.mkdir(parents=True, exist_ok=True)` (which
+  covers the root by transitivity since the parent of any key is at
+  least the root). New regression test
+  `test_filesystem_storage_init_does_not_create_root_directory` builds
+  a storage rooted at a nonexistent path, asserts the path is still
+  nonexistent post-construction, and verifies `put_bytes` does the
+  on-demand mkdir. Also exercises the pure-observation paths
+  (`exists`, `list_keys`) on a fresh storage to confirm THEY don't
+  create the root either (they don't — both go through `_path` →
+  `Path.resolve()` which is `strict=False`).
+
 - **Severity:** low
 - **Where:** `src/pd_ocr_labeler_spa/adapters/storage/filesystem.py:35` (`self._root.mkdir(parents=True, exist_ok=True)`); `src/pd_ocr_labeler_spa/core/app_state.py:99-100` (build wires the cache root).
 - **Issue:** `FilesystemStorage.__init__` calls `self._root.mkdir(parents=True, exist_ok=True)` at construction time. `build_app_state` constructs `FilesystemStorage(settings.cache_root / "page-images")`. `Settings.cache_root` defaults to `Path.home() / ".cache" / "pd-ocr-labeler"`. Therefore: any code that calls `build_app()` with default settings (e.g. the smoke-test command in this iteration's prompt: `python -c "from pd_ocr_labeler_spa.bootstrap import build_app; app = build_app()"`) creates `~/.cache/pd-ocr-labeler/page-images/` on the developer's filesystem — confirmed by `ls /home/vscode/.cache/pd-ocr-labeler/` showing `page-images/` after the smoke-test ran. Tests use `tmp_path` so they're hygienic; but the README's documented smoke-test command is not.
@@ -1865,6 +1908,16 @@ Iter 40 = next code-review checkpoint.
 ---
 
 ## B-55 — `tests/unit/api/test_dependencies.py` uses a module-level mutable `_LAST_IDS` dict — pytest-xdist or parallel test runs would race
+
+- **Status:** Fixed in iter 42 (2026-05-06).
+  Module-global `_LAST_IDS` removed. `_attach_probe_routes` now
+  constructs a fresh `ids` dict per call and the probe-route closures
+  capture it (rather than the global). New `probe_state` fixture
+  yields `(TestClient, ids)`; the parametrised
+  `test_provider_returns_same_singleton_across_requests` consumes
+  both. `probed_client` retained as a back-compat alias that
+  destructures and yields just the client, so the type-shape tests
+  don't churn. No more cross-test mutable state — pytest-xdist safe.
 
 - **Severity:** nit
 - **Where:** `tests/unit/api/test_dependencies.py:64-79`.
