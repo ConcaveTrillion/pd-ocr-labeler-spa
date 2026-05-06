@@ -64,7 +64,18 @@ COPY --from=spa /work/dist/ ./src/pd_ocr_labeler_spa/static/
 RUN sed -i 's|^dynamic = \["version"\]|version = "'"${VERSION}"'"|' pyproject.toml \
     && grep -E '^(version|dynamic)' pyproject.toml
 
+# Build the wheel itself.
 RUN uv build --wheel -o /dist/
+
+# B-20: Export `uv.lock` to a frozen `requirements.txt` for the runtime
+# stage. `pip install <wheel>` alone re-resolves transitive deps from
+# PyPI; consuming this file with `--no-deps` (per dep) keeps the
+# transitive tree bit-for-bit identical to what `uv lock` resolved at
+# author time. `--no-emit-project` excludes `pd-ocr-labeler-spa` itself
+# (the wheel installs that). `--no-dev` strips dev/test extras that
+# the runtime doesn't need.
+RUN uv export --frozen --no-emit-project --no-dev --no-hashes \
+    -o /dist/requirements.txt
 
 # ──────────────────────────── Stage 3: runtime ──────────────────────────────
 FROM python:3.13-slim-bookworm AS runtime
@@ -73,15 +84,33 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-# git + ca-certificates needed at install time to resolve pd-book-tools
-# from its git source. Stripped after install to keep the image lean.
+WORKDIR /app
+COPY --from=wheel /dist/*.whl /dist/requirements.txt /tmp/
+
+# B-21: install-time deps (`git` for pip to clone the pd-book-tools git
+# source; `ca-certificates` for HTTPS) live only inside this single RUN.
+# `apt-get purge --autoremove` strips both packages out of the final
+# image layer so the runtime carries no git binary and no cert bundle
+# beyond what Python wheels need at import time. (Python's `ssl` module
+# uses the certs baked into `certifi` once the wheels are installed.)
+#
+# B-20: install in two passes against the frozen lockfile so neither
+# pass triggers a fresh PyPI resolution:
+#   1. `pip install -r requirements.txt` pulls every transitive dep at
+#      the exact version uv locked. Each line in requirements.txt is a
+#      `==`-pinned spec or a `pkg @ git+…@<sha>` URL, so pip cannot
+#      drift.
+#   2. `pip install --no-deps <wheel>` adds `pd-ocr-labeler-spa` itself
+#      without re-resolving — its declared deps were already satisfied
+#      by step 1.
 RUN apt-get update \
     && apt-get install --no-install-recommends -y git ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir -r /tmp/requirements.txt \
+    && pip install --no-cache-dir --no-deps /tmp/*.whl \
+    && rm /tmp/*.whl /tmp/requirements.txt \
+    && apt-get purge --autoremove -y git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-COPY --from=wheel /dist/*.whl /tmp/
-RUN pip install /tmp/*.whl && rm /tmp/*.whl
 
 # Listen on 0.0.0.0:8080 inside the container; users map the port out.
 # `--no-browser` because there is no browser to open inside a container.

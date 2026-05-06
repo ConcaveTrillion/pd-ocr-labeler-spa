@@ -286,6 +286,110 @@ def test_dockerfile_env_lines_use_settings_prefix() -> None:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# B-20: runtime stage installs from `uv.lock` (via `uv export --frozen`)
+# rather than letting `pip install <wheel>` re-resolve transitive deps.
+# ---------------------------------------------------------------------------
+
+
+def test_wheel_stage_exports_frozen_requirements_for_runtime() -> None:
+    """B-20: the wheel stage must export `uv.lock` to a frozen
+    requirements file (so the runtime install can't drift). The export
+    invocation must reference `--frozen` — without it, `uv export`
+    happily re-resolves and the lockfile becomes decorative.
+
+    Tests the *invocation*, not the lockfile content — the lockfile
+    has its own validation via `uv sync`. We just need to know docker
+    builds aren't sliding off the pinned tree.
+    """
+    text = _dockerfile_text()
+    # `uv export` somewhere in the file…
+    assert re.search(r"\buv\s+export\b", text), (
+        "wheel stage must run `uv export` to emit a frozen requirements.txt for the runtime stage (B-20)."
+    )
+    # …with `--frozen` (otherwise the lock is decorative).
+    assert "--frozen" in text, (
+        "`uv export` must use `--frozen` so a stale lockfile fails "
+        "the build instead of being silently re-resolved (B-20)."
+    )
+
+
+def test_runtime_install_uses_frozen_requirements_with_no_deps_wheel() -> None:
+    """B-20: the runtime stage must install the locked transitive deps
+    *first* (via `pip install -r requirements.txt`) and then install
+    the wheel itself with `--no-deps` so pip cannot re-resolve.
+
+    Concretely: somewhere in the runtime stage, both
+        pip install … -r …requirements.txt
+    and
+        pip install … --no-deps …*.whl
+    must appear. Order matters at runtime (deps first), but a strict
+    line-order check is brittle to layer reorganisation; instead we
+    check both forms exist and the wheel form carries `--no-deps`.
+    """
+    text = _dockerfile_text()
+
+    # The runtime stage starts at the third FROM. Slice from there so
+    # the `uv export` call in the wheel stage doesn't satisfy these
+    # assertions accidentally.
+    runtime_start = text.lower().find("\nfrom python")  # wheel stage
+    runtime_start = text.lower().find("\nfrom python", runtime_start + 1)  # runtime stage
+    assert runtime_start != -1, "could not locate runtime FROM"
+    runtime = text[runtime_start:]
+
+    has_requirements_install = re.search(
+        r"pip\s+install[^\n]*-r\s+\S*requirements\.txt",
+        runtime,
+    )
+    assert has_requirements_install, (
+        "runtime stage must `pip install -r …requirements.txt` to apply "
+        "the frozen lock before installing the wheel (B-20)."
+    )
+
+    has_wheel_install_no_deps = re.search(
+        r"pip\s+install[^\n]*--no-deps[^\n]*\.whl",
+        runtime,
+    )
+    assert has_wheel_install_no_deps, (
+        "runtime stage must install the wheel with `--no-deps` so pip "
+        "cannot re-resolve transitive deps and bypass the lock (B-20)."
+    )
+
+
+# ---------------------------------------------------------------------------
+# B-21: runtime stage must not carry `git` in the final image layer.
+# ---------------------------------------------------------------------------
+
+
+def test_runtime_stage_does_not_keep_git_installed() -> None:
+    """B-21: git is needed at install time (to clone the pd-book-tools
+    git source) but has no runtime use — the labeler does not shell out
+    to git. Keeping it installed bloats the image and grows the attack
+    surface.
+
+    The fix wraps the apt-get install + pip install + apt-get purge in
+    a single RUN so the layer's net contribution is wheel-installed
+    Python packages and *not* the git binary.
+    """
+    text = _dockerfile_text()
+    runtime_start = text.lower().find("\nfrom python")  # wheel stage
+    runtime_start = text.lower().find("\nfrom python", runtime_start + 1)  # runtime stage
+    assert runtime_start != -1, "could not locate runtime FROM"
+    runtime = text[runtime_start:]
+
+    # Either git is never installed in runtime, or it is installed +
+    # purged in the same step. We approximate "same step" by requiring
+    # the purge to appear in the runtime slice if the install does.
+    runtime_installs_git = re.search(r"apt-get\s+install[^\n]*\bgit\b", runtime)
+    if runtime_installs_git:
+        assert re.search(r"apt-get\s+purge[^\n]*\bgit\b", runtime) or re.search(
+            r"apt-get\s+remove[^\n]*\bgit\b", runtime
+        ), (
+            "runtime stage installs git but never purges it — the final "
+            "image layer keeps a git binary it never uses (B-21)."
+        )
+
+
 def test_dockerignore_excludes_essential_paths() -> None:
     """A missing `.dockerignore` rule for `.git/` or `node_modules/`
     silently inflates the build context (slow builds, leaked secrets).

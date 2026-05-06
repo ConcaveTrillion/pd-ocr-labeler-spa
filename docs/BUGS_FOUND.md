@@ -469,7 +469,9 @@ honesty, +1 for B-13 self-test). All ruff gates clean.
   hook + default-install-hook-types pins) and a new `test_version.py`
   (runtime + AST guards on dynamic resolution).
 
-**Iter-10 review backlog: zero remaining.** All B-11..B-15 closed.
+**Iter-10 review backlog: zero remaining as of iter 12** (B-11..B-15 closed).
+Subsequent iter-15 code-review checkpoint filed B-16..B-22; see below
+for status of those.
 
 Test count after iter 12: **48** (was 44 — +2 in pre-commit-config,
 +2 in new test_version module). All ruff gates clean.
@@ -551,6 +553,23 @@ auto-mounted `/openapi.json` + `/docs` + `/redoc`).
 - **Suggested fix:** Land the lockfile when `make frontend-install` first runs (Q-A8 unblock), then change `Dockerfile:18` to `RUN npm ci --include=dev` and drop the `*` glob from the COPY (so a missing lockfile becomes a hard error rather than silent fallthrough). Add a `tests/unit/test_dockerfile.py` shape pin for `npm ci` once that lands.
 
 ## B-20 — `Dockerfile` doesn't use `uv.lock` for reproducible Python deps; `pip install <wheel>` re-resolves
+- **Status:** ✅ **Fixed in iter 17 (2026-05-06)** — chose suggestion
+  (b) (the architecturally honest path). The wheel stage now runs
+  `uv export --frozen --no-emit-project --no-dev --no-hashes -o
+  /dist/requirements.txt` after building the wheel, so the locked
+  transitive tree travels alongside the wheel. The runtime stage
+  COPYs both `/dist/*.whl` and `/dist/requirements.txt`, then installs
+  in two passes inside a single RUN: (1) `pip install -r
+  /tmp/requirements.txt` (every transitive dep is `==`-pinned or
+  git-sha-pinned, so pip cannot drift), then (2) `pip install
+  --no-deps /tmp/*.whl` (the wheel itself, declared deps already
+  satisfied). `--frozen` makes `uv export` fail loudly on a stale
+  lockfile rather than silently re-resolving. Two new regression tests
+  in `test_dockerfile.py`: `test_wheel_stage_exports_frozen_requirements_for_runtime`
+  pins `uv export` + `--frozen`; `test_runtime_install_uses_frozen_requirements_with_no_deps_wheel`
+  pins both `pip install -r …requirements.txt` and `pip install
+  --no-deps …*.whl` in the runtime slice (slicing from the third FROM
+  so the wheel-stage `uv export` can't satisfy a runtime assertion).
 - **Severity:** low
 - **Where:** `Dockerfile:48-67` (wheel stage) + `Dockerfile:88` (runtime `pip install /tmp/*.whl`). Note `pyproject.toml` declares `pd-book-tools = { git = ..., tag = "v0.9.0" }` and the repo carries a `uv.lock` (545 KB).
 - **Issue:** The wheel stage runs `uv build --wheel` which produces a wheel with the runtime dependency *requirements* baked in (matching `pyproject.toml`), but the *resolution* is deferred to `pip install /tmp/*.whl` in the runtime stage. `pip install` doesn't read `uv.lock` — it resolves freshly against PyPI + the git source. The `uv.lock` in the repo is therefore decorative for the docker path; reproducibility depends solely on the git tag pin (`v0.9.0` for pd-book-tools) and PyPI's behaviour for the rest.
@@ -558,6 +577,20 @@ auto-mounted `/openapi.json` + `/docs` + `/redoc`).
 - **Suggested fix:** Either (a) accept the looser-but-tagged shape (current state) and add a comment in the Dockerfile explicitly disclaiming "runtime resolves PyPI freshly; pin upper bounds in pyproject.toml if a regression bites", OR (b) use `uv pip install --frozen` against `uv.lock` in the runtime stage instead of `pip install` against the wheel — but that changes the install model from "install a self-contained wheel" to "install dependencies from lock then the wheel", which is an architecture decision worth discussing with the user before flipping. (a) is the lower-effort honest path.
 
 ## B-21 — `Dockerfile` installs `git` + `ca-certificates` in both `wheel` and `runtime` stages
+- **Status:** ✅ **Fixed in iter 17 (2026-05-06)** — runtime stage now
+  installs `git ca-certificates`, runs the two-pass `pip install`
+  (wheel + frozen requirements per B-20), removes the staged files,
+  and `apt-get purge --autoremove -y git ca-certificates` — all in a
+  single RUN so the final image layer's net contribution is the
+  installed Python wheels and *not* the git binary. Wheel stage still
+  installs both packages (uv needs git to resolve the pd-book-tools
+  git source during `uv export`), but the wheel stage isn't part of
+  the final image. New regression test
+  `test_runtime_stage_does_not_keep_git_installed`: if the runtime
+  slice contains an `apt-get install … git` line, it must also
+  contain a matching `apt-get purge`/`remove` line (so a regression
+  that drops the purge fails the test rather than silently shipping
+  a fatter image).
 - **Severity:** nit
 - **Where:** `Dockerfile:33-35` (wheel stage apt-get) + `Dockerfile:78-80` (runtime stage apt-get).
 - **Issue:** The wheel stage installs `git ca-certificates` to let `uv` fetch the `pd-book-tools` git source during `uv build`. The runtime stage installs the same packages because `pip install /tmp/*.whl` re-resolves and re-fetches the same git source. Each apt-get layer is ~10MB+ pre-cleanup; the runtime image keeps `git` installed (the cleanup only drops the apt cache), so the final image carries git for no runtime reason. Not a correctness bug; build-time/image-size waste.
