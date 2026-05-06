@@ -629,3 +629,119 @@ auto-mounted `/openapi.json` + `/docs` + `/redoc`).
 2. **B-19** — the Dockerfile uses `npm install` against an absent lockfile (and would still use `install` not `ci` once the lockfile lands). Reproducibility hole that's part of the M0 acceptance gate per spec. Fix once Q-A8 unblocks frontend-install.
 
 Iter 16 should pick **B-16** first (one-line `PDLABELER_` rename + tightened test, low-risk). Then either B-17 (post-rewrite/post-checkout hook stages) or resume scaffolding (`make docker-*` targets, install scripts, release.yml). All four iter 11–14 commits otherwise actually fixed/landed what they claimed; the doc-honesty pin (B-12) is a particularly nice piece of regression engineering.
+
+---
+
+# Code-review checkpoint, iter 20 (2026-05-06)
+
+Review scope: commits `c9b9f6f` (iter 16 — B-16/B-17/B-22),
+`e7fe5ef` (iter 17 — B-20/B-21 + B-22 doc cleanup), `b1ac8d5` (iter
+18 — `make docker-*` targets), `f540c62` (iter 19 — `install.sh`).
+Reviewer ran `uv run pytest` (92/92 green, 0.17s), `uv run ruff
+check` (clean), `python -c "from pd_ocr_labeler_spa.bootstrap
+import build_app; build_app()"` (clean), `bash -n install.sh` +
+`bash -n scripts/refresh_version_git_hook.sh` (both clean), `make
+-n docker-build` (exit 0, parses + renders cleanly).
+
+Pre-commit-stage research: `pre_commit/clientlib.py` lists
+`post-commit`, `post-rewrite`, `post-checkout`, `prepare-commit-msg`
+as supported stages (verified by inspection at
+`.venv/lib/python3.13/site-packages/pre_commit/clientlib.py`).
+`uv run pre-commit validate-config` is silent (config OK). The
+B-17 fix's stage names are real.
+
+Cross-checked `uv export --frozen --no-emit-project --no-dev
+--no-hashes` actually excludes the project-itself entry but still
+mentions it in `# via` comments, which `pip install -r` ignores
+(comment lines). The B-20 two-pass install pattern is sound.
+
+`apt-get install ... && pip install ... && apt-get purge --autoremove`
+all live in a **single RUN** at `Dockerfile:106-113`. Layer
+contribution = installed wheels minus git/ca-certificates. Verified
+B-21 actually shrinks the runtime layer.
+
+5 findings filed below — 0 blocker, 0 high, 1 medium, 2 low, 2
+nit. Top concerns: B-23 (no `uv lock --check` gate anywhere — the
+B-20 fix shifts the lockfile-drift failure from runtime PyPI
+fetch to docker-build-time `uv export --frozen` failure, which
+is *better* but still surfaces only at `docker build`, not at
+local CI), B-26 (ROADMAP.md's M0 sub-task checkboxes are stale —
+iters 18+19 landed but their boxes still read `[ ]`).
+
+## B-23 — No CI/pre-commit gate for `uv.lock` ↔ `pyproject.toml` drift; B-20 hides drift until `docker build`
+- **Severity:** medium
+- **Where:** absence — `.pre-commit-config.yaml` (no `uv lock --check` hook), `Makefile` `ci` target line 186 (no `uv lock --check`), `tests/` (no test that asserts lock freshness).
+- **Issue:** Iter-17 (`e7fe5ef`) wired the Dockerfile to `uv export --frozen ...` which fails loudly if `uv.lock` is out of date relative to `pyproject.toml`. That's the right fail-mode — **but it only fires inside `docker build`**, which neither `make ci` nor `make test` runs. A contributor who adds a new direct dep to `pyproject.toml` without running `uv lock` would: (a) pass all 92 unit tests; (b) pass ruff; (c) commit; (d) pass the post-commit refresh-version hook because that calls `uv pip install -e .` (which ignores `uv.lock`); (e) only learn about the drift when a CI/release pipeline that actually runs `docker build` fires. There's no `make ci` step nor pre-commit hook that runs `uv lock --check` (or `uv sync --locked`, which is the modern equivalent).
+- **Why it matters:** Reproducibility is the whole point of the B-20 fix. Today the lockfile is decorative for everyone except docker-build. M1+ work that adds backend deps will routinely ship with a stale `uv.lock` and the contributor won't notice until the release pipeline lights up. Severity medium because (a) `uv.lock` is in the repo and reviewers can spot drift in PR diffs, (b) the in-image build catches it before publish, (c) M0 has no published release yet so impact is bounded — but the gap exists *now* and grows with M1.
+- **Suggested fix:** Add a `uv lock --check` (or `uv sync --locked --no-install-project`) step to either (a) a new pre-commit hook in `.pre-commit-config.yaml` `local` repo (mirrors how `pd-prep-for-pgdp` does this — worth checking peer parity), or (b) `make ci` after `make setup`. Option (a) is friendlier because it catches the drift at commit time rather than CI time. Either way, add a unit test that asserts the gate exists (text-grep for `uv lock --check` or `uv sync --locked` in either the Makefile `ci` recipe or the pre-commit-config hook list).
+
+## B-24 — `make docker-build/run/shell` fail with bare `command not found` when Docker isn't on PATH
+- **Severity:** low
+- **Where:** `Makefile:209-216` (the three docker-* recipes) — neither has a guard like the `_npm` macro's "no npm available; here are your options" fallback.
+- **Issue:** The frontend targets (`frontend-install`, `frontend-build`, `frontend-dev`, `frontend-test`) go through the `_npm` macro at `Makefile:98-112` which checks for `mise` then `npm` and prints a friendly options block ("run `make mise-setup`", "install Node 24 yourself", "add the devcontainer node feature") before exiting 1. The new docker targets don't. On a devcontainer that lacks docker (the current state — `which docker` returns nothing in this environment), the recipes shell out to `docker build …` and the user gets bash's terse `make: docker: No such file or directory`. The `_npm` macro is exactly the cure — a `_docker` macro pattern would be ~6 lines and parallel.
+- **Why it matters:** UX. M0 contributors who follow `docs/DEVELOPMENT.md` and try the docker targets without docker installed get a confusing error rather than a pointer ("install Docker Desktop / Colima / `add docker-in-docker feature to .devcontainer/`"). Not a correctness bug.
+- **Suggested fix:** Add a `_docker` macro analogous to `_npm` that verifies `command -v docker` first and prints a one-line suggestion if not. Wrap each `docker build`/`docker run` call. Optional but a nicer cross-repo pattern. Alternatively, just one-line guard at the top of each recipe: `@command -v docker >/dev/null 2>&1 || { echo "docker not on PATH; install Docker Desktop or Colima first"; exit 1; }`.
+
+## B-25 — `install.sh` mentions Python 3.13 only in a comment; the test asserting "references pinned Python" only proves the comment exists
+- **Severity:** low
+- **Where:** `install.sh:16` (`# Python 3.13+ is required (pyproject.toml requires-python).`); `tests/unit/test_install_sh.py::test_install_sh_mentions_pinned_python_major` (substring-match for `3.13`).
+- **Issue:** The test docstring says "If we bump Python in mise.toml, the installer's user-facing comment block needs to follow — otherwise users running the script see stale prerequisite info." That's true but very weak — the script itself does not check the user's Python at all (it relies on `uv tool install` auto-downloading 3.13 because `requires-python` says so). The test gives a false sense of safety: a future contributor reading "test_install_sh_mentions_pinned_python_major" will assume the script enforces 3.13, when in fact only the comment does. This is the same anti-pattern flagged in B-14 (a hostile gate that pins absence of a feature rather than the actual invariant).
+- **Why it matters:** Mostly a documentation / test-honesty nit. The functional path *is* correct (uv handles Python download), so the lack of explicit version check is fine — the test name and docstring just oversell what's being verified. If a future iter adds `python_requires` checks to the script, this test would still pass with the comment alone. The peer pgdp-prep installer has the same shape, so this is "honest about parity, but parity is itself somewhat lax."
+- **Suggested fix:** One of: (a) rename the test to `test_install_sh_documents_python_pin_in_comment` and adjust docstring to match what's verified; (b) add an actual Python-version preflight to the script (`if ! command -v python3.13 >/dev/null && ! uv python find 3.13 …; then echo "Python 3.13 required" …`) — but this fights uv's automatic download model and is probably overkill; (c) leave as is and add a note in the docstring acknowledging the test is "comment-presence, not behaviour-check." (a) is the cleanest path.
+
+## B-26 — `docs/ROADMAP.md` M0 sub-task checkboxes are stale: iters 18 + 19 landed but boxes still read `[ ]`
+- **Severity:** nit
+- **Where:** `docs/ROADMAP.md:174-176` — the lines `- [ ] Makefile docker-build / docker-run targets …` and `- [ ] install.sh / install.ps1 (uv tool installer).` are unchecked even though `b1ac8d5` (iter 18) added the `make docker-*` targets and `f540c62` (iter 19) added `install.sh`. The narrative cell in the M0 status row at line 12 *does* mention iter 18 + iter 19, so the contradictions are within a single doc.
+- **Why it matters:** Cosmetic but the ROADMAP is meant to be a single-glance status board. A reader scanning checkboxes (the natural human pattern) sees "docker targets and installer not done" while the narrative says they are. Future iter 21+ pickers may waste cycles "starting" a task that's already shipped.
+- **Suggested fix:** Tick the two boxes at `ROADMAP.md:174-176`. Add a sub-item under `install.sh` saying `install.ps1` (Windows) is still TBD. Maintain the convention going forward: every iter that completes a sub-task also flips its checkbox.
+
+## B-27 — `install.sh` resolves the latest tag via `/repos/X/tags`, not `/repos/X/releases/latest`; pre-1.0 retags can return the wrong "latest"
+- **Severity:** nit
+- **Where:** `install.sh:28-29` (`curl … "https://api.github.com/repos/${REPO}/tags" … | grep '"name"' | head -1`).
+- **Issue:** The GitHub `/tags` endpoint returns refs ordered by **commit date of the tagged sha**, not by semver. Two relevant pre-1.0 quirks: (a) re-tagging an existing tag (B-09's history has exactly this — `v0.0` was deleted and `v0.0.0` recreated at the iter-1 sha) means the "latest" by tag date may be older than the actual newest commit. (b) Hot-fix back-port flows that tag a release branch can leave `/tags` ordered counter-intuitively. The peer `pd-prep-for-pgdp/install.sh:44` uses the *same* shape, so this is parity — but parity to a slightly fragile pattern. The `releases/latest` endpoint returns the most recently *published* (not most recently *tagged*) release and is the GitHub-blessed shape for installers.
+- **Why it matters:** Today the repo has exactly one tag (`v0.0.0`) and no published Releases, so the script fails with "no .whl asset attached" regardless of which endpoint it hits. The bug is dormant. It activates the moment a hot-fix flow ships v0.1.1 from a release branch while v0.2.0 already exists on main — `/tags` will return v0.1.1 (newest commit-date) over v0.2.0 (older tag date but higher semver).
+- **Suggested fix:** Either (a) switch to `https://api.github.com/repos/${REPO}/releases/latest` which returns the most recently published release and embeds the wheel URLs directly (saves the second curl call too), or (b) accept parity with pgdp-prep and leave this. (a) is cleaner; (b) preserves the cross-repo sameness the iter-19 commit message values. If keeping (b), add a regression test that the selected tag is the *latest semver* not just the *first listed*. Cross-repo discussion needed before flipping pgdp-prep.
+
+## Non-findings (checked, no bug)
+
+- **`pre-commit` framework supports `post-commit`, `post-rewrite`, `post-checkout` stages.** Verified by inspecting `pre_commit/clientlib.py` in the installed venv — all three appear in the supported-stages list. `uv run pre-commit validate-config` accepts the YAML.
+- **`scripts/refresh_version_git_hook.sh` is executable + has shebang + fail-soft semantics.** `ls -l` shows mode `0755`, line 1 is `#!/usr/bin/env bash`, lines 42-46 fail-soft when `make` is missing (`echo … >&2 ; exit 0`). Won't block a commit/rebase/checkout if the toolchain isn't there.
+- **Refresh hook uses `set -u` not `set -euo pipefail`.** Deliberate — the script must not propagate failures (a `make refresh-version` error during `git rebase` would be very disruptive). Fail-soft is the correct mode for post-* git hooks.
+- **B-20 two-pass `pip install` pattern doesn't conflict with `--no-deps`.** `uv export --no-emit-project` excludes the project itself from `requirements.txt` (verified by running it: `pd-ocr-labeler-spa==…` does not appear, only `# via pd-ocr-labeler-spa` comment lines which pip ignores). Pass 1 installs all transitive deps at locked versions; pass 2 adds the project wheel with `--no-deps`. No conflict.
+- **B-21 `apt-get purge` actually shrinks the layer.** Lines 106-113 are a single `RUN`. The layer's net contribution is the post-purge state. Final image carries no git binary — confirmed by reading the recipe (would also be confirmed by `docker history` if docker were available).
+- **`/bin/bash` exists in `python:3.13-slim-bookworm`.** Debian slim variants keep bash by default; only Alpine and busybox-based slim images drop it. The `docker-shell` `--entrypoint /bin/bash` invocation is fine.
+- **`install.sh` uses `set -euo pipefail` correctly with curl pipelines.** Pipelines that may fail under pipefail (`curl … | grep | head | sed`) all end with `|| true` to swallow non-zero exits, then check the resulting variable for emptiness. No `read` prompts (would need stdin on a piped install). uv-not-installed branch auto-installs uv before continuing.
+- **Three-way port alignment test introspects `Settings().port` live.** `tests/unit/test_makefile_docker.py::test_settings_port_matches_dockerfile_expose` and `…::test_docker_run_maps_settings_port_into_container` both read the int from `Settings().port` rather than hardcoding 8080. A future port-bump that updates Settings but forgets EXPOSE or the Makefile `-p` flag fails the test cleanly.
+- **`docker-build` depends on `frontend-build`.** Confirmed at `Makefile:209` (`docker-build: frontend-build`). Mirrors pgdp-prep. The Dockerfile's `spa` stage rebuilds anyway, but forcing a local `frontend-build` first means the same SPA artefact lands in both `src/pd_ocr_labeler_spa/static/` (for `make build`/wheel) and the docker image (via `COPY --from=spa`). Defensive; correct.
+- **Test count growth is meaningful, not shape-pin spam.** Iters 16-19 added 26 tests across 4 commits (66→92): tightening the env-prefix pin to read live from Settings, hook-stage coverage shape, dockerfile uv-export/two-pass-install, three-way port alignment introspection, install.sh size budget. All are parameterised against the actual sources of truth (Settings/pyproject.toml/mise.toml) rather than hardcoded literals — a regression in any of those triggers a clean diagnostic.
+- **BUGS_FOUND.md is long (631 lines) but not stale.** Spot-checked: every "✅ Fixed" Status line cites the iter that fixed it; B-11's annotation correctly references B-17 extension; B-22 was an annotation-only fix (no code) and is reflected. B-18, B-19 are still open and explicitly tracked as remaining items in the iter-15 + iter-17 summaries.
+
+## Summary
+
+5 findings: 0 blocker, 0 high, **1 medium** (B-23 no `uv lock
+--check` gate), **2 low** (B-24 docker-* targets fail terse without
+docker, B-25 install.sh python-pin test is comment-presence not
+behaviour), **2 nit** (B-26 ROADMAP checkbox staleness, B-27
+install.sh `/tags` vs `/releases/latest`).
+
+Top concerns:
+1. **B-23** — the lockfile-drift gate is missing. The B-20 fix
+   transformed a runtime PyPI-resolution risk into a build-time
+   `uv export --frozen` failure, which is correct architecturally,
+   but the failure surfaces only inside `docker build` — neither
+   `make ci` nor any pre-commit hook catches lockfile drift today.
+   M1+ will start adding deps; the longer this gap stays open the
+   more invisible drift accrues. Fix this before M1.
+2. **B-26** — purely cosmetic but the M0 ROADMAP checkboxes are
+   actively misleading. Two-line fix.
+
+All four iter 16–19 commits actually fixed/landed what they
+claimed. The B-16/B-17 fixes are particularly nice (Settings-as-
+source-of-truth tightening, three-stage hook with shared shell
+script). install.sh follows peer parity faithfully.
+
+Iter 21 should pick **B-23 first** (one pre-commit hook + one
+test, low risk, M1-load-bearing), then **B-26** (two-line ROADMAP
+checkbox flip), then resume scaffolding (`install.ps1`, or
+`release.yml`, or shadcn primitives once Q-A8 lands).
+
