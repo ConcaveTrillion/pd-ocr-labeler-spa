@@ -1,0 +1,101 @@
+# pd-ocr-labeler-spa installer (Windows PowerShell)
+#
+# Usage:
+#   irm https://raw.githubusercontent.com/ConcaveTrillion/pd-ocr-labeler-spa/main/install.ps1 | iex
+#
+# Downloads the prebuilt wheel attached to the latest GitHub Release and
+# runs `uv tool install` against it. The wheel ships with the React SPA
+# already bundled, so end users do NOT need Node, npm, or a JavaScript
+# toolchain — only `uv` (which this script will install for you).
+#
+# PowerShell 5.1+ compatible (the version that ships with Windows 10/11);
+# pwsh 7+ also works. Mirrors install.sh; Python 3.13+ is required
+# (pyproject.toml requires-python).
+
+$ErrorActionPreference = "Stop"
+
+$repo = "ConcaveTrillion/pd-ocr-labeler-spa"
+
+function Test-Command($name) {
+    Get-Command $name -ErrorAction SilentlyContinue | ForEach-Object { return $true }
+    return $false
+}
+
+# 1. Install uv if not already present (provides Python 3.13 too).
+if (-not (Test-Command "uv")) {
+    Write-Host "uv not found — installing uv from https://astral.sh/uv/install.ps1 ..."
+    Invoke-RestMethod -Uri "https://astral.sh/uv/install.ps1" -UseBasicParsing | Invoke-Expression
+    $env:Path = "$HOME\.local\bin;" + $env:Path
+}
+
+# 2. Preflight Python check. `uv tool install` will auto-download Python
+#    3.13 if missing, so this is informational, not gating — but it lets
+#    the user know up-front whether their system Python is new enough.
+if (Test-Command "python") {
+    try {
+        $sysPy = & python -c "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')" 2>$null
+        if ($sysPy -and $sysPy -ne "3.13") {
+            Write-Host "Note: system python is ${sysPy}; pd-ocr-labeler-spa requires 3.13."
+            Write-Host "      uv will download Python 3.13 automatically — no action needed."
+        }
+    } catch {
+        # Non-fatal: uv handles the actual Python provisioning.
+    }
+}
+
+# 3. Resolve the latest published release from the GitHub API.
+#    `/releases/latest` returns the most recent *published* release
+#    (ignoring drafts/prereleases) and embeds asset URLs directly, so
+#    we save a round-trip vs `/tags` + `/releases/tags/<tag>`. It is
+#    also robust to pre-1.0 tag retag flows (this repo retagged
+#    v0.0 → v0.0.0 in iter 7) where `/tags` ordering by commit-date
+#    can return the wrong "latest". Mirrors install.sh's B-27 fix.
+try {
+    $release = Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest" `
+        -Headers @{ Accept = "application/vnd.github+json" } -UseBasicParsing
+} catch {
+    throw "Could not resolve the latest release from https://api.github.com/repos/$repo/releases/latest : $_"
+}
+if (-not ($release -and $release.tag_name)) {
+    throw "Could not resolve the latest release tag from GitHub. (Has a release been published yet?)"
+}
+$latestTag = $release.tag_name
+Write-Host "Installing pd-ocr-labeler-spa $latestTag..."
+
+# 4. Find the wheel asset attached to the latest release.
+$wheelAsset = $null
+if ($release.assets) {
+    $wheelAsset = $release.assets | Where-Object { $_.name -like "*.whl" } | Select-Object -First 1
+}
+if (-not $wheelAsset) {
+    # Hard-fail rather than fall back to `git+...`. The git+ path requires
+    # Node + npm on the user's machine to build the React SPA at install
+    # time, which is exactly the requirement this script is designed to
+    # avoid. See peer pd-prep-for-pgdp/install.ps1 for the same rationale.
+    throw @"
+No .whl asset attached to release $latestTag.
+Expected a wheel uploaded by .github/workflows/release.yml.
+Check https://github.com/$repo/releases/tag/$latestTag — the release
+workflow may have failed, or this is an older tag from before wheel
+publishing was wired up.
+"@
+}
+
+# 5. Download the wheel to a temp dir and install it as a uv tool.
+$tmpDir = New-Item -ItemType Directory -Path (Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString()))
+try {
+    $wheelFile = Join-Path $tmpDir.FullName $wheelAsset.name
+    Write-Host "Downloading $($wheelAsset.browser_download_url)..."
+    Invoke-WebRequest -Uri $wheelAsset.browser_download_url -OutFile $wheelFile -UseBasicParsing
+
+    # uv tool install picks Python 3.13 automatically (downloads it if
+    # missing) since pyproject.toml's requires-python is ">=3.13,<4.0".
+    & uv tool install --reinstall $wheelFile
+} finally {
+    Remove-Item -Recurse -Force $tmpDir.FullName -ErrorAction SilentlyContinue
+}
+
+Write-Host ""
+Write-Host "Done! Run: pd-ocr-labeler-ui --help"
+Write-Host "If 'pd-ocr-labeler-ui' is not found, add uv's tool bin to your PATH:"
+Write-Host "  `$env:Path = `"`$HOME\.local\bin;`" + `$env:Path"

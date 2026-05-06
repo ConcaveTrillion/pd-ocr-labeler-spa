@@ -182,7 +182,15 @@ every iteration.
   → resolves latest tag via GitHub API → `uv tool install
   --reinstall <wheel>`). 75 lines + 10 shape pins in
   `tests/unit/test_install_sh.py`.
-- [ ] `install.ps1` (Windows uv tool installer). Still pending.
+- [x] `install.ps1` (Windows uv tool installer). Iter 23: mirrors
+  `install.sh` shape in PowerShell idiom (`$ErrorActionPreference =
+  'Stop'`, `Test-Command` helper, uv-bootstrap via
+  `https://astral.sh/uv/install.ps1`, `python -c` preflight,
+  `/releases/latest` endpoint with B-27 parity, `uv tool install
+  --reinstall <wheel>`). PowerShell 5.1+ compatible (the version
+  shipped with Windows 10/11). No CUDA/GPU branch (matches
+  `install.sh`; pd-ocr-labeler-spa has no GPU extras). 9 shape pins
+  in `tests/unit/test_install_ps1.py`.
 - [ ] `.github/workflows/release.yml` (CI gate including SPA-bundle
   presence check).
 - [ ] M0 acceptance gate: `make ci` green, `make build` produces a
