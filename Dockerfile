@@ -15,7 +15,20 @@
 FROM node:24-bookworm-slim AS spa
 WORKDIR /work
 COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm install --include=dev
+# B-19 / B-28: this two-pass install is byte-aligned with the
+# corresponding `run:` block in `.github/workflows/release.yml`.
+# Behaviour: when `package-lock.json` is absent (Q-A8 — Node not yet
+# in devcontainer, lockfile not hand-generated), the first pass
+# generates the lock in-place via `npm install --package-lock-only`
+# (`--include=dev` so devDependencies needed for `npm run build`
+# resolve too); the second pass is `npm ci`, the canonical CI-safe
+# install that fails fast on drift and never mutates the lock. Once
+# the lockfile is committed, the first pass becomes a no-op and `npm
+# ci` stays the source of truth.
+RUN if [ ! -f package-lock.json ]; then \
+        npm install --package-lock-only --include=dev; \
+    fi \
+    && npm ci --include=dev
 COPY frontend/ ./
 RUN npm run build
 

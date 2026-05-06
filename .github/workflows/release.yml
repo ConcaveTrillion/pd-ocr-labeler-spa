@@ -51,7 +51,21 @@ jobs:
           python-version: "3.13"
 
       - name: Build SPA bundle
-        # `npm ci` (not `npm install`) so the lockfile is honored.
+        # B-28 / B-19: keep this block IDENTICAL in shell to the
+        # corresponding block in `Dockerfile` (stage `spa`) — both run
+        # the same two-pass install so behaviour is unified.
+        #
+        # Two-pass install: `npm ci` is the right primitive for CI
+        # (fails fast on lockfile drift, never mutates the lock), but
+        # it requires `package-lock.json` to exist. Q-A8 (Node not in
+        # devcontainer) means the lockfile cannot yet be generated and
+        # committed by hand. Until Q-A8 is unblocked, the first pass
+        # generates the lockfile in-place when missing
+        # (`npm install --package-lock-only`); the second pass is the
+        # canonical `npm ci`. Once a real, hand-curated lockfile is
+        # committed, the first pass becomes a fast no-op (the file
+        # already exists) and `npm ci` stays the source of truth.
+        #
         # `npm run build` writes to `frontend/dist/`; the hatchling
         # build hook in pyproject.toml force-includes that directory
         # into `src/pd_ocr_labeler_spa/static/` inside the wheel, and
@@ -59,6 +73,9 @@ jobs:
         # an `index.html` present.
         run: |
           cd frontend
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock-only
+          fi
           npm ci
           npm run build
 

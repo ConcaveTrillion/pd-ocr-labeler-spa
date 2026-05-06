@@ -544,6 +544,23 @@ auto-mounted `/openapi.json` + `/docs` + `/redoc`).
 - **Suggested fix:** Loosen the content-globs assertion to require `"./src/**/*.{ts,tsx}"` is present *as one entry* (superset check), rather than as the full content of the array. The `^3.4.0` major pin is correct (v4 is a breaking-change rewrite); no action there.
 
 ## B-19 — `Dockerfile` `wheel` stage uses `npm install` (not `npm ci`) and tolerates missing `package-lock.json`
+- **Status:** ✅ **Fixed in iter 26 (2026-05-06)** — paired with B-28.
+  The Dockerfile `spa` stage now runs a two-pass install
+  byte-aligned with the corresponding step in
+  `.github/workflows/release.yml`: when `package-lock.json` is absent
+  (Q-A8 — Node not yet in devcontainer, no hand-curated lockfile),
+  `npm install --package-lock-only --include=dev` generates the lock
+  in-place; then `npm ci --include=dev` runs as the canonical
+  CI-safe install that fails fast on drift and never mutates the
+  lock. Once a real lockfile is committed (Q-A8 unblock), the first
+  pass becomes a no-op and `npm ci` stays the source of truth. New
+  regression tests in `test_dockerfile.py`:
+  `test_spa_stage_uses_npm_ci_with_lockfile_fallback` (pins both
+  `npm ci` and the bootstrap form, forbids bare `npm install` outside
+  the bootstrap) and `test_dockerfile_and_release_workflow_agree_on_npm_install_logic`
+  (cross-file alignment — both files must carry both tokens, so a
+  future tighten on one without the other fails the test rather than
+  silently re-creating the iter-25 inconsistency).
 - **Severity:** medium
 - **Where:** `Dockerfile:17-18` (`COPY frontend/package.json frontend/package-lock.json* ./` + `RUN npm install --include=dev`).
 - **Issue:** Two reproducibility holes stacked:
@@ -851,6 +868,25 @@ Findings filed below. **Do not fix this iteration** — iter 26+ picks
 from the list. Severity legend: blocker > high > medium > low > nit.
 
 ## B-28 — `release.yml` runs `npm ci`, but `frontend/package-lock.json` does not exist
+- **Status:** ✅ **Fixed in iter 26 (2026-05-06)** — paired with B-19.
+  Release workflow's "Build SPA bundle" step rewritten to a two-pass
+  install: `if [ ! -f package-lock.json ]; then npm install
+  --package-lock-only; fi && npm ci && npm run build`. The `--package-
+  lock-only` form generates a lockfile in-place from `package.json`
+  (does not touch `node_modules/`), so the first tag push succeeds even
+  while Q-A8 keeps Node out of the devcontainer. Once a real lockfile
+  is committed, the bootstrap branch is a no-op and `npm ci` runs from
+  the committed lock — same CI-safe semantics the original `npm ci`
+  was reaching for. The Dockerfile `spa` stage uses byte-aligned shell
+  logic (B-19 fix) so docker builds and CI publishes can no longer
+  drift in opposite directions on the lockfile question. Three new
+  regression tests: `test_uses_two_pass_install_with_lockfile_fallback`
+  (release workflow, pins both bootstrap + guard); the existing
+  `test_uses_npm_ci_not_npm_install` was loosened to allow the
+  bootstrap form while still forbidding bare `npm install`;
+  `test_spa_stage_uses_npm_ci_with_lockfile_fallback` (Dockerfile
+  side); and `test_dockerfile_and_release_workflow_agree_on_npm_install_logic`
+  cross-file alignment guard so future tightenings can't drift the two.
 - **Severity:** **high** (release pipeline is dead on first execution)
 - **Where:** `.github/workflows/release.yml:62` (`cd frontend && npm ci && npm run build`); `frontend/` has no `package-lock.json` (ls confirmed).
 - **Issue:** `npm ci` requires an existing `package-lock.json` and fails fast with `Missing: ... from lock file` if it isn't present. The repo currently has `frontend/package.json` but no lockfile (Q-A8: Node never ran here). The first `git push` of a `v*` tag will run release.yml, immediately fail at the `npm ci` step, and produce neither wheel nor sdist nor Release. The 12 shape-pin tests in `test_release_workflow.py` actively assert `npm ci` (and forbid `npm install`), so they cement the broken-on-first-run shape.

@@ -390,6 +390,86 @@ def test_runtime_stage_does_not_keep_git_installed() -> None:
         )
 
 
+# ---------------------------------------------------------------------------
+# B-19 / B-28: the spa stage must use the same two-pass `npm ci` install
+# as `.github/workflows/release.yml`, so docker builds and CI publishes
+# don't drift in opposite directions on the same lockfile question.
+# ---------------------------------------------------------------------------
+
+
+def test_spa_stage_uses_npm_ci_with_lockfile_fallback() -> None:
+    """B-19: the spa stage must use `npm ci` as the canonical install.
+
+    Until Q-A8 lands a real `frontend/package-lock.json`, an
+    `npm install --package-lock-only` bootstrap runs first when the
+    lockfile is missing, then `npm ci` consumes it. The bare-mutation
+    `npm install` form is forbidden — the docker build must not produce
+    different node_modules/ trees on different days while CI uses
+    `npm ci`.
+    """
+    text = _dockerfile_text()
+    # Slice to the spa stage (between first FROM and second FROM).
+    spa_start = text.lower().find("\nfrom node")
+    if spa_start == -1:
+        spa_start = 0 if text.lower().startswith("from node") else -1
+    assert spa_start != -1 or text.lower().startswith("from node"), "could not locate spa FROM"
+    # Find next FROM after the spa one.
+    next_from = text.lower().find("\nfrom ", max(spa_start, 0) + 1)
+    assert next_from != -1, "could not locate stage following spa"
+    spa = text[max(spa_start, 0) : next_from]
+
+    assert re.search(r"\bnpm\s+ci\b", spa), (
+        "spa stage must invoke `npm ci` (B-19); a bare `npm install` "
+        "tolerates lockfile drift and is forbidden in the immutable "
+        "image build."
+    )
+
+    # The bootstrap fallback so missing-lockfile runs don't fail.
+    assert "--package-lock-only" in spa, (
+        "spa stage must include an `npm install --package-lock-only` "
+        "fallback so docker builds succeed while Q-A8 keeps "
+        "`frontend/package-lock.json` absent (B-19 / B-28)."
+    )
+
+    # No bare `npm install` outside the bootstrap form.
+    for line in spa.splitlines():
+        # Strip comment portion (after `#` not in a string — Dockerfile
+        # comment syntax is line-leading `#`).
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            continue
+        if re.search(r"\bnpm\s+install\b", line) and "--package-lock-only" not in line:
+            raise AssertionError(
+                f"Dockerfile spa stage uses bare `npm install`: {line!r} — "
+                "use `npm ci` (or `npm install --package-lock-only` to "
+                "bootstrap a missing lockfile)."
+            )
+
+
+def test_dockerfile_and_release_workflow_agree_on_npm_install_logic() -> None:
+    """B-19 / B-28 (anti-drift): the Dockerfile spa stage and the
+    release workflow's Build SPA bundle step must use the SAME shape of
+    install logic.
+
+    Concretely: both must contain the `--package-lock-only` bootstrap
+    AND the `npm ci` execution. If a future iter tightens one without
+    the other, the docker build and the GitHub Actions release will
+    disagree about lockfile policy — exactly the iter-25 review's B-28
+    finding pattern.
+
+    We don't byte-compare (shell-vs-Dockerfile syntax differs); we just
+    require both load-bearing tokens to appear in both files.
+    """
+    workflow = (REPO_ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    dockerfile = _dockerfile_text()
+
+    for label, text in (("release.yml", workflow), ("Dockerfile", dockerfile)):
+        assert re.search(r"\bnpm\s+ci\b", text), f"{label} must invoke `npm ci`"
+        assert "--package-lock-only" in text, (
+            f"{label} must include the `--package-lock-only` bootstrap fallback (B-28 alignment)"
+        )
+
+
 def test_dockerignore_excludes_essential_paths() -> None:
     """A missing `.dockerignore` rule for `.git/` or `node_modules/`
     silently inflates the build context (slow builds, leaked secrets).
