@@ -9,7 +9,7 @@ every iteration.
 
 | Milestone | Status | Notes |
 |---|---|---|
-| **M0** Repo scaffold | 🟡 in progress | Iter 1 backend skeleton + tests; iter 2 frontend scaffold (files only); iter 3 (2026-05-06) `mise.toml` + Makefile + Makefile parse smoke tests; iter 4 (2026-05-06) `.pre-commit-config.yaml` mirroring pd-prep-for-pgdp + 5 YAML-shape smoke tests. Frontend `npm install` still blocked on Q-A8 (no node/npm/mise on PATH). Dockerfile / install scripts / DEVELOPMENT.md pending. |
+| **M0** Repo scaffold | 🟡 in progress | Iter 1 backend skeleton + tests; iter 2 frontend scaffold (files only); iter 3 (2026-05-06) `mise.toml` + Makefile + Makefile parse smoke tests; iter 4 (2026-05-06) `.pre-commit-config.yaml` mirroring pd-prep-for-pgdp + 5 YAML-shape smoke tests; iter 5 (2026-05-06) **code-review checkpoint** → 9 findings filed in `BUGS_FOUND.md` (1 high, 3 medium, 4 low, 1 nit; B-10 was a non-finding sanity check). Iter 6 should fix B-02 (vite proxy port → 8080), B-03 (drop CORS allow_credentials), B-01 (env.js api_only gate + test) and re-tag `v0.0.0` (B-09) before continuing M0 scaffolding. Frontend `npm install` still blocked on Q-A8. Dockerfile / install scripts / DEVELOPMENT.md pending. |
 | M1 Settings + adapters + AppState | ⬜ not started | Pre-conditions: M0. |
 | M2 Project discovery + load | ⬜ not started | Pre-conditions: M0, M1. |
 | M3 OCR config modal + first-page OCR | ⬜ not started | |
@@ -52,7 +52,15 @@ every iteration.
   tests: YAML parse, repos shape, expected hook IDs per repo, every
   repo pins a `rev`). Drive-by reformat of
   `tests/unit/test_makefile.py` so the new check-format would pass.
-- [ ] **Iter 5 (next).** Code-review checkpoint per loop directive.
+- [x] **Iter 5 (2026-05-06).** Code-review checkpoint per loop
+  directive. 9 findings filed in `BUGS_FOUND.md`. Highest concerns:
+  B-02 (vite proxy → :8765 not :8080, blocks dev frontend loop),
+  B-03 (CORS `allow_credentials=True` + wildcard origin invalid),
+  B-01 (`/env.js` mounted unconditionally despite spec §2.12
+  api_only gate; test cements wrong shape). Suggested iter-6 jump-
+  ahead fixes: B-02, B-03, B-01, B-09 (re-tag `v0.0.0`).
+- [ ] **Iter 6 (next).** Apply B-01/B-02/B-03/B-09 fixes (small,
+  focused commit), then resume scaffolding.
 - [ ] Tailwind v3.4 + shadcn/ui wiring (`tailwind.config.ts`,
   `postcss.config.js`, `src/index.css`, `components.json`).
   Deferred from iter 2 to keep the smoke scaffold minimal.
