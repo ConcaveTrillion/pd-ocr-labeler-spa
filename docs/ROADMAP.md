@@ -9,7 +9,7 @@ every iteration.
 
 | Milestone | Status | Notes |
 |---|---|---|
-| **M0** Repo scaffold | 🟡 in progress | Iter 1 backend skeleton + tests; iter 2 frontend scaffold (files only); iter 3 (2026-05-06) `mise.toml` + Makefile + Makefile parse smoke tests; iter 4 (2026-05-06) `.pre-commit-config.yaml` mirroring pd-prep-for-pgdp + 5 YAML-shape smoke tests; iter 5 (2026-05-06) **code-review checkpoint** → 9 findings filed in `BUGS_FOUND.md` (1 high, 3 medium, 4 low, 1 nit; B-10 was a non-finding sanity check). Iter 6 should fix B-02 (vite proxy port → 8080), B-03 (drop CORS allow_credentials), B-01 (env.js api_only gate + test) and re-tag `v0.0.0` (B-09) before continuing M0 scaffolding. Frontend `npm install` still blocked on Q-A8. Dockerfile / install scripts / DEVELOPMENT.md pending. |
+| **M0** Repo scaffold | 🟡 in progress | Iter 1 backend skeleton + tests; iter 2 frontend scaffold (files only); iter 3 (2026-05-06) `mise.toml` + Makefile + Makefile parse smoke tests; iter 4 (2026-05-06) `.pre-commit-config.yaml` mirroring pd-prep-for-pgdp + 5 YAML-shape smoke tests; iter 5 (2026-05-06) **code-review checkpoint** → 9 findings filed in `BUGS_FOUND.md` (1 high, 3 medium, 4 low, 1 nit; B-10 was a non-finding sanity check); iter 6 (2026-05-06) fixed B-02 (vite proxy → :8080) + B-03 (drop CORS `allow_credentials`) with regression tests. Iter 7 should pick B-01 (env.js api_only gate + test) and B-09 (re-tag `v0.0.0`) before resuming scaffolding. Frontend `npm install` still blocked on Q-A8. Dockerfile / install scripts / DEVELOPMENT.md pending. |
 | M1 Settings + adapters + AppState | ⬜ not started | Pre-conditions: M0. |
 | M2 Project discovery + load | ⬜ not started | Pre-conditions: M0, M1. |
 | M3 OCR config modal + first-page OCR | ⬜ not started | |
@@ -59,8 +59,16 @@ every iteration.
   B-01 (`/env.js` mounted unconditionally despite spec §2.12
   api_only gate; test cements wrong shape). Suggested iter-6 jump-
   ahead fixes: B-02, B-03, B-01, B-09 (re-tag `v0.0.0`).
-- [ ] **Iter 6 (next).** Apply B-01/B-02/B-03/B-09 fixes (small,
-  focused commit), then resume scaffolding.
+- [x] **Iter 6 (2026-05-06).** Fixed B-02 (vite dev proxy
+  `localhost:8765` → `localhost:8080`, three keys) and B-03 (dropped
+  `allow_credentials=True` from CORSMiddleware to match pgdp-prep +
+  CORS spec). Added `tests/unit/test_vite_config.py` (3 tests: file
+  exists, all 3 proxy keys hit :8080, no stale 8765 literal) and
+  `tests/unit/test_cors_middleware.py` (2 tests: wildcard+credentials
+  combo refused, kwargs match pgdp-prep shape). Test count: 21 → 26.
+- [ ] **Iter 7 (next).** Apply B-01 (env.js api_only gate + flip
+  fixture; spec §2.12) and B-09 (re-tag `v0.0.0`), then resume
+  scaffolding (Tailwind + shadcn / Dockerfile / install scripts).
 - [ ] Tailwind v3.4 + shadcn/ui wiring (`tailwind.config.ts`,
   `postcss.config.js`, `src/index.css`, `components.json`).
   Deferred from iter 2 to keep the smoke scaffold minimal.

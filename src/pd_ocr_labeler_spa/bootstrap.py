@@ -54,12 +54,18 @@ def build_app(settings: Settings | None = None) -> FastAPI:
     # CORS: same shape as pgdp-prep. Acceptable because the SPA serves
     # from the same origin in production; wide setting unblocks
     # Vite-dev (5173 → 8080).
+    #
+    # NOTE: ``allow_credentials`` is intentionally omitted. Per the CORS
+    # spec, browsers reject ``Access-Control-Allow-Origin: *`` paired
+    # with ``Access-Control-Allow-Credentials: true``. Matches
+    # pd-prep-for-pgdp/src/pd_prep_for_pgdp/bootstrap.py and
+    # specs/02-backend.md §step-7. Auth (M2+) will switch to a concrete
+    # origin list and may then re-enable credentials.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
         allow_methods=["*"],
         allow_headers=["*"],
-        allow_credentials=True,
     )
 
     # Stash settings on app.state so dependencies / routes can read it.

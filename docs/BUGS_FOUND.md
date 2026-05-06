@@ -39,6 +39,10 @@ from the list. Severity legend: blocker > high > medium > low > nit.
   asserting `/env.js` is **not** registered in `api_only` mode.
 
 ## B-02 — Vite dev proxy targets port 8765, but backend default is 8080
+- **Status:** ✅ **Fixed in iter 6 (2026-05-06)** — see
+  `frontend/vite.config.ts` (all three proxy keys now → `:8080`) and
+  `tests/unit/test_vite_config.py` (3 regression tests). LOOP_STATE
+  iter-6 row records the sha.
 - **Severity:** high
 - **Where:** `frontend/vite.config.ts:17-19` (`/api`, `/image-cache`,
   `/env.js` all → `http://localhost:8765`).
@@ -65,6 +69,12 @@ from the list. Severity legend: blocker > high > medium > low > nit.
   matches the Makefile and spec.)
 
 ## B-03 — CORS config sets `allow_credentials=True` together with `allow_origins=["*"]`
+- **Status:** ✅ **Fixed in iter 6 (2026-05-06)** — `allow_credentials`
+  removed from `CORSMiddleware` kwargs in
+  `src/pd_ocr_labeler_spa/bootstrap.py`; matches pgdp-prep + spec
+  §step-7. Regression test in `tests/unit/test_cors_middleware.py` (2
+  tests: wildcard+credentials combo refused; kwargs shape pinned).
+  LOOP_STATE iter-6 row records the sha.
 - **Severity:** medium
 - **Where:** `src/pd_ocr_labeler_spa/bootstrap.py:57-63`.
 - **Issue:** Per the CORS spec (and how Starlette/FastAPI implement
@@ -232,15 +242,13 @@ from the list. Severity legend: blocker > high > medium > low > nit.
 
 ## Recommended iter 6 ordering
 
-1. **B-02** (vite proxy port) — one-line fix; highest impact for
-   blocking M1+ frontend loop.
-2. **B-03** (CORS allow_credentials) — one-line fix; aligns with
-   spec and pgdp-prep.
+1. ~~**B-02** (vite proxy port)~~ — ✅ fixed in iter 6.
+2. ~~**B-03** (CORS allow_credentials)~~ — ✅ fixed in iter 6.
 3. **B-01** (env.js api_only gate + test) — small fix, prevents
    spec drift compounding in M1's image-cache and SPA-fallback
-   mounts.
-4. **B-09** (re-tag `v0.0.0`) — pure git operation; bundle with the
-   above as a cleanup commit.
+   mounts. **Iter 7 top of queue.**
+4. **B-09** (re-tag `v0.0.0`) — pure git operation; bundle with B-01
+   as a cleanup commit. **Iter 7.**
 5. Defer B-04, B-05, B-06, B-07, B-08 until M1 starts touching the
    surrounding code (most are pre-existing comments / known
    incomplete scaffolding).
