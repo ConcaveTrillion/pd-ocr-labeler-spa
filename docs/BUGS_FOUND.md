@@ -1524,3 +1524,237 @@ opportunistic.
 
 **Iter 31 picks: B-37 (drop or guard the npm cache), bundled with
 B-38 (`--include=dev` symmetry).**
+
+---
+
+# BUGS_FOUND — code-review checkpoint, iter 35 (2026-05-06)
+
+Review scope: commits since `02fd069`:
+- `9a2ab99` + `d6ffcd7` — iter 31 (B-37/B-38 closeout, two commits w/ pre-commit auto-fix)
+- `7696adf` — iter 32 (B-39/B-40/B-41 batched closeout)
+- `2bb956d` + `b00a265` — iter 33: **M1.a** — adapter Protocols (storage, auth, ocr) + filesystem/none/stub impls + 15 tests
+- `b70ec57` + `0b3c584` — iter 34: **M1.b** — `RequestIdMiddleware` + `core/logging_config` + 16 tests
+
+Reviewer ran:
+- `uv run pytest -q` → 167/167 green in 0.28s
+- `uv run ruff check .` → clean
+- `python -c "build_app(...); print(len(app.user_middleware))"` → 2 (RequestId at index 0, CORS at 1) — spec §12 ordering confirmed
+- `TestClient(...).get('/healthz', headers={'X-Request-ID': 'abc-test'})` → echoed back on response, status 200
+- `make -n docker-build` → returns 0
+- `pre-commit validate-config` → clean
+
+Findings B-42 through B-49 (8 items: 0 blocker, 0 high, 3 medium, 3 low, 2 nit).
+
+---
+
+## B-42 — `IAuth.verify` signature drifts from spec §7 (`creds: HTTPAuthorizationCredentials | None` → `credentials: str | None`)
+
+- **Severity:** medium
+- **Where:** `src/pd_ocr_labeler_spa/adapters/auth/base.py:42`; spec citation `specs/02-backend.md:434`
+- **Issue:** Spec §7 fixes the Protocol surface verbatim:
+  ```python
+  async def verify(self, creds: HTTPAuthorizationCredentials | None) -> UserContext: ...
+  ```
+  The impl is `async def verify(self, credentials: str | None) -> UserContext: ...` — both the parameter name (`creds` → `credentials`) and the type (`HTTPAuthorizationCredentials | None` → `str | None`) drift. The `IAuth` protocol's docstring acknowledges the deviation ("backends that need structured `HTTPAuthorizationCredentials` should re-parse from the request in their own dependency layer") but per the agent's own rule "specs are the source of truth; if reality forces a change, change the spec first."
+- **Why it matters:** When M2/M5 wires `api/dependencies.py::get_user`, the FastAPI dependency `Depends(HTTPBearer())` returns `HTTPAuthorizationCredentials | None`. Current impl forces the dependency layer to do `creds.credentials if creds else None` to flatten to `str` — extra friction at every callsite, exactly the kind of churn Protocols-as-spec are meant to avoid. Also, the method-set drift pin (`test_iauth_protocol_method_set` only checks `verify` exists) does NOT catch this signature drift, so a future "fix" could silently re-widen.
+- **Suggested fix:** Either (1) restore the spec signature (import `from fastapi.security import HTTPAuthorizationCredentials`, accept the model directly), or (2) update spec §7 line 434 to match the impl with a one-line "decision: flatten to bearer string at the Protocol surface so the Protocol is FastAPI-agnostic; dependency layer extracts `.credentials`" rationale. Either way, a sig drift-pin test should land — `inspect.signature(IAuth.verify).parameters` matches the spec's named/typed shape.
+
+---
+
+## B-43 — Spec §9's per-route audit log (`request_start` / `request_end`) is not implemented in M1.b
+
+- **Severity:** medium
+- **Where:** `src/pd_ocr_labeler_spa/api/middleware/request_id.py` (whole file); spec citation `specs/02-backend.md:500-502`
+- **Issue:** Spec §9 is two bullets, not one:
+  ```
+  Verbatim port from pgdp-prep:
+  - api/middleware/request_id.py — ...
+  - core/logging_config.py — ...
+  Per-route audit log (closes pgdp-prep gap):
+  - request_start info log on entry (path, method, request_id).
+  - request_end info log on exit (status, duration_ms).
+  ```
+  The iter-34 commit message says "Verbatim ports from pd-prep-for-pgdp per spec §9" and ships the first two bullets — but **the third bullet (the audit log that explicitly "closes the pgdp-prep gap") is silently absent**. The middleware has no `log.info("request_start", ...)` / `log.info("request_end", ...)` calls. Iter-34's ROADMAP entry doesn't mention it as remaining work either; the gap is invisible.
+- **Why it matters:** This is the only piece of §9 the spec calls a *new feature beyond pgdp-prep parity*, so quietly skipping it on the "verbatim port" iter means the feature lands when, exactly? It's not in any remaining-M1-sub-tasks list. M1's acceptance test (`test_request_id_echoed`) doesn't catch it. Operational triage of a misbehaving job will be missing path/method/duration_ms breadcrumbs the spec promised.
+- **Suggested fix:** Either (1) add the audit-log lines now (`log.info("request_start", extra={"path": ..., "method": ..., "request_id": rid})` on entry, `log.info("request_end", extra={"status": response.status_code, "duration_ms": ...})` in the `finally`-or-after-call-next branch), or (2) explicitly file a follow-on task in the M1 sub-task list naming this gap and a target iter. Don't leave it implicit.
+
+---
+
+## B-44 — `FilesystemStorage.delete` / `list_keys` / `put_bytes` parent-mkdir use sync FS calls under `async def` — defeats async I/O on those methods
+
+- **Severity:** medium
+- **Where:** `src/pd_ocr_labeler_spa/adapters/storage/filesystem.py:62-65, 67-84, 56`
+- **Issue:** The Protocol declares `delete`, `list_keys` etc. as `async`. The filesystem impl mostly delegates through `anyio.Path` (good), but three paths run sync-on-the-event-loop:
+  - `delete`: `path.exists()` and `path.unlink()` — both `pathlib.Path` sync calls.
+  - `list_keys`: `base.exists()`, `base.is_file()`, `base.rglob("*")`, `path.is_file()`, `path.relative_to()` — all sync.
+  - `put_bytes`: `path.parent.mkdir(parents=True, exist_ok=True)` — sync (the comment acknowledges this with "anyio's Path proxy doesn't offer mkdir(parents=True) cleanly without an extra hop").
+- **Why it matters:** Under any concurrency at all (Vite-dev hot-reload, test parallelism, the eventual SSE notifications endpoint), these sync calls block the event loop while the kernel reads the directory. `list_keys` against a populated `<cache_root>/page-images/` (one file per page-image, hundreds of files for a long book) is the worst — sync `rglob` walks every entry. The labeler's single-user shape masks the cost in v1, but importing this pattern into M3+ where job-runner concurrency is real means the labeler is silently slow in places the spec says are async. The comment in `put_bytes` confirms the author knew but accepted the shortcut.
+- **Suggested fix:** Wrap each sync block in `await anyio.to_thread.run_sync(lambda: ...)`. For `list_keys` specifically, doing the whole rglob inside one `to_thread.run_sync` is fine (one threadpool dispatch). For `delete` and `put_bytes` parent-mkdir, same. Cost ~6 lines, removes the only correctness/performance lie in the impl. Add a regression test that the sync FS calls don't appear inside `async def` bodies via AST scan, or assert via a basic concurrency probe (two `delete` calls scheduled together don't serialize).
+
+---
+
+## B-45 — Path-traversal guard's docstring claims absolute-path keys (`/etc/passwd`) are "guarded" but the impl silently re-roots them under `self._root`
+
+- **Severity:** low
+- **Where:** `src/pd_ocr_labeler_spa/adapters/storage/filesystem.py:30-46`; corresponding test gap in `tests/unit/test_adapters_storage.py:78-97`
+- **Issue:** The docstring at lines 33-35 says
+  ```
+  Two attack shapes guarded:
+  - ``../../etc/passwd`` (relative escape via parent dir refs)
+  - ``/etc/passwd`` (absolute key reinterpreted under root)
+  ```
+  But "reinterpreted under root" is not the same as "guarded against." Verified by hand:
+  ```
+  $ fs.put_bytes("/etc/passwd", b"pwned")  # no exception
+  $ ls <root>/etc/passwd                    # exists, contains "pwned"
+  ```
+  The `lstrip("/")` on line 40 silently converts an absolute key into a relative one. The path-traversal test (line 78) only exercises `../../etc/passwd` (the first attack shape), never `/etc/passwd` — so the test passes but the docstring's second claim is unverified.
+- **Why it matters:** Security invariant (no escape from `self._root`) IS preserved, so the bug is mostly cosmetic — a caller passing `/etc/passwd` won't read `/etc/passwd` from the host. But the docstring misleads a future reader into thinking the absolute-path case throws. If the routing layer (M3+) uses absolute-key form anywhere, files end up at unexpected on-disk locations without an error, and ops debugging "why is `<root>/etc/foo` showing up?" wastes time.
+- **Suggested fix:** Either (1) tighten the impl: raise `ValueError` if `key.startswith("/")` BEFORE `lstrip` — making the docstring true; or (2) reword the docstring: "absolute-path keys are silently treated as relative under root (no escape, but the leading `/` is stripped)." Add a test asserting the chosen behavior — `put_bytes("/etc/passwd")` either raises OR creates `<root>/etc/passwd` and not anywhere else. Today neither variant is pinned.
+
+---
+
+## B-46 — Inconsistency: OCR impls subclass `IOCREngine` (Protocol) explicitly; storage and auth impls rely on structural typing
+
+- **Severity:** low
+- **Where:**
+  - `src/pd_ocr_labeler_spa/adapters/ocr/{local_doctr,modal,shared_container}.py` — `class LocalDoctrOCR(IOCREngine):` etc.
+  - `src/pd_ocr_labeler_spa/adapters/auth/none_.py:13` — `class NoneAuth:` (no base)
+  - `src/pd_ocr_labeler_spa/adapters/storage/filesystem.py:21` — `class FilesystemStorage:` (no base)
+- **Issue:** Two different conformance styles within the same M1.a iter. Subclassing a `@runtime_checkable` Protocol turns the impl into a nominal subtype (still type-checks structurally, but `isinstance(LocalDoctrOCR(), IOCREngine)` returns `True` via MRO not runtime structural-check); not subclassing leaves it pure-structural. The functional difference is small, but the *style* difference is jarring.
+- **Why it matters:** A future agent reading these three packages in order will pattern-match "OCR inherits, the others don't, why?" and either (a) add inheritance to the others "for consistency" (potentially shadowing default arguments via Protocol class attributes) or (b) drop inheritance from OCR (breaking any `isinstance` check that doesn't yet exist but might land in M3 dispatcher wiring). Neither break is dramatic, but the inconsistency itself is the bug.
+- **Suggested fix:** Pick one style for the codebase and apply it. PEP 544 best-practice and pgdp-prep both lean toward *no* inheritance (pure structural typing) — drop `(IOCREngine)` from the three OCR impls. Add a one-line comment in `adapters/__init__.py` documenting the policy ("impls match Protocols structurally; do not subclass").
+
+---
+
+## B-47 — `test_request_id.py` lacks the `_reset_managed_handlers` autouse cleanup that `test_logging_config.py` has — `build_app(...)` calls in this file leak managed handlers across the test session
+
+- **Severity:** low
+- **Where:** `tests/unit/core/test_request_id.py` (whole file, no autouse fixture); cf. `tests/unit/core/test_logging_config.py:224-231`
+- **Issue:** `test_logging_config.py` has the autouse fixture
+  ```python
+  @pytest.fixture(autouse=True)
+  def _reset_managed_handlers():
+      yield
+      root = logging.getLogger()
+      for h in list(root.handlers):
+          if getattr(h, "_pdlabeler_managed", False):
+              root.removeHandler(h)
+  ```
+  to keep tests hermetic. `test_request_id.py` does NOT — but it has *three* tests that call `build_app(Settings(...))`, which calls `configure_logging(...)`, which leaves a managed handler on the root logger. Only `test_build_app_calls_configure_logging` does explicit cleanup at the very end (line 186). The other two (`test_build_app_registers_request_id_outermost`, `test_build_app_request_id_uses_settings_header`) leak.
+- **Why it matters:** Within today's two-file `tests/unit/core/` directory the leak is benign (the other file's autouse fixture cleans up at its own test boundaries, and ordering happens to land favorably). But pytest doesn't guarantee a file-order, and any future test in any other file that introspects the root logger's handlers will see a stale managed handler from whatever `test_request_id.py` test ran last. This is exactly the failure mode the sentinel + autouse pattern was meant to prevent.
+- **Suggested fix:** Lift the `_reset_managed_handlers` fixture into `tests/unit/core/conftest.py` (so both files share it) — or copy-paste it into `test_request_id.py`. Two-line fix.
+
+---
+
+## B-48 — `test_request_id_tagged_on_log_lines` cleanup `caplog.handler.removeFilter(caplog.handler.filters[-1])` is positional, not identity-based
+
+- **Severity:** nit
+- **Where:** `tests/unit/core/test_request_id.py:91-113`
+- **Issue:** The test does:
+  ```python
+  caplog.handler.addFilter(RequestIdFilter())   # line 91
+  ...
+  finally:
+      caplog.handler.removeFilter(caplog.handler.filters[-1])   # line 113
+  ```
+  The cleanup removes whichever filter is currently last in the list — not necessarily the one we added. If anything between lines 91 and 113 (the `try` block, the TestClient call, the FastAPI startup hooks) appends a filter to caplog's handler, this line removes the wrong one.
+- **Why it matters:** Today nothing inserts a filter — the test passes. But the pattern is fragile: someone adds a `caplog.handler.addFilter(...)` for a different purpose in this test or in a sibling fixture, and the cleanup silently leaks the RequestIdFilter (now pinned forever onto pytest's caplog handler), which then changes log records for every subsequent test in the session that uses caplog.
+- **Suggested fix:** Capture the filter instance at `addFilter` time:
+  ```python
+  rid_filter = RequestIdFilter()
+  caplog.handler.addFilter(rid_filter)
+  try:
+      ...
+  finally:
+      caplog.handler.removeFilter(rid_filter)
+  ```
+  One-line refactor; identity-based removal is robust.
+
+---
+
+## B-49 — `test_request_id_var_default_is_empty_string` is circular: it sets `""` then asserts `""`, never tests the documented default
+
+- **Severity:** nit
+- **Where:** `tests/unit/core/test_logging_config.py:30-39`
+- **Issue:** The test:
+  ```python
+  def test_request_id_var_default_is_empty_string() -> None:
+      token = request_id_var.set("")
+      try:
+          assert request_id_var.get() == ""
+      finally:
+          request_id_var.reset(token)
+  ```
+  This sets the contextvar to `""` and confirms it's `""`. It does NOT verify that the *declared default* on `ContextVar("request_id", default="")` is `""`. Any future `default=None` or `default="<unset>"` would still pass (the test sets `""` first).
+- **Why it matters:** The docstring claims this pins the spec §9 invariant ("empty-string default keeps the JSON field type-stable"). It doesn't. The drift it claims to catch (someone changing the `default=` kwarg) goes undetected.
+- **Suggested fix:** Test the default directly:
+  ```python
+  fresh = ContextVar[str]("test_default_check", default=...)  # don't actually re-create it
+  # OR: import the module attribute that holds the default and assert
+  import pd_ocr_labeler_spa.core.logging_config as lc
+  # The contextvar's name + default are accessible via _name / _default
+  # But cleaner: just call .get() in a fresh context, e.g. via contextvars.copy_context()
+  import contextvars
+  ctx = contextvars.Context()
+  assert ctx.run(lambda: request_id_var.get()) == ""
+  ```
+  The `contextvars.Context()` form is the canonical "fresh context" idiom and tests the real default without setting the var first.
+
+---
+
+## Cross-cutting checks (NEW for iter 35)
+
+- **Test count growth: 136 → 167 (+31).** Suite still 0.28s. No flakiness across three runs. Genuine shape pins, none of the 31 new tests are no-op tautologies (B-49 is a single weak test, not a category).
+- **Module layout adherence to spec §1.** Spot-checked all M1.a/M1.b new files against `specs/02-backend.md:14-67`: every path matches verbatim. `adapters/auth/none_.py` (with trailing underscore) matches the spec layout exactly (avoids shadowing `none` keyword). `core/logging_config.py`, `api/middleware/request_id.py` — both at the spec-named locations. ✓
+- **Protocol vs concrete-class export surface.** `adapters/storage/__init__.py` exports `IStorage` + `FilesystemStorage`. `adapters/auth/__init__.py` exports `IAuth` + `UserContext` + `NoneAuth`. `adapters/ocr/__init__.py` exports `IOCREngine` + `OCRProvenance` + the three impls. Both Protocols and concrete classes are exported. The `__all__` is set in all three. ✓
+- **`UserPageEnvelope` v2.1.** Per `specs/16-milestones.md:220-221` lands in **M3** (`core/persistence/user_page_envelope.py`), not M1. The agent description's mention is forward-context, not a current obligation. Not a finding.
+- **CORS allow_credentials.** `bootstrap.py:71-76` — `allow_credentials` deliberately omitted with a load-bearing comment citing the CORS-spec rule (wildcard origin + credentials are mutually exclusive). Correct for v1.
+- **Middleware ordering correctness.** Verified at runtime: `app.user_middleware[0].cls.__name__ == "RequestIdMiddleware"`, `app.user_middleware[1].cls.__name__ == "CORSMiddleware"`. Spec §12 ordering ("RequestId outermost") satisfied.
+- **`X-Request-ID` round-trip.** Verified with a TestClient call: incoming `X-Request-ID: abc-test` is echoed back on the response header. Auto-mint path also verified — missing header yields a uuid4 hex echoed back. ✓
+- **`configure_logging` idempotency.** Verified at runtime: 5 successive calls leave exactly 1 managed handler. ✓
+- **B-37 anti-drift (mental revert).** Reverted the `--include=dev` on the `release.yml` `npm ci` line in my head; `test_dockerfile_and_release_workflow_agree_on_npm_install_logic` would fail with `release.yml: 'npm ci' line must use '--include=dev' (B-38 symmetry — 'npm run build' needs vite/tsc devDeps); got: ...`. Test correctly catches the regression. ✓
+- **B-40 regex check.** Manually traced `^Python \d+\.\d+(\.\d+)?` against:
+  - `Python 3.13.0` (real) → matches (full string consumed).
+  - `Python 3.14.0a1` (pre-release) → matches (the `0` part consumed; trailing `a1` left unmatched, OK because regex isn't end-anchored).
+  - `Python was not found, run "without arguments" to install...` (MS Store stub) → does NOT match (no digit after `Python `; `\d+` fails). Diagnostic still fires. ✓
+  - `Python 3.13.0+` (pyenv) → matches. ✓
+- **B-39 test rename.** Renamed `test_python_pin_in_release_workflow` → `test_python_pin_in_release_workflow_matches_mise_if_set` and the body now does a YAML-walk for `with: { python-version: ... }` keys. Today's workflow has none, so the test is a passive guard until a future re-introduction. Real refactor (not a rename-only). ✓
+- **B-41 breadcrumbs.** `grep -r "PLANNED OBSOLESCENCE" tests/` returns matches in both `test_dockerfile.py` and `test_release_workflow.py`, naming Q-A8. Future Q-A8-closing iter can grep for it. ✓
+- **`make -n docker-build`** returns 0 (frontend-build, COPY, docker build). Recipe shape unchanged. ✓
+- **`pre-commit validate-config`** clean. ✓
+- **OPEN_QUESTIONS.md staleness.** Q-A8 (Node) still genuinely blocked — no `frontend/package-lock.json`, no `node` on PATH. Q-A9 (ESLint config) still genuinely blocked. Both correctly remain open.
+
+## Summary — iter 35
+
+**8 findings: 0 blocker, 0 high, 3 medium (B-42, B-43, B-44), 3 low (B-45, B-46, B-47), 2 nit (B-48, B-49).**
+
+Top concerns:
+
+1. **B-43 (medium)** — Spec §9's audit-log enhancement (`request_start` / `request_end` log lines) was *quietly skipped* on the iter-34 "verbatim port from pgdp-prep per spec §9" commit. The spec's third bullet under §9 explicitly says "closes pgdp-prep gap" — it's NEW behavior beyond the verbatim port. Iter-34 didn't ship it and didn't file a follow-on. This is the kind of silent spec-vs-code drift the agent's mandate ("specs are source of truth") was meant to prevent. Should land before M1 closes.
+
+2. **B-42 (medium)** — `IAuth.verify` parameter type drifted from `HTTPAuthorizationCredentials | None` (spec) to `str | None` (impl) without a corresponding spec-edit-first decision. Will force every dependency-layer callsite in M2 to flatten the FastAPI `HTTPBearer()` return value. The Protocol method-set drift-pin doesn't catch signature drift, so a future re-widening would be invisible too.
+
+3. **B-44 (medium)** — `FilesystemStorage.delete` / `list_keys` / `put_bytes` parent-mkdir use sync FS calls under `async def`. The labeler's single-user shape masks the cost today, but `list_keys` against a populated image-cache will block the event loop. Easy 6-line fix with `anyio.to_thread.run_sync(...)`.
+
+**Test suite:** 167/167 green in 0.28s. No flakiness. ruff + pre-commit clean. ✓
+**Test count growth audit:** 136 → 167 (+31). All genuine shape pins.
+**Spec adherence audit:** 4 spec-drift findings (B-42, B-43, B-45's docstring lie, plus B-46's inconsistency between adjacent files). M1 layout (file paths) matches spec §1 verbatim — the drift is in *behaviors*, not *file locations*.
+
+**M1 progress estimate:** **roughly 35%** complete.
+- ✅ M1.a: Adapter Protocols (storage/auth/ocr) + filesystem/none/stub impls.
+- ✅ M1.b: RequestIdMiddleware + structured logging.
+- ⬜ M1.c: `error_handler` middleware (spec §8).
+- ⬜ M1.d: `core/app_state` skeleton + `api/dependencies` (`get_storage`, `get_app_state`, `get_user`).
+- ⬜ M1.e: Full `bootstrap.build_app` wiring (spec §2 steps 2-6 and 9-12: build adapters, build job runner stubs, build AppState, lifespan, stash adapters on `app.state`, install error handlers + routers, image-cache mount, SPA fallback).
+- ⬜ M1.f: `core/persistence/{paths,session_state,__init__}.py`.
+- ⬜ M1.g: `__main__.py` CLI flag wiring.
+- ⬜ M1.h: Frontend `HeaderBar` + `EmptyProjectState` + `RootPage` (Q-A8-blocked).
+
+**Iter 36 picks:**
+
+1. **First: B-43** (audit log) — single-medium, clean spec-anchored fix; ~10 lines in `request_id.py` middleware + 2-3 tests; closes a spec gap quietly introduced last iter. Pairs naturally with B-47 (autouse cleanup) since both touch the same test file.
+2. **Then: B-42** (IAuth signature) — forces a spec-vs-impl decision. Either edit `specs/02-backend.md:434` to match impl (with rationale comment) OR widen the impl signature. Should NOT be deferred to M2 wiring iter — the longer it sits, the more callsites embed the drift.
+3. **Or pivot to M1.c (error_handler middleware)** if the agent prefers code-progress over backlog cleanup. B-43 + B-42 are the spec-gap fixes; M1.c is the next adapter-axis sub-task.
+
+Iter 40 = next code-review checkpoint.
