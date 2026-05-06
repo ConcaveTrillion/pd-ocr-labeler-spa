@@ -1179,7 +1179,7 @@ fixed. Filed as B-37 below. Plus four lower-severity findings.
   gracefully (no key → cache miss → no-op)" — that's incorrect.
   setup-node treats missing-lockfile as a hard error, not a graceful
   miss.
-  
+
   Reproducer: tag-push `v0.1.0` to a clean repo without
   `frontend/package-lock.json`. The `release` job fails at "Setup
   Node.js" before reaching "Build SPA bundle". Same outcome iter 25
@@ -1187,7 +1187,7 @@ fixed. Filed as B-37 below. Plus four lower-severity findings.
   execution. The whole point of iter 26's two-pass install was to
   bootstrap the lockfile inside the workflow; iter 27's caching pull
   that bootstrap out from under itself.
-  
+
   This is documented behaviour, not theoretical — see
   `actions/setup-node` issue tracker (e.g. #569, #1318) and the
   action's source: when `cache-dependency-path` is set, it calls
@@ -1215,7 +1215,7 @@ fixed. Filed as B-37 below. Plus four lower-severity findings.
   (c) Pre-create an empty `package-lock.json` via a step before
   setup-node (e.g. `cd frontend && touch package-lock.json` — but
   this would be parsed as an invalid lockfile by the cache action).
-  
+
   (a) is the right fix. Update
   `test_setup_node_enables_npm_cache` to a conditional ("if
   `frontend/package-lock.json` exists, then cache must be enabled")
@@ -1309,7 +1309,7 @@ fixed. Filed as B-37 below. Plus four lower-severity findings.
   - `Python 3.14.0rc2` → does NOT match (release candidate)
   - `Python 3.13.0+` → does NOT match (the `+` indicates a Python
     built from a non-release tag — common with pyenv-built Pythons)
-  
+
   Any user running a pre-release Python (e.g. testing 3.14 alpha
   on Windows) gets the misleading message "`python` on PATH is the
   Microsoft Store stub redirector (or otherwise non-functional)"
