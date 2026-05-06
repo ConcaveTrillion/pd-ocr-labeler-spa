@@ -9,7 +9,7 @@ every iteration.
 
 | Milestone | Status | Notes |
 |---|---|---|
-| **M0** Repo scaffold | 🟡 in progress | Iter 1 backend skeleton + tests; iter 2 frontend scaffold (files only); iter 3 `mise.toml` + Makefile + Makefile parse smoke tests; iter 4 `.pre-commit-config.yaml` mirroring pd-prep-for-pgdp + YAML-shape smoke tests; iter 5 **code-review checkpoint** → 9 findings filed in `BUGS_FOUND.md`; iter 6 fixed B-02 + B-03; iter 7 fixed B-01 + B-09; iter 8 fixed B-05 + B-06 + B-08; iter 9 (2026-05-06) fixed B-04 (Settings now `frozen=True` + `Settings(**overrides)` in `__main__`) + B-07 (`_build_env()` no-arg) and added `docs/DEVELOPMENT.md` with shape-pin tests. **All iter-5 findings now closed.** Iter 10 is the next code-review checkpoint (reviews iters 6-9). Frontend `npm install` still blocked on Q-A8. Dockerfile / install scripts / Tailwind+shadcn / release workflow still pending for M0 acceptance gate. |
+| **M0** Repo scaffold | 🟡 in progress | Iter 1 backend skeleton + tests; iter 2 frontend scaffold (files only); iter 3 `mise.toml` + Makefile + Makefile parse smoke tests; iter 4 `.pre-commit-config.yaml` mirroring pd-prep-for-pgdp + YAML-shape smoke tests; iter 5 **code-review checkpoint** → 9 findings filed in `BUGS_FOUND.md`; iter 6 fixed B-02 + B-03; iter 7 fixed B-01 + B-09; iter 8 fixed B-05 + B-06 + B-08; iter 9 fixed B-04 (Settings now `frozen=True` + `Settings(**overrides)` in `__main__`) + B-07 (`_build_env()` no-arg) and added `docs/DEVELOPMENT.md` with shape-pin tests; iter 10 (2026-05-06) **code-review checkpoint** → 5 new findings (B-11..B-15: 2 low, 3 nit; no blockers). Frontend `npm install` still blocked on Q-A8. Dockerfile / install scripts / Tailwind+shadcn / release workflow still pending for M0 acceptance gate. |
 | M1 Settings + adapters + AppState | ⬜ not started | Pre-conditions: M0. |
 | M2 Project discovery + load | ⬜ not started | Pre-conditions: M0, M1. |
 | M3 OCR config modal + first-page OCR | ⬜ not started | |
@@ -99,9 +99,20 @@ every iteration.
   exists, every `make <foo>` reference resolves, Node/Python pins
   match `mise.toml`, Astral uv installer mentioned). Test count:
   35 → 42. ruff lint+format clean. **No remaining iter-5 findings.**
-- [ ] **Iter 10 (next).** Code-review checkpoint per /loop cadence
-  (reviews iters 6-9). File new findings into `BUGS_FOUND.md`. Do
-  not fix in the same iter.
+- [x] **Iter 10 (2026-05-06).** Code-review checkpoint (reviews iters
+  6-9). 5 findings filed (`BUGS_FOUND.md` B-11..B-15): 0 blocker, 0
+  high, 0 medium, 2 low (B-11 stale `__version__` after intermediate
+  commits; B-12 DEVELOPMENT.md describes a dev loop that's only
+  partly real in M0), 3 nit (B-13 AST scan misses
+  AugAssign/AnnAssign; B-14 `_build_env` no-arg pin will trip M2's
+  correct fix; B-15 CORS conditional test). All four iter-6-9 fixes
+  correctly fixed their bugs without shifting failure modes. No
+  blocker for moving forward.
+- [ ] **Iter 11 (next).** Pick B-12 first (doc accuracy is cheap and
+  load-bearing — strip or annotate the dev-server section). Then
+  either B-11 (wire `make refresh-version` into a hook so
+  `__version__` doesn't drift) or resume scaffolding (Tailwind v3.4
+  + shadcn / Dockerfile / install scripts / release workflow).
 - [ ] Tailwind v3.4 + shadcn/ui wiring (`tailwind.config.ts`,
   `postcss.config.js`, `src/index.css`, `components.json`).
   Deferred from iter 2 to keep the smoke scaffold minimal.
