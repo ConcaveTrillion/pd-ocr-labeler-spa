@@ -117,7 +117,7 @@ class WordMatch(BaseModel):
     glyph_predictions: GlyphAnnotations | None = None  # classifier output, not yet confirmed
 ```
 
-`glyph_annotations` is the **confirmed** state (drives save). 
+`glyph_annotations` is the **confirmed** state (drives save).
 `glyph_predictions` is the **classifier suggestion**, kept on the
 in-memory model for UI overlay; it is NOT persisted in the envelope —
 re-running the classifier is cheap, persisting predictions creates

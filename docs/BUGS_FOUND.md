@@ -819,4 +819,3 @@ Iter 21 should pick **B-23 first** (one pre-commit hook + one
 test, low risk, M1-load-bearing), then **B-26** (two-line ROADMAP
 checkbox flip), then resume scaffolding (`install.ps1`, or
 `release.yml`, or shadcn primitives once Q-A8 lands).
-
