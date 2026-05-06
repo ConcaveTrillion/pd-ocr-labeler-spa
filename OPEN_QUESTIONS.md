@@ -219,6 +219,48 @@ project has a tagged 0.1.0 release worth publishing.
 
 ---
 
+### Q-A11 — 500 traceback in client `details`: keep verbatim pgdp-prep parity, or redact?
+
+**Filed.** 2026-05-06 (iter-40 review checkpoint, B-51).
+
+**Background.** Spec §8 says the `Exception` catch-all returns `{error:
+"internal_error", message: str(exc), details: <last 3 traceback lines>}`.
+The labeler's M1.c `error_handler.py` ports this verbatim from
+pgdp-prep. The iter-40 review confirmed by live `TestClient` probe that
+`raise RuntimeError('boom-secret')` lands `'boom-secret'` (a string
+literal embedded in the source line) verbatim in the client's
+`details`. The spec contains no security guidance; the iter-38 commit
+message simultaneously claims the design is "security: don't help a
+probe map our internals" — contradictory with the implementation.
+
+**Choice.**
+
+- **(A) Keep verbatim parity with pgdp-prep.** The labeler is single-
+  user-on-laptop in v1; pgdp-prep itself ships this behaviour
+  unchanged; debug-from-browser-console is the explicit operator UX.
+  Update the iter-38 commit-message claim to match (drop the security
+  framing).
+- **(B) Redact in v1, debug-flag in dev.** Add
+  `Settings.debug_unhandled_traceback: bool = True` (default on for
+  local labeler). When `False`, emit `{error: "internal_error",
+  message: "internal server error", details: null}` to the client
+  while still logging the full traceback server-side via
+  `logger.exception`. Spec §8 grows a security clause referencing this
+  flag.
+- **(C) Always redact.** Drop the `details` traceback entirely; trust
+  the server-side log + `X-Request-ID` correlation as the operator
+  triage path.
+
+**Recommendation.** **(B)**. Keeps v1 ergonomics for the labeler's
+single-user case, gives a knob deployments can flip, and aligns spec
+§8 with explicit guidance instead of leaving security implicit.
+
+**Blocks.** B-51 closeout. The pgdp-prep agent should be polled in
+parallel — if pgdp-prep adopts (B), labeler-spa stays parity. If
+pgdp-prep diverges, labeler-spa picks independently.
+
+---
+
 ## Resolution log
 
 All initial questions resolved by user on 2026-05-06. Decisions live
