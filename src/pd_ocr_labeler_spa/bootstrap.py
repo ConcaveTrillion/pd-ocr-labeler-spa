@@ -34,6 +34,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .api.env_js import install_env_js
 from .api.healthz import install_healthz
+from .api.middleware.error_handler import install_error_handlers
 from .api.middleware.request_id import RequestIdMiddleware
 from .core.logging_config import configure_logging
 from .settings import Settings
@@ -85,6 +86,13 @@ def build_app(settings: Settings | None = None) -> FastAPI:
 
     # Stash settings on app.state so dependencies / routes can read it.
     app.state.settings = settings
+
+    # Spec §2 step 10: install error handlers AFTER middleware (CORS +
+    # RequestId) so a 500 still passes back through both on the way
+    # out — the response keeps its CORS headers AND its X-Request-ID
+    # echo. FastAPI exception handlers register one-per-class, so this
+    # is idempotent under repeated build_app calls.
+    install_error_handlers(app)
 
     # /healthz BEFORE SPA mount so the catch-all fallback can't shadow it.
     install_healthz(app)
