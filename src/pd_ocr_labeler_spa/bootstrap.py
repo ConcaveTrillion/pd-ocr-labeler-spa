@@ -34,6 +34,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .api.env_js import install_env_js
 from .api.healthz import install_healthz
+from .api.middleware.request_id import RequestIdMiddleware
+from .core.logging_config import configure_logging
 from .settings import Settings
 
 log = logging.getLogger(__name__)
@@ -48,6 +50,11 @@ def build_app(settings: Settings | None = None) -> FastAPI:
     """
     if settings is None:
         settings = Settings()
+
+    # Spec §2 step 1: configure logging first so the rest of the
+    # factory (and the lifespan tasks queued from here) emit through
+    # the configured root handler.
+    configure_logging(settings.log_format)
 
     app = FastAPI(title="pd-ocr-labeler-spa")
 
@@ -67,6 +74,14 @@ def build_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Spec §2 step 8 + §12: RequestIdMiddleware is added LAST so it
+    # becomes the OUTERMOST layer. Starlette's ``add_middleware``
+    # prepends to the user_middleware stack — so "last added =
+    # outermost" — meaning every log line emitted from inside CORS,
+    # routers, exception handlers, and the SPA fallback all see the
+    # request-id contextvar.
+    app.add_middleware(RequestIdMiddleware, header_name=settings.request_id_header)
 
     # Stash settings on app.state so dependencies / routes can read it.
     app.state.settings = settings
