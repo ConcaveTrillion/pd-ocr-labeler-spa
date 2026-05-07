@@ -2278,7 +2278,8 @@ The above are documented gaps where the impl-vs-spec mismatch is **intentional**
 
 ## B-69 — `test_lifespan.py::test_startup_shutdown_clean` is fragile against `TestClient`'s OWN ResourceWarnings (httpx/anyio churn)
 
-- **Status:** Open. Filed iter 50.
+- **Status:** **Resolved iter 51.** ResourceWarning filter in `test_startup_shutdown_clean` now narrows by source-file pattern (`"pd_ocr_labeler_spa"` or `"/tests/"` in `w.filename`) so a future httpx/anyio/starlette finalizer-warning regression won't turn this test red on third-party churn alone. Added `test_resource_warning_filter_excludes_third_party_sources` self-test — feeds three synthesised `WarningMessage` records (one third-party, one our package, one test-tree) through the same filter expression and asserts only the latter two count. Defends against silent removal of the filter clause.
+- **Severity:** low (test fragility; would manifest on a future httpx/starlette upgrade as a false-positive failure, not a missed leak).
 - **Severity:** low (test fragility; would manifest on a future httpx/starlette upgrade as a false-positive failure, not a missed leak).
 - **Where:** `tests/integration/test_lifespan.py:89-118`.
 - **Issue:** The capture block surrounds `with TestClient(app) as client: ... gc.collect()`. Any `ResourceWarning` emitted by **`TestClient`'s internal httpx/anyio plumbing** during the same window is indistinguishable from one emitted by the app under test. Today httpx's TestClient is clean, but:

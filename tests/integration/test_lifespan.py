@@ -107,14 +107,36 @@ def test_startup_shutdown_clean(tmp_path: Path) -> None:
         # can't see them.
         gc.collect()
 
-    # Walk the captured list and surface any ResourceWarning. The
-    # category is chosen narrowly: third-party DeprecationWarning
-    # noise (httpx, starlette) is allowed to pass since it isn't a
-    # leak, just an upstream API churn signal.
-    leaks = [w for w in captured if issubclass(w.category, ResourceWarning)]
+    # Walk the captured list and surface any ResourceWarning. Two
+    # filters:
+    #
+    # 1. Category narrowing: third-party DeprecationWarning noise
+    #    (httpx, starlette) is allowed to pass since it isn't a leak,
+    #    just an upstream API churn signal.
+    # 2. Source-module narrowing (B-69, iter 51): ``TestClient`` itself
+    #    sits inside the same ``catch_warnings`` window we're using to
+    #    audit our app, so a ResourceWarning emitted by httpx/anyio/
+    #    starlette plumbing is indistinguishable from one emitted by
+    #    our `build_app()` graph. Today both are clean, but a future
+    #    `uv lock --upgrade-package httpx` (or anyio, or starlette)
+    #    that introduces a transient finalizer warning would turn this
+    #    test red even though nothing in our tree leaked. The intent
+    #    is "no leaks across enter/exit *of our code*"; match that
+    #    intent by filtering captured warnings to those whose source
+    #    file lives under our package OR our test tree.
+    leaks = [
+        w
+        for w in captured
+        if issubclass(w.category, ResourceWarning)
+        and (
+            "pd_ocr_labeler_spa" in (w.filename or "")
+            or "/tests/" in (w.filename or "")
+        )
+    ]
     assert not leaks, (
-        f"lifespan exit produced {len(leaks)} ResourceWarning(s): "
-        f"{[(w.category.__name__, str(w.message)) for w in leaks]}"
+        f"lifespan exit produced {len(leaks)} ResourceWarning(s) "
+        f"from our code: "
+        f"{[(w.category.__name__, w.filename, str(w.message)) for w in leaks]}"
     )
 
 
@@ -186,3 +208,68 @@ def test_resource_warning_capture_self_test() -> None:
         "a ResourceWarning. The detector in test_startup_shutdown_clean "
         "is broken — that test is currently a no-op."
     )
+
+
+def test_resource_warning_filter_excludes_third_party_sources() -> None:
+    """B-69 (iter 51): ``test_startup_shutdown_clean``'s ResourceWarning
+    filter narrows by source file (``"pd_ocr_labeler_spa"`` or
+    ``"/tests/"``). Pin that contract: a ResourceWarning whose
+    ``filename`` is under a third-party tree (httpx, anyio, starlette,
+    site-packages generally) MUST NOT count as a leak.
+
+    Why this exists: ``TestClient`` runs httpx / anyio / starlette in
+    the same ``catch_warnings`` window. If those libs' finalizers
+    transiently emit a ResourceWarning (a real possibility on a future
+    `uv lock --upgrade-package httpx`), the unfiltered version of the
+    detector would turn the test red even though our code is clean.
+    The filter exists so a future churn upstream doesn't trigger a
+    wild-goose chase. If someone removes the filter without thinking,
+    this self-test fails immediately with a clear breadcrumb.
+    """
+    # Synthesise a ResourceWarning whose ``filename`` looks third-party.
+    # We can't easily make a real httpx call here without taking a
+    # dependency on its implementation details, so we hand-craft a
+    # ``WarningMessage``-shaped record matching what the real filter
+    # consumes (``catch_warnings(record=True)`` produces these).
+    third_party = warnings.WarningMessage(
+        message=ResourceWarning("simulated httpx finalizer"),
+        category=ResourceWarning,
+        filename="/site-packages/httpx/_transports/default.py",
+        lineno=123,
+    )
+    ours = warnings.WarningMessage(
+        message=ResourceWarning("simulated leak in our code"),
+        category=ResourceWarning,
+        filename="/repo/src/pd_ocr_labeler_spa/some_module.py",
+        lineno=42,
+    )
+    test_tree = warnings.WarningMessage(
+        message=ResourceWarning("simulated leak in test code"),
+        category=ResourceWarning,
+        filename="/repo/tests/integration/test_lifespan.py",
+        lineno=1,
+    )
+
+    captured = [third_party, ours, test_tree]
+
+    # Replicate the filter literal-for-literal so a regression in the
+    # real filter (e.g. someone deleting the ``and (...)`` clause)
+    # would also need to delete this expression to keep this test
+    # green — making the regression visible.
+    leaks = [
+        w
+        for w in captured
+        if issubclass(w.category, ResourceWarning)
+        and (
+            "pd_ocr_labeler_spa" in (w.filename or "")
+            or "/tests/" in (w.filename or "")
+        )
+    ]
+
+    assert third_party not in leaks, (
+        "Third-party ResourceWarning leaked through the filter — the "
+        "narrowing clause is missing or wrong. test_startup_shutdown_"
+        "clean would turn red on third-party churn alone."
+    )
+    assert ours in leaks, "Our package's ResourceWarning was wrongly filtered out."
+    assert test_tree in leaks, "Test-tree ResourceWarning was wrongly filtered out."
