@@ -1,5 +1,5 @@
-"""M3 slice 8a acceptance: ``api/ocr_config.py`` router skeleton wires
-the iter-7 OCR config DTOs into the public HTTP surface.
+"""M3 slice 8a/8c-i/8c-iii-c acceptance: ``api/ocr_config.py`` router
+wires the iter-7 OCR config DTOs into the public HTTP surface.
 
 Spec authority:
 
@@ -10,35 +10,39 @@ Spec authority:
   (``OCRModelOption``, ``GetOCRConfigResponse``,
   ``SetOCRModelsRequest``).
 
-What slice 8a ships under TDD:
+What slice 8a shipped:
 
 1. ``GET /api/ocr-config`` returns a ``GetOCRConfigResponse``-shaped
-   payload composed from the iter-7 DTOs. No actual model loading,
-   HuggingFace probe, or local weights scan happens yet — that's
-   slice 8b+ work that goes through ``core/page_state.ensure_page_model``
-   and the ``IOCREngine`` adapter. Slice 8a hardcodes a single
-   ``stock`` option for both detection and recognition lists, with
-   ``selection_reason="stock-fallback"`` per the spec literal set.
-   This composes the iter-7 DTO foundation so future slices can swap
-   the body without changing the route shape or its tests.
-
+   payload composed from the iter-7 DTOs.
 2. The route is ``include_in_schema=True`` because OpenAPI export
-   (``make openapi-export``) drives the frontend ``types.ts``; it must
-   surface so the SPA's ``src/api/types.ts`` regenerates.
+   (``make openapi-export``) drives the frontend ``types.ts``.
 
-Slice 8a deliberately does NOT:
+What slice 8c-i added: stateless ``POST /api/ocr-config/models`` echo
+with stock-only key validation.
 
-- Implement ``POST /api/ocr-config/models`` or
-  ``POST /api/ocr-config/rescan`` — those mutate selection state
-  which doesn't exist yet (no ``OCRConfigCarrier`` / no persistent
-  ``ocr_config.json`` writeback). Slice 8b+ work.
-- Touch the ``IOCREngine`` adapter. The provenance string
-  ``"stock-fallback"`` is honest in slice 8a — no HF probe, no local
-  scan, so the only legitimate reason is "we fell back to bundled
-  stock weights." When slice 8b+ wire real probing, the response body
-  will start emitting other ``selection_reason`` values; the route
-  shape and tests below stay valid.
-- Persist a selection. The route is read-only in slice 8a.
+What slice 8c-iii-c adds: ``selection_reason`` is now derived from
+``core.model_selection.pick_default_keys`` over a discovery-pipeline
+record list (HF probe + local-models walk), not the previously
+hardcoded ``"stock-fallback"``. The option lists remain stock-only;
+surfacing HF / local options is slice 8c-iv+ work.
+
+**Test isolation pin (slice 8c-iii-c).** The router's discovery
+defaults reach the real Hugging Face hub when ``huggingface_hub`` is
+importable + network is up — that's the production contract. To keep
+this integration suite deterministic, the ``client`` fixture
+monkeypatches the router's HF probe + local-models-root to no-network
+defaults: probe → ``None``, root → empty tmpdir, picker → ``stock-fallback``.
+Tests that need a different reason install their own monkeypatches
+*after* the fixture (e.g. ``test_get_ocr_config_returns_hf_latest_when_hub_reachable``).
+
+Slice 8c-iii-c deliberately does NOT:
+
+- Implement ``POST /api/ocr-config/rescan``.
+- Persist a selection. The route is stateless in this slice.
+- Surface HF or local options into ``detection_options`` /
+  ``recognition_options``. The picker may pick non-stock keys, but
+  ``selected_*`` and the option lists stay stock-only — what changes
+  is ``selection_reason``. (Slice 8c-iv+ wires the carrier + persistence.)
 """
 
 from __future__ import annotations
@@ -65,7 +69,22 @@ def _make_settings(tmp_path: Path) -> Settings:
 
 
 @pytest.fixture
-def client(tmp_path: Path) -> Iterator[TestClient]:
+def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
+    """Build a TestClient with discovery pipeline pinned to no-network defaults.
+
+    The slice-8c-iii-c default behavior (probe HF, walk local-models
+    dir) is honest in production but non-deterministic in tests: the
+    sandbox may or may not have ``huggingface_hub`` installed and may
+    or may not be online. Pin both axes so the suite is hermetic by
+    default; tests that exercise a non-default ``selection_reason``
+    install their own monkeypatches *after* this fixture.
+    """
+    from pd_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
+
+    monkeypatch.setattr(_ocr_config_mod, "fetch_hf_last_modified", lambda: None)
+    empty_root = tmp_path / "no-models"  # not created → discover_local_pairs returns []
+    monkeypatch.setattr(_ocr_config_mod, "_resolve_local_models_root", lambda: empty_root)
+
     settings = _make_settings(tmp_path)
     app = build_app(settings)
     with TestClient(app) as c:
@@ -100,21 +119,30 @@ def test_get_ocr_config_payload_validates_against_dto(client: TestClient) -> Non
     assert parsed.selected_recognition
 
 
-def test_get_ocr_config_slice8a_stock_fallback(client: TestClient) -> None:
-    """Slice 8a body is honest: only stock options, ``stock-fallback`` reason.
+def test_get_ocr_config_default_reason_is_hf_unreachable_no_local(
+    client: TestClient,
+) -> None:
+    """In the no-network/no-local-models default fixture, the picker's
+    honest answer is ``"hf-unreachable-no-local"``.
 
-    Per the slice-8a docstring, no real probing happens yet, so the
-    only legitimate ``selection_reason`` is ``"stock-fallback"``. When
-    slice 8b+ wire real HF / local discovery, this test gets retired
-    or relaxed — but until then, drift toward fake-discovery output
-    would be a regression.
+    The fixture monkeypatches ``fetch_hf_last_modified`` → ``None`` and
+    points the local-models walk at an empty tmpdir. ``_gather_records``
+    still emits an HF record (so the picker can decide between
+    ``hf-latest`` / ``hf-unreachable-no-local`` / etc.), but with
+    ``hf_last_modified=None`` the picker recognises the HF entry as
+    unreachable and there's no local pair → spec-literal
+    ``"hf-unreachable-no-local"``. Pre-slice-8c-iii-c this test pinned
+    the iter-10 hardcoded ``"stock-fallback"``; the rename + relaxation
+    is the slice-8c-iii-c shift from "hardcoded reason" to "real
+    selection."
+
+    The selected key for both lists points into the options list of
+    the same kind — the modal can't render a selection that doesn't
+    exist as an option.
     """
     resp = client.get("/api/ocr-config")
     body = resp.json()
-    assert body["selection_reason"] == "stock-fallback"
-    # The selected key for both lists points into the options list of
-    # the same kind — the modal can't render a selection that doesn't
-    # exist as an option.
+    assert body["selection_reason"] == "hf-unreachable-no-local"
     det_keys = {opt["key"] for opt in body["detection_options"]}
     rec_keys = {opt["key"] for opt in body["recognition_options"]}
     assert body["selected_detection"] in det_keys
@@ -270,18 +298,23 @@ def test_post_ocr_config_models_extra_field_rejected_with_validation_error(
     assert "extra_forbidden" in types
 
 
-def test_post_ocr_config_models_slice8c_i_keeps_stock_fallback_reason(
+def test_post_ocr_config_models_uses_picker_for_selection_reason(
     client: TestClient,
 ) -> None:
-    """Until real probing exists (slice 8c-ii+), ``selection_reason``
-    must stay ``"stock-fallback"``. A drift to e.g. ``"hf-latest"``
-    here would be dishonest — there's no HF probe behind it."""
+    """``selection_reason`` is the picker's output, not a hardcoded value.
+
+    With the fixture's no-network/no-local default, the picker returns
+    ``"hf-unreachable-no-local"``. Slice 8c-iii-c moved this from the
+    iter-10 hardcoded ``"stock-fallback"`` to the discovery-pipeline
+    pick — this test pins the wiring (POST goes through the same
+    ``_build_snapshot`` as GET so reasons agree).
+    """
     resp = client.post(
         "/api/ocr-config/models",
         json={"detection_key": "stock", "recognition_key": "stock"},
     )
     body = resp.json()
-    assert body["selection_reason"] == "stock-fallback"
+    assert body["selection_reason"] == "hf-unreachable-no-local"
 
 
 def test_post_ocr_config_models_appears_in_openapi_schema(
@@ -294,3 +327,69 @@ def test_post_ocr_config_models_appears_in_openapi_schema(
     spec = client.get("/openapi.json").json()
     assert "/api/ocr-config/models" in spec["paths"]
     assert "post" in spec["paths"]["/api/ocr-config/models"]
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Slice 8c-iii-c — discovery pipeline drives ``selection_reason``
+# ──────────────────────────────────────────────────────────────────────
+
+
+def test_get_ocr_config_returns_hf_latest_when_hub_reachable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When the HF probe returns a timestamp and there are no local
+    pairs, the picker reports ``"hf-latest"``. Pins the slice-8c-iii-c
+    wiring of ``fetch_hf_last_modified`` into ``_build_snapshot``.
+
+    Builds its own client (rather than using the module-level fixture)
+    so the HF-probe monkeypatch wins over the fixture's no-network
+    default; otherwise fixture-applied patches would shadow this test's
+    intent.
+    """
+    from datetime import UTC, datetime
+
+    from pd_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
+
+    fixed = datetime(2025, 6, 1, tzinfo=UTC)
+    monkeypatch.setattr(_ocr_config_mod, "fetch_hf_last_modified", lambda: fixed)
+    empty_root = tmp_path / "no-models"
+    monkeypatch.setattr(_ocr_config_mod, "_resolve_local_models_root", lambda: empty_root)
+
+    settings = _make_settings(tmp_path)
+    app = build_app(settings)
+    with TestClient(app) as c:
+        resp = c.get("/api/ocr-config")
+    body = resp.json()
+    assert body["selection_reason"] == "hf-latest"
+
+
+def test_get_ocr_config_returns_local_only_when_hub_offline_and_pair_present(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HF probe returns ``None`` AND a complete local pair exists →
+    picker returns ``"local-only-hf-unreachable"``. Pins the wiring
+    of ``discover_local_pairs`` into ``_build_snapshot``: the function
+    is actually called with ``_resolve_local_models_root()``'s output,
+    its records flow into ``pick_default_keys``, and the resulting
+    reason reaches the wire.
+    """
+    from pd_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
+
+    # Build a legacy-shaped local-models tree with one complete pair.
+    profile = tmp_path / "models" / "all"
+    (profile / "detection").mkdir(parents=True)
+    (profile / "recognition").mkdir(parents=True)
+    (profile / "detection" / "all-detection-base-1700000000.pt").write_bytes(b"x")
+    (profile / "recognition" / "all-recognition-base-1700000000.pt").write_bytes(b"x")
+
+    monkeypatch.setattr(_ocr_config_mod, "fetch_hf_last_modified", lambda: None)
+    monkeypatch.setattr(_ocr_config_mod, "_resolve_local_models_root", lambda: tmp_path / "models")
+
+    settings = _make_settings(tmp_path)
+    app = build_app(settings)
+    with TestClient(app) as c:
+        resp = c.get("/api/ocr-config")
+    body = resp.json()
+    assert body["selection_reason"] == "local-only-hf-unreachable"

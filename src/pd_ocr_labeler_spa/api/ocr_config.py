@@ -1,4 +1,4 @@
-"""``/api/ocr-config`` router — read + stateless-mutate (M3 slices 8a + 8c-i).
+"""``/api/ocr-config`` router — read + stateless-mutate (M3 slices 8a + 8c-i + 8c-iii-c).
 
 Spec authority:
 
@@ -9,40 +9,68 @@ Spec authority:
 What slice 8a shipped:
 
 - ``GET /api/ocr-config`` returns a hardcoded "stock fallback" payload
-  composed from the iter-7 DTOs. Both detection and recognition lists
-  contain a single ``stock`` option, ``selection_reason="stock-fallback"``,
-  ``hf_pinned_revision=None``. No model loading, no HuggingFace probe,
-  no local weights scan.
+  composed from the iter-7 DTOs.
 
-What slice 8c-i adds:
+What slice 8c-i added:
 
 - ``POST /api/ocr-config/models`` validates the request keys against
   the same stock-only option lists and echoes a ``GetOCRConfigResponse``
   back. Selection is **not yet persisted** — that needs an
-  ``OCRConfigCarrier`` + ``ocr_config.json`` writeback (slice 8c-ii+).
-  Unknown keys → 400. The route shape is spec-canonical so when the
-  carrier lands the route body becomes "validate → carrier.set(...) →
-  return current snapshot" without changing the wire contract.
+  ``OCRConfigCarrier`` + ``ocr_config.json`` writeback (slice 8c-iv+).
+
+What slice 8c-iii-c adds (this slice):
+
+- ``_build_snapshot`` no longer hardcodes ``selection_reason="stock-fallback"``.
+  It now composes ``ModelOptionRecord`` from the discovery pipeline
+  (``core.model_discovery.discover_local_pairs`` +
+  ``core.hf_probe.fetch_hf_last_modified``) and runs
+  ``core.model_selection.pick_default_keys`` to pick a real reason. In
+  the empty-test world (no local pairs, ``huggingface_hub`` unavailable
+  or unreachable) the picker still produces ``"stock-fallback"`` — so
+  every slice-8a/-8c-i acceptance test stays green without new fixtures.
+- The option lists themselves remain stock-only at this slice. Surfacing
+  HF and local options into ``detection_options`` / ``recognition_options``
+  is wired in slice 8c-iv+ when the carrier shape lands and selection
+  is persisted; until then the picker's keys can diverge from the
+  exposed options without violating the wire contract because the
+  POST endpoint still only accepts ``"stock"`` keys.
 
 What this router still deliberately does NOT do:
 
-- ``POST /api/ocr-config/rescan`` — requires the HF / local discovery
-  pipeline (slice 8c-ii+).
-- Persist a selection. The mutation route is stateless in slice 8c-i;
-  every call validates against the stock list and returns the
-  echo-shaped response.
-- Any real provenance computation. ``"stock-fallback"`` is honest
-  while no probing exists; future slices will start emitting other
-  values from the spec literal set as the discovery pipeline lands.
+- ``POST /api/ocr-config/rescan`` — requires the carrier (slice 8c-iv+).
+- Persist a selection. The mutation route is stateless; every call
+  validates against the stock option lists and returns the echo-shaped
+  response.
+- Surface non-stock options. ``pick_default_keys`` may return
+  ``("huggingface", "huggingface", "hf-latest")`` when probing succeeds,
+  but the response option lists stay stock-only and ``selected_*`` stays
+  ``"stock"`` — what changes is ``selection_reason``. The slice-8c-iii-c
+  scope is to *replace* the hardcoded reason with a real one, not to
+  reshape the option-list contract. (Doing both at once would require
+  the carrier to round-trip selection through POST, which is deferred.)
 """
 
 from __future__ import annotations
 
+import os
+import platform
+from pathlib import Path
+
 from fastapi import APIRouter, HTTPException
 
+from ..core.hf_probe import fetch_hf_last_modified
+from ..core.model_discovery import discover_local_pairs, pairs_to_model_option_records
+from ..core.model_selection import HF_LATEST_KEY, ModelOptionRecord, pick_default_keys
 from ..core.ocr_models import GetOCRConfigResponse, OCRModelOption, SetOCRModelsRequest
 
 router = APIRouter(prefix="/api/ocr-config", tags=["ocr-config"])
+
+MODEL_STORE_DIRNAME = "pd-ml-models"
+"""Trainer-managed weights directory name. Mirror of legacy
+``ModelSelectionOperations.MODEL_STORE_DIRNAME`` (legacy
+``pd_ocr_labeler/operations/ocr/model_selection_operations.py`` line 63).
+The full path is ``<os-data-home>/pd-ml-models`` per
+``_resolve_local_models_root`` below."""
 
 
 # Slice 8a stock options. Hoisted to module level so they're built once
@@ -63,34 +91,94 @@ _STOCK_RECOGNITION = OCRModelOption(
 )
 
 
+def _resolve_local_models_root() -> Path:
+    """Return the OS-aware root where ``pd-ocr-trainer`` stores fine-tuned
+    weights. Mirror of legacy ``get_shared_models_root`` (legacy
+    ``pd_ocr_labeler/operations/ocr/model_selection_operations.py`` lines
+    127-146).
+
+    Tests override this by monkeypatching the module-level callable so
+    discovery walks a tmp_path tree instead of the host-wide trainer
+    directory. (A Settings field is the intended seam once the
+    ``OCRConfigCarrier`` lands in slice 8c-iv+; pinning a module-level
+    helper today keeps the slice scope to "wire the picker" without
+    reshaping ``Settings``.)
+    """
+    system_name = platform.system()
+    if system_name == "Linux":
+        data_home = os.getenv("XDG_DATA_HOME")
+        base_dir = Path(data_home).expanduser() if data_home else Path.home() / ".local" / "share"
+    elif system_name == "Darwin":
+        base_dir = Path.home() / "Library" / "Application Support"
+    elif system_name == "Windows":
+        appdata = os.getenv("APPDATA")
+        base_dir = Path(appdata) if appdata else Path.home() / "AppData" / "Roaming"
+    else:
+        base_dir = Path.home() / ".local" / "share"
+    return base_dir / MODEL_STORE_DIRNAME
+
+
+def _gather_records() -> list[ModelOptionRecord]:
+    """Build the ``ModelOptionRecord`` list fed to ``pick_default_keys``.
+
+    Composes:
+      * One ``source="huggingface"`` record (always present so the picker
+        can decide between ``hf-latest`` / ``hf-unreachable-no-local`` /
+        etc.); ``hf_last_modified`` is ``None`` when the probe fails for
+        any reason — see ``core.hf_probe`` contract: never raises.
+      * Zero or more ``source="local"`` records, one per discovered pair.
+        An unreadable / missing models root yields zero local records
+        (``discover_local_pairs`` returns ``[]``).
+    """
+    hf_record = ModelOptionRecord(
+        key=HF_LATEST_KEY,
+        source="huggingface",
+        hf_last_modified=fetch_hf_last_modified(),
+        local_mtime=None,
+        has_detection=True,
+        has_recognition=True,
+        is_preferred_profile=False,
+    )
+    local_pairs = discover_local_pairs(_resolve_local_models_root())
+    local_records = pairs_to_model_option_records(local_pairs)
+    return [hf_record, *local_records]
+
+
 def _build_snapshot(
     selected_detection: str,
     selected_recognition: str,
     hf_pinned_revision: str | None,
 ) -> GetOCRConfigResponse:
-    """Compose a slice-8a/-8c-i ``GetOCRConfigResponse`` from the
-    stock-only option lists. Caller is responsible for validating
-    that the selected keys live in the option lists; this helper
-    trusts them.
+    """Compose a ``GetOCRConfigResponse`` from the stock option lists +
+    a real ``selection_reason`` derived from the discovery pipeline.
+
+    The caller picks ``selected_detection`` / ``selected_recognition``
+    from the exposed (still stock-only) option lists; this helper is
+    not responsible for reconciling those with the picker's output.
+    Slice 8c-iv+ will wire selection through the carrier; today the
+    picker's job is purely to compute ``selection_reason`` honestly.
     """
+    records = _gather_records()
+    _, _, reason = pick_default_keys(records)
     return GetOCRConfigResponse(
         detection_options=[_STOCK_DETECTION],
         recognition_options=[_STOCK_RECOGNITION],
         selected_detection=selected_detection,
         selected_recognition=selected_recognition,
         hf_pinned_revision=hf_pinned_revision,
-        selection_reason="stock-fallback",
+        selection_reason=reason,
     )
 
 
 @router.get("", response_model=GetOCRConfigResponse)
 def get_ocr_config() -> GetOCRConfigResponse:
-    """Return a slice-8a stock-fallback OCR config snapshot.
+    """Return an OCR-config snapshot.
 
-    Spec §02-backend.md §5.8 line 319. The response body is honest for
-    a no-discovery-yet world: only stock options, only ``stock-fallback``
-    as the selection reason. When slice 8b/8c-ii wire real HF / local
-    discovery this body grows; the route shape stays the same.
+    Spec §02-backend.md §5.8 line 319. The response body composes the
+    iter-7 DTOs; ``selection_reason`` is computed from the slice-8c-iii
+    discovery pipeline (HF probe + local-models walk +
+    ``pick_default_keys``). Option lists remain stock-only — surfacing
+    HF / local options is slice 8c-iv+ work.
     """
     return _build_snapshot(
         selected_detection=_STOCK_DETECTION.key,
@@ -103,13 +191,11 @@ def get_ocr_config() -> GetOCRConfigResponse:
 def post_ocr_config_models(req: SetOCRModelsRequest) -> GetOCRConfigResponse:
     """Validate + echo OCR model selection (slice 8c-i, stateless).
 
-    Spec §02-backend.md §5.8 line 320. Slice 8c-i ships the route
-    shape and key-validation against the slice-8a stock-only option
-    lists. Selection is NOT persisted — that needs an
-    ``OCRConfigCarrier`` (slice 8c-ii+). Unknown keys → 400. Until
-    real probing lands, the response always carries
-    ``selection_reason="stock-fallback"``; pinning that here means a
-    future drift to fake-discovery output surfaces as a test failure.
+    Spec §02-backend.md §5.8 line 320. The route shape is canonical;
+    selection is NOT persisted (deferred to slice 8c-iv+ when the
+    ``OCRConfigCarrier`` lands). Unknown keys → 400. The wire body's
+    ``selection_reason`` is the slice-8c-iii-c picker output, not the
+    hardcoded ``"stock-fallback"`` from slice 8c-i.
     """
     detection_keys = {_STOCK_DETECTION.key}
     recognition_keys = {_STOCK_RECOGNITION.key}
@@ -136,6 +222,7 @@ def install_ocr_config_router(app) -> None:  # type: ignore[no-untyped-def]
 
 
 __all__ = [
+    "MODEL_STORE_DIRNAME",
     "install_ocr_config_router",
     "router",
 ]
