@@ -143,6 +143,35 @@ make ci   # setup + test + frontend-test + build
 Mirrors the `.github/workflows/release.yml` pipeline (forthcoming —
 tracked in [`ROADMAP.md`](ROADMAP.md)).
 
+## Archive on close
+
+`docs/BUGS_FOUND.md` and `OPEN_QUESTIONS.md` track *currently-open* findings
+and questions only. When you close one, **move its full entry to the matching
+archive file in the same commit that lands the close** — don't leave it in
+the active list with a `(closed)` tag. Active docs are for in-flight work;
+[`docs/archive/`](archive/) is the historical record.
+
+The recipe:
+
+1. Land the fix (or the resolution ADR).
+2. In the same commit that closes the entry, edit the active doc:
+   - For a bug: cut the full `## B-NN — …` block from `docs/BUGS_FOUND.md`
+     and paste it (verbatim, plus the closing-commit hash and iter number on
+     the **Status** line) into `docs/archive/BUGS_RESOLVED.md`, preserving
+     numeric `B-NN` order.
+   - For a question: cut the full `## Q-NN — …` block (or the
+     Resolved-pending entry) from `OPEN_QUESTIONS.md` and paste it into
+     `docs/archive/QUESTIONS_RESOLVED.md`, plus add a row to the
+     Resolution-log table at the bottom.
+3. Keep the active doc's pointer to the archive — don't strip it; new
+   contributors find the historical record through that link.
+
+Why: every prior code-review checkpoint left closed entries accumulating in
+the active doc; by iter 50 `BUGS_FOUND.md` had ~70 closed entries and ~2
+open ones, so finding the current backlog meant scrolling past 2,300 lines
+of resolved work. The same was happening to `OPEN_QUESTIONS.md`. The
+"archive on close" rule keeps both docs short and discoverable.
+
 ## Useful references
 
 - [`specs/00-overview.md`](../specs/00-overview.md) — goals, non-goals,
@@ -152,5 +181,7 @@ tracked in [`ROADMAP.md`](ROADMAP.md)).
 - [`OPEN_QUESTIONS.md`](../OPEN_QUESTIONS.md) — deferred decisions.
 - [`docs/ROADMAP.md`](ROADMAP.md) — implementation status by
   milestone.
-- [`docs/BUGS_FOUND.md`](BUGS_FOUND.md) — code-review checkpoint
-  findings.
+- [`docs/BUGS_FOUND.md`](BUGS_FOUND.md) — open code-review findings;
+  closed entries archived in
+  [`docs/archive/BUGS_RESOLVED.md`](archive/BUGS_RESOLVED.md).
+- [`docs/archive/`](archive/) — closed bugs + resolved questions.
