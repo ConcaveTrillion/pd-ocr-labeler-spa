@@ -1,6 +1,7 @@
 # Parity status — pd-ocr-labeler-spa vs pd-ocr-labeler
 
-**Snapshot:** 2026-05-07 (post-iter-54 + mise-availability update).
+**Snapshot:** 2026-05-07 (post-iter-55: M2 slice 3 lifespan wiring +
+mise-availability doc reorg).
 **Audience:** user, deciding next priorities.
 **Scope:** what the SPA replacement covers today vs what the legacy
 NiceGUI labeler ships.
@@ -11,12 +12,16 @@ NiceGUI labeler ships.
 
 The SPA is **scaffolding-complete and ~97% through M1** (settings +
 adapters + AppState + middleware + lifespan; B-51 closed iter 53 per
-D-040). **M2 startup-discovery is at slice 2/4** (`resolve_initial_project`
-+ `validate_project_dir` from slice 1, plus `ActiveProjectCarrier` +
-DI providers + bootstrap wiring from slice 2 — but **no lifespan hook
-yet** to actually call `set_active_project` from
-`resolve_initial_project`'s output, and **no `/api/projects/load`
-route**, so end-to-end "open a project" still doesn't work).
+D-040). **M2 startup-discovery is at slice 3/4** (slice 1: `resolve_initial_project`
++ `validate_project_dir`; slice 2: `ActiveProjectCarrier` + DI
+providers + bootstrap wiring; **slice 3 (iter 55) just landed** — the
+FastAPI lifespan startup hook now calls
+`resolve_initial_project(settings, session_state=load_session_state(...))`
+and feeds the result into
+`app.state.active_project_carrier.set_active_project()`, so a CLI-or-
+session-restored project is now actually opened on boot. **No
+`POST /api/projects/load` route yet** — slice 4 — so manual project
+swaps via HTTP still don't work).
 **Zero user-facing domain endpoints exist yet** (no project discovery
 list, no OCR, no GT editing, no save/load, no export) — every legacy
 capability past "boots and serves `/healthz`" is **not started**.
@@ -50,8 +55,8 @@ read or write a real project.
 | Image-cache HTTP route | 🟡 partial | Route shape + 404-on-OSError logic landed (B-57); **no images served yet** because no project loads. |
 | Static SPA fallback | ✅ done | `index.html` carries `Cache-Control: no-store` (B-62); reserved-prefix carve-out per spec §10 (B-66 resolved iter 51). |
 | `/env.js` | ✅ done | Mode-gated; B-01 closed. |
-| Project discovery (scan project root) | 🟡 partial | M2 slice 1 (iter 52) shipped pure `resolve_initial_project` + `validate_project_dir`; M2 slice 2 (iter 53) shipped `ActiveProjectCarrier` + DI providers + `app.state.active_project_carrier` wiring. **No enumeration of `source_projects_root`** (M2-proper `core/project_state.py`) and **no lifespan hook** invoking the resolver yet. Legacy: `operations/persistence/project_discovery_operations.py`. |
-| Session restore (last project, last page) | 🟡 partial | `core/persistence/session_state.py` reader exists (iter 44); writer + lifespan caller not wired; **B-58 open** (extras-tolerance; D-041 decided, impl pending). |
+| Project discovery (scan project root) | 🟡 partial | M2 slice 1 (iter 52) shipped pure `resolve_initial_project` + `validate_project_dir`; slice 2 (iter 53) shipped `ActiveProjectCarrier` + DI providers + `app.state.active_project_carrier` wiring; **slice 3 (iter 55)** wired the FastAPI lifespan startup hook calling resolver → carrier so CLI/session boot now actually opens a project. **No enumeration of `source_projects_root`** (M2-proper `core/project_state.py`) and **no `POST /api/projects/load`** (slice 4). Legacy: `operations/persistence/project_discovery_operations.py`. |
+| Session restore (last project, last page) | 🟡 partial | `core/persistence/session_state.py` reader exists (iter 44); lifespan caller wired iter 55 (so reader is now exercised on every boot via `load_session_state(settings.data_root)`); writer not yet wired into a /load route; **B-58 open** (extras-tolerance; D-041 decided, impl pending). |
 | Page enumeration (`pages.json` / manifest) | ⬜ not started | M2. |
 | OCR overlay data (paragraphs/lines/words + bboxes) | ⬜ not started | M3–M4. |
 | Ground-truth editing endpoint | ⬜ not started | M5 (`POST /api/.../words/{wid}/ground-truth`). |

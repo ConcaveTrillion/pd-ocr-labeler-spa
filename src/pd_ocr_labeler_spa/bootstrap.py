@@ -1,33 +1,38 @@
 """``build_app(settings)`` — FastAPI app factory.
 
-M0 scope: mount ``/healthz`` and ``/env.js`` against a fresh ``FastAPI``
-instance. CORS middleware mirrors ``pd-prep-for-pgdp`` so Vite-dev
-(5173 → 8080) works out of the box.
+CORS middleware mirrors ``pd-prep-for-pgdp`` so Vite-dev (5173 → 8080)
+works out of the box.
 
 Per ``specs/02-backend.md §2`` the full factory order is
 
-    1. configure_logging
-    2. build adapters (storage / auth / ocr)
-    3. build job runner + broker
-    4. build AppState
-    5. lifespan
-    6. FastAPI(...)
-    7. CORSMiddleware
-    8. RequestIdMiddleware (outermost)
-    9. stash adapters on app.state
-    10. install error handlers + routers
-    11. install /healthz BEFORE the SPA mount
-    12. install /env.js + image-cache + SPA fallback (skipped when
-        mode == "api_only")
+    1. configure_logging                                    [done]
+    2. build adapters (storage / auth / ocr)                [done — via build_app_state]
+    3. build job runner + broker                            [deferred to M3]
+    4. build AppState                                       [done]
+    5. lifespan                                             [done — startup hook calls
+                                                              resolve_initial_project +
+                                                              ActiveProjectCarrier
+                                                              .set_active_project; M2 slice 3]
+    6. FastAPI(...)                                         [done]
+    7. CORSMiddleware                                       [done]
+    8. RequestIdMiddleware (outermost)                      [done]
+    9. stash adapters on app.state                          [done]
+    10. install error handlers + routers                    [error handlers done; routers M2-M9]
+    11. install /healthz BEFORE the SPA mount               [done]
+    12. install /env.js + image-cache + SPA fallback        [done; skipped when mode == "api_only"]
+        (skipped when mode == "api_only")
 
-Steps 1-4 and 7-12 (beyond /healthz, /env.js, settings stashing) land in
-M1+. The factory is pure: same ``Settings`` always produces the same
-wired graph.
+The factory is pure: same ``Settings`` always produces the same
+wired graph. Only the lifespan startup hook touches the filesystem,
+and it does so behind ``with TestClient(app) as c`` — i.e. lazily,
+not at construction.
 """
 
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,12 +42,87 @@ from .api.healthz import install_healthz
 from .api.middleware.error_handler import install_error_handlers
 from .api.middleware.request_id import RequestIdMiddleware
 from .api.static_mounts import install_image_cache, install_spa_fallback
-from .core.active_project import ActiveProjectCarrier
+from .core.active_project import (
+    ActiveProjectCarrier,
+    InvalidProjectDirError,
+)
 from .core.app_state import build_app_state
 from .core.logging_config import configure_logging
+from .core.persistence.session_state import load_session_state
+from .core.startup_discovery import resolve_initial_project
 from .settings import Settings
 
 log = logging.getLogger(__name__)
+
+
+def _make_lifespan(
+    settings: Settings,
+    carrier: ActiveProjectCarrier,
+):
+    """Build the FastAPI ``lifespan`` async context manager.
+
+    Spec authority: ``specs/02-backend.md §2`` step 5 (lifespan) +
+    ``§13`` (background discovery + restoration). M2 slice 3 wires
+    the startup half; the shutdown half is a no-op for now (the
+    JobRunner background task arrives in M3).
+
+    Startup order:
+
+    1. Read ``session_state.json`` from ``settings.data_root`` via
+       ``load_session_state`` — returns ``None`` on every failure
+       path (missing / malformed / pydantic-rejected). No raises.
+    2. Resolve the initial project via
+       ``resolve_initial_project(settings, session_state=...)`` —
+       CLI overrides session per spec §13 step 4; invalid CLI falls
+       through to session; stale session returns ``None``.
+    3. If a resolution exists, call
+       ``carrier.set_active_project(path)``. The carrier
+       re-validates internally (defensive belt-and-suspenders) and
+       raises ``InvalidProjectDirError`` only if the dir vanished
+       between the resolver's check and the carrier's check —
+       that's a TOCTOU race we treat as "no project" rather than
+       "refuse to boot", matching the legacy parity contract from
+       slice 1's docstring.
+
+    The factory pattern (closure over ``settings`` + ``carrier``)
+    keeps the lifespan dependency-free of module-global state, so
+    each ``build_app`` call gets its own startup hook bound to its
+    own carrier — pinned by
+    ``test_lifespan_startup_hook_is_idempotent_across_app_builds``.
+    """
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
+        # Step 1: read session_state (best-effort, never raises).
+        session = load_session_state(settings.data_root)
+
+        # Step 2: resolve initial project (pure; logs WARNING/DEBUG).
+        resolved = resolve_initial_project(settings, session_state=session)
+
+        # Step 3: feed into the carrier if a candidate exists.
+        if resolved is not None:
+            try:
+                carrier.set_active_project(resolved.path)
+            except InvalidProjectDirError:
+                # TOCTOU: dir vanished between resolver-validate and
+                # carrier-validate. Boot to "no project loaded" rather
+                # than crash; user can pick from the discovery dropdown
+                # once M2-proper lands.
+                log.warning(
+                    "Active project dir vanished between resolve and set; booting with no project loaded.",
+                    extra={
+                        "initial_project_path": str(resolved.path),
+                        "initial_project_source": resolved.source,
+                    },
+                )
+
+        try:
+            yield
+        finally:
+            # No shutdown work yet; M3's JobRunner will land here.
+            pass
+
+    return lifespan
 
 
 def build_app(settings: Settings | None = None) -> FastAPI:
@@ -60,7 +140,16 @@ def build_app(settings: Settings | None = None) -> FastAPI:
     # the configured root handler.
     configure_logging(settings.log_format)
 
-    app = FastAPI(title="pd-ocr-labeler-spa")
+    # Spec §2 step 5 + §13: construct the active-project carrier and
+    # the lifespan closure BEFORE ``FastAPI(...)`` so the lifespan can
+    # be passed in at construction. The carrier is later re-stashed on
+    # ``app.state.active_project_carrier`` (step 9) so DI can resolve
+    # it; the same instance is referenced by both the startup hook
+    # closure and the request-time provider.
+    carrier = ActiveProjectCarrier()
+    lifespan = _make_lifespan(settings, carrier)
+
+    app = FastAPI(title="pd-ocr-labeler-spa", lifespan=lifespan)
 
     # CORS: same shape as pgdp-prep. Acceptable because the SPA serves
     # from the same origin in production; wide setting unblocks
@@ -104,12 +193,14 @@ def build_app(settings: Settings | None = None) -> FastAPI:
 
     # Spec §13 + §00 "State model" lines 179-201: the active-project
     # pointer is mutable and lives separately from the frozen
-    # ``AppState``. Slice 2 lands the empty carrier here so DI is
-    # ready; slice 3 (lifespan) will call ``set_active_project`` from
-    # the startup hook with whatever ``resolve_initial_project()``
-    # returned. Slice 4 (POST /api/projects/load) will mutate it
-    # from the request path.
-    app.state.active_project_carrier = ActiveProjectCarrier()
+    # ``AppState``. The carrier was constructed above so the lifespan
+    # closure could capture it; here we expose it on ``app.state`` so
+    # the DI provider ``get_active_project_carrier`` can resolve it.
+    # Slice 3 wired the lifespan startup hook (calls
+    # ``resolve_initial_project()`` and feeds the result into
+    # ``carrier.set_active_project``); slice 4 will add
+    # ``POST /api/projects/load`` to mutate it from the request path.
+    app.state.active_project_carrier = carrier
 
     # Spec §2 step 10: install error handlers AFTER middleware (CORS +
     # RequestId) so a 500 still passes back through both on the way
