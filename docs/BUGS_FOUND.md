@@ -2312,7 +2312,7 @@ The above are documented gaps where the impl-vs-spec mismatch is **intentional**
 
 ## B-70 — `_build_overrides` accepts empty-string `--host ""` and `--port 0` as overrides (bypass-env), with surprising downstream effects
 
-- **Status:** Open. Filed iter 50.
+- **Status:** ✅ **Fixed in iter 4 (loop, 2026-05-07)** — argparse `type=` validators reject the degenerate inputs at parse time (cleaner than tightening `_build_overrides` because the user gets an immediate error message, not a silent fall-through). Three new validators in `__main__.py`: `_nonempty_str(name)` (rejects `""` for `--host` + positional `project_dir`), `_nonempty_path(name)` (rejects `""` then `Path()`-wraps for `--data-root` + `--projects-root`), `_tcp_port` (parses int + bounds-checks `[1, 65535]`, so `0` / negatives / `>65535` all surface a clean `argparse` error). `_build_overrides` left unchanged — env-precedence guard stays the only responsibility there. 7 new tests in `tests/unit/test_main_cli.py` (415 → 422): each rejected input asserts `SystemExit` with non-zero code; three sanity tests confirm valid host / `[1, 65535]` ports / non-empty paths still parse. The "shell expanded `--host "$UNSET"` to empty" path now fails loudly instead of silently binding to `""`.
 - **Severity:** nit (degenerate-input UX).
 - **Where:** `src/pd_ocr_labeler_spa/__main__.py:138-150` — `if args.host is not None: overrides["host"] = args.host` etc.
 - **Issue:** The override-dict guard checks `is not None` / `is not False` to honor env precedence, but doesn't filter out **degenerate-but-non-default** values:

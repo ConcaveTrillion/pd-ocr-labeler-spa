@@ -37,6 +37,57 @@ import uvicorn
 
 from .settings import Settings
 
+# ── B-70: argparse type validators that reject degenerate inputs ─────────
+
+
+def _nonempty_str(name: str):
+    """Return an argparse `type=` callable that rejects empty strings.
+
+    B-70 — `--host ""` previously landed `host=""` in Settings; the
+    shell expansion of `--host "$UNSET"` is the common path. Empty
+    strings here mean "user accidentally passed nothing"; the right
+    response is a clean parse-time error, not a silent re-bind to "".
+    """
+
+    def _check(value: str) -> str:
+        if value == "":
+            raise argparse.ArgumentTypeError(f"{name} cannot be empty")
+        return value
+
+    return _check
+
+
+def _nonempty_path(name: str):
+    """Return an argparse `type=` callable that rejects empty-string paths.
+
+    B-70 — `--data-root ""` would yield `Path("")` which equals CWD;
+    a stale labeler dir in the user's CWD then gets silently
+    re-rooted into. Reject up-front so the failure is loud.
+    """
+
+    def _check(value: str) -> Path:
+        if value == "":
+            raise argparse.ArgumentTypeError(f"{name} cannot be empty")
+        return Path(value)
+
+    return _check
+
+
+def _tcp_port(value: str) -> int:
+    """B-70 — TCP ports are in `[1, 65535]`. Zero, negatives, > 65535 rejected.
+
+    `--port 0` previously made the printed `Listening on http://...:0`
+    line factually false (uvicorn picks an ephemeral port and the
+    browser-open call hits `:0` and refuses).
+    """
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"--port must be an integer, got {value!r}") from None
+    if not (1 <= port <= 65535):
+        raise argparse.ArgumentTypeError(f"--port must be in [1, 65535], got {port}")
+    return port
+
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
     p = argparse.ArgumentParser(
@@ -48,6 +99,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     p.add_argument(
         "project_dir",
         nargs="?",
+        type=_nonempty_str("project_dir"),  # B-70
         default=None,
         help="optional path to a project directory (overrides session restore)",
     )
@@ -55,12 +107,13 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     # ── Server ────────────────────────────────────────────────────────────
     p.add_argument(
         "--host",
+        type=_nonempty_str("--host"),  # B-70
         default=None,
         help="bind host (default 127.0.0.1; PDLABELER_HOST env)",
     )
     p.add_argument(
         "--port",
-        type=int,
+        type=_tcp_port,  # B-70
         default=None,
         help="bind port (default 8080; PDLABELER_PORT env)",
     )
@@ -84,14 +137,14 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     # ── Path roots (spec §3) ──────────────────────────────────────────────
     p.add_argument(
         "--data-root",
-        type=Path,
+        type=_nonempty_path("--data-root"),  # B-70
         default=None,
         metavar="PATH",
         help="override Settings.data_root (PDLABELER_DATA_ROOT env)",
     )
     p.add_argument(
         "--projects-root",
-        type=Path,
+        type=_nonempty_path("--projects-root"),  # B-70
         default=None,
         metavar="PATH",
         help="root directory whose subdirectories are selectable projects "

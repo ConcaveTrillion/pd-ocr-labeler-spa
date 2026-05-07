@@ -429,6 +429,96 @@ def test_no_overrides_omits_path_keys_entirely(monkeypatch: pytest.MonkeyPatch) 
         )
 
 
+# ── B-70: degenerate-input rejection (host/port/data-root) ────────────────
+
+
+def test_empty_host_string_is_rejected_at_parse_time() -> None:
+    """`--host ""` exits cleanly rather than silently binding to "".
+
+    B-70: empty-string `--host` previously landed `host=""` in Settings;
+    pydantic accepted it and uvicorn bound to all interfaces (or failed
+    in confusing ways). The shell expansion of `--host "$UNSET"` is the
+    common path here. Argparse-time validation is the cleanest fix:
+    user gets a clear error before any Settings construction, and the
+    env-precedence guard in `_build_overrides` doesn't have to grow a
+    second responsibility.
+    """
+    with pytest.raises(SystemExit) as exc:
+        _parse_args(["--host", ""])
+    assert exc.value.code != 0
+
+
+def test_zero_port_is_rejected_at_parse_time() -> None:
+    """`--port 0` exits cleanly rather than letting uvicorn pick ephemeral.
+
+    B-70: `--port 0` previously made the printed `Listening on
+    http://127.0.0.1:0` line factually false (uvicorn would pick an
+    ephemeral port and the browser-open call would hit `:0` and refuse
+    the connection). Negative ports are also rejected (TCP ports are
+    in [1, 65535]).
+    """
+    with pytest.raises(SystemExit) as exc_zero:
+        _parse_args(["--port", "0"])
+    assert exc_zero.value.code != 0
+
+    with pytest.raises(SystemExit) as exc_neg:
+        _parse_args(["--port", "-1"])
+    assert exc_neg.value.code != 0
+
+    with pytest.raises(SystemExit) as exc_huge:
+        _parse_args(["--port", "65536"])
+    assert exc_huge.value.code != 0
+
+
+def test_empty_path_string_flags_rejected_at_parse_time() -> None:
+    """`--data-root ""` / `--projects-root ""` exit cleanly.
+
+    B-70: `--data-root ""` resolves to `Path("")` which equals CWD;
+    a stale labeler dir in the user's CWD then gets silently
+    re-rooted into. The same shape applies to `--projects-root ""`
+    and the positional `project_dir`.
+    """
+    for flag in ("--data-root", "--projects-root"):
+        with pytest.raises(SystemExit) as exc:
+            _parse_args([flag, ""])
+        assert exc.value.code != 0, f"empty {flag!r} should be rejected"
+
+
+def test_empty_positional_project_dir_is_rejected_at_parse_time() -> None:
+    """Positional `""` `project_dir` is rejected (same root cause as B-70)."""
+    with pytest.raises(SystemExit) as exc:
+        _parse_args([""])
+    assert exc.value.code != 0
+
+
+def test_valid_high_port_still_accepted() -> None:
+    """Don't over-tighten: spec lets users pick any valid TCP port.
+
+    Sanity that the port validator only rejects out-of-range, not
+    "unusual" ports. 65535 is the upper bound; 1 is the lower; the
+    default 8080 stays accepted of course.
+    """
+    args1 = _parse_args(["--port", "1"])
+    assert args1.port == 1
+    args2 = _parse_args(["--port", "65535"])
+    assert args2.port == 65535
+    args3 = _parse_args(["--port", "8080"])
+    assert args3.port == 8080
+
+
+def test_valid_host_still_accepted() -> None:
+    """Sanity: non-empty hosts still parse cleanly."""
+    args = _parse_args(["--host", "0.0.0.0"])
+    assert args.host == "0.0.0.0"
+
+
+def test_valid_path_flags_still_accepted(tmp_path: Path) -> None:
+    """Sanity: non-empty paths still parse cleanly through `Path` type."""
+    args = _parse_args(["--data-root", str(tmp_path), "--projects-root", str(tmp_path)])
+    assert args.data_root == tmp_path
+    assert args.projects_root == tmp_path
+
+
 # ── Module-as-script entry ────────────────────────────────────────────────
 
 
