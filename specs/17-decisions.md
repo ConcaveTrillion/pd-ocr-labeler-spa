@@ -779,6 +779,22 @@ remains a future option but isn't being wired now.
 
 ---
 
+## D-039 — `--log-level` CLI flag dropped; `-v/--verbose` is canonical
+
+**Date.** 2026-05-07. Resolves Q-A13.
+
+**Decision.** Adopt option (D): drop `--log-level` from the M1.g
+flag set. Spec `15-deployment-dev.md §3` and `02-backend.md §3` name
+`-v/--verbose` (count, 0–3) as the verbosity knob, mirroring legacy
+`pd-ocr-labeler/cli.py:50-56`. `Settings` does not gain a `log_level`
+field. If a real consumer (e.g. an external deployment doc literally
+specifying `--log-level`) surfaces later, revisit with a concrete
+shape — but the default rule is one verbosity flag, matching legacy.
+
+**Refs.** [`OPEN_QUESTIONS.md Q-A13`](../OPEN_QUESTIONS.md), [`15-deployment-dev.md`](15-deployment-dev.md) §3, [`02-backend.md`](02-backend.md) §3.
+
+---
+
 ## Pending decisions
 
 See [`OPEN_QUESTIONS.md`](../OPEN_QUESTIONS.md) for any sub-questions
