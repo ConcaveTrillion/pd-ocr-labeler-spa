@@ -261,24 +261,67 @@ ambiguous as an OPEN_QUESTIONS.md entry first.
   binding ahead of browser-launch, so we can detect collisions before
   spawning the browser.
   - **Behavior (local mode only):**
-    1. Try the configured default port first — preserves the
-       bookmarkable URL.
-    2. On `EADDRINUSE`, retry with `port=0` (kernel picks a free port).
+    1. Try the **persisted last-bound port** first (see sub-req A) if
+       a state file exists — preserves the user's bookmark across
+       restarts even if the default has since changed.
+    2. Then try the configured default port — preserves the
+       bookmarkable URL on first run / after state reset.
+    3. On `EADDRINUSE`, retry with `port=0` (kernel picks a free port).
        Print the actually-chosen URL clearly on stdout *before*
        browser-launch so it's obvious which tab is which.
-    3. If the user passes `--port N` explicitly, fail loud on
-       collision (no fallback) — they asked for that exact port.
-    4. Self-hosted / managed adapters (when those exist): out of
-       scope — keep explicit-port behavior, no auto-fallback.
-  - **Acceptance:** tests cover (a) default-port-free → binds default
-    and prints expected URL, (b) default-port-taken → fallback
-    succeeds, prints the actually-chosen URL, and the printed URL is
-    what the browser-launcher receives, (c) explicit `--port N`
-    collision → fails loud with a clear error (no fallback path
-    taken).
+    4. After a successful bind in any of the above, persist the
+       bound port to the state file (sub-req A).
+    5. If the user passes `--port N` explicitly, fail loud on
+       collision (no fallback) and **do not** read or write the
+       persisted-port state file — they asked for that exact port.
+    6. Self-hosted / managed adapters (when those exist): out of
+       scope — keep explicit-port behavior, no auto-fallback, no
+       persistence.
+  - **Sub-req A — stable bookmarks across restarts.** Auto-select
+    must not break the user's bookmark on every run. Persist the
+    last successfully-bound port to a small state file under the
+    repo's local-state convention (e.g.
+    `~/.cache/pd-ocr-labeler-spa/last-port`, or whatever
+    `pd-prep-for-pgdp` settles on — keep them aligned). On next
+    start the resolution order is **persisted → default → port=0**.
+    Treat a missing/unreadable/garbage state file as "no persisted
+    port" (fall through, no error). Write atomically (tmp + rename)
+    so a crash mid-write can't corrupt the file. Never persist when
+    `--port N` was explicit.
+  - **Sub-req B — URL visible inside the running UI.** Local-mode
+    users may close the console and lose the printed URL. The UI
+    itself must surface the current URL/port somewhere persistent
+    and obvious — e.g. a footer line, an "About" / "Server info"
+    panel, or a copy-to-clipboard button in a corner. The value
+    comes from a backend endpoint (or template-injected at render)
+    that reports the actually-bound URL, not the configured one.
+    Belt-and-suspenders: console print **and** in-UI display.
+    Add a stable `data-testid` (e.g. `server-info-url`) so the
+    Playwright driver contract can assert it.
+  - **Acceptance:** tests cover
+    (a) default-port-free, no state file → binds default, prints
+    expected URL, writes state file with default port;
+    (b) default-port-taken, no state file → fallback to `port=0`
+    succeeds, prints the actually-chosen URL, that URL is what the
+    browser-launcher receives, and the chosen port is persisted;
+    (c) explicit `--port N` collision → fails loud with a clear
+    error (no fallback path taken, state file untouched);
+    (d) **persisted-port-reused-on-next-start** — state file
+    contains port P (P != default), P is free → server binds P
+    (not default), URL reflects P;
+    (e) **persisted-port-taken-falls-through** — state file contains
+    P, P is bound by another process → falls through to default
+    (or `port=0` if default also taken) without erroring on the
+    stale state file;
+    (f) corrupt/unreadable state file → treated as missing, no
+    error, server still starts;
+    (g) **in-UI URL visible** — Playwright (or equivalent) loads
+    the running UI and asserts the element with the agreed
+    `data-testid` displays the actually-bound URL/port.
   - **Cross-link:** matching open item being added to
     `pd-prep-for-pgdp`; keep the two implementations in sync when
-    either is picked up.
+    either is picked up — including state-file location convention
+    and the in-UI URL display pattern.
 
 ## Iteration index (this repo)
 
