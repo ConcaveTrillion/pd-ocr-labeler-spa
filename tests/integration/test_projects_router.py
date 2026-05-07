@@ -458,3 +458,103 @@ def test_post_load_validation_error_on_missing_body_field(
     assert resp.status_code == 400
     body = resp.json()
     assert body["error"] == "validation_error"
+
+
+# ──────────────────────────────────────────────────────────────────────
+# GET /api/projects/{project_id}
+# ──────────────────────────────────────────────────────────────────────
+#
+# Spec §02-backend.md line 220 — ``GET /api/projects/{project_id} →
+# Project``. M2-proper read endpoint that returns the loaded ``Project``
+# model from ``ProjectState``. No on-demand load: if no project is
+# currently loaded, or if the requested ``project_id`` doesn't match
+# the one held by ``ProjectState``, → ``404 project_not_found``.
+#
+# This is intentionally simpler than what the spec ultimately envisions
+# (spec §00-overview.md line 193 — multi-project ``AppState`` with one
+# ``ProjectState`` per project). The single-``ProjectState`` skeleton
+# (slice-5 carrier) means "loaded project" and "addressable project"
+# coincide for now; multi-project bookkeeping is deferred.
+
+
+def test_get_project_by_id_returns_loaded_project(
+    tmp_path: Path,
+) -> None:
+    """``GET /api/projects/{id}`` returns the loaded ``Project`` model.
+
+    After a successful ``POST /api/projects/load``, the GET route must
+    surface the same ``Project`` (by ``project_id``) that the load
+    response carried. Pinned end-to-end so the route layer's read of
+    ``ProjectState.loaded_project`` is exercised against a real
+    persisted-shape project.
+    """
+    import json as _json
+
+    projects_root = tmp_path / "projects"
+    projects_root.mkdir()
+    project_dir = projects_root / "real_book"
+    project_dir.mkdir()
+    (project_dir / "001.png").write_bytes(b"\x00")
+    (project_dir / "002.png").write_bytes(b"\x00")
+    (project_dir / "pages.json").write_text(
+        _json.dumps({"001.png": "first", "002.png": "second"}),
+        encoding="utf-8",
+    )
+
+    settings = _make_settings(tmp_path, source_projects_root=projects_root)
+    app = build_app(settings)
+    with TestClient(app) as c:
+        load_resp = c.post("/api/projects/load", json={"project_root": str(project_dir)})
+        assert load_resp.status_code == 200, load_resp.text
+        loaded = load_resp.json()["project"]
+
+        resp = c.get(f"/api/projects/{loaded['project_id']}")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["project_id"] == "real_book"
+    assert body["total_pages"] == 2
+    assert body["ground_truth_map"]["001.png"] == "first"
+
+
+def test_get_project_by_id_404_when_nothing_loaded(
+    client_with_root: TestClient,
+) -> None:
+    """No project loaded → ``404 project_not_found`` (spec §8 envelope).
+
+    Asking for any id when ``ProjectState.loaded_project is None`` must
+    return the canonical ``project_not_found`` tag, not a bare 404 nor
+    a misleading ``no_project_loaded`` tag (the spec's ``ApiError`` tag
+    set keeps ``project_not_found`` as the universal "we don't have
+    that" answer for project-scoped routes).
+    """
+    resp = client_with_root.get("/api/projects/some_book")
+    assert resp.status_code == 404
+    body = resp.json()
+    assert body["error"] == "project_not_found"
+
+
+def test_get_project_by_id_404_when_id_mismatches_loaded(
+    tmp_path: Path,
+) -> None:
+    """Loaded project_id != requested project_id → 404.
+
+    The single-ProjectState carrier means we can address only the one
+    loaded project; asking for a different id is the same case as
+    "no project with that id is open" → ``project_not_found``.
+    """
+    projects_root = tmp_path / "projects"
+    projects_root.mkdir()
+    project_dir = projects_root / "alpha"
+    project_dir.mkdir()
+    (project_dir / "001.png").write_bytes(b"\x00")
+
+    settings = _make_settings(tmp_path, source_projects_root=projects_root)
+    app = build_app(settings)
+    with TestClient(app) as c:
+        load_resp = c.post("/api/projects/load", json={"project_root": str(project_dir)})
+        assert load_resp.status_code == 200
+        # Ask for a project_id we know isn't loaded.
+        resp = c.get("/api/projects/different_book")
+    assert resp.status_code == 404
+    body = resp.json()
+    assert body["error"] == "project_not_found"

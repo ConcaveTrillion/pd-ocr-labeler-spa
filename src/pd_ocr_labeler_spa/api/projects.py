@@ -26,11 +26,17 @@ What this slice (M2 slice 5) ships ON TOP OF slice 4:
    routes) can return real data. The slice-4 ``LoadProjectResponseStub``
    is replaced by ``LoadProjectResponse{project, current_page_index}``.
 
-What slice 5 deliberately does NOT do (deferred):
+What this iter (M2-proper tail) ships ON TOP OF slice 5:
+
+3. ``GET /api/projects/{project_id}`` — read-only handler that returns
+   the ``Project`` currently held by ``ProjectState``. No on-demand
+   load: if no project is open or the requested id doesn't match the
+   loaded one, ``404 project_not_found``.
+
+What this layer deliberately does NOT do (deferred):
 
 - ``POST /api/projects/discover`` and ``POST /api/projects/source-root``
-  — both depend on YAML config plumbing (M2-proper).
-- ``GET /api/projects/{project_id}`` — additional read route (M2-proper).
+  — both depend on YAML config plumbing (M2-proper config milestone).
 - The full spec-canonical ``LoadProjectResponse`` shape with
   ``current_page: PagePayload`` per spec §1 lines 221-223. ``PagePayload``
   bundles ``PageRecord`` + ``EncodedDims`` + ``LineMatch[]`` + image
@@ -423,6 +429,48 @@ def load_project(
         generation=project_state.generation,
     )
     return JSONResponse(status_code=200, content=response.model_dump(mode="json"))
+
+
+@router.get("/{project_id}")
+def get_project_by_id(
+    project_id: str,
+    project_state: ProjectState = Depends(get_project_state),
+) -> JSONResponse:
+    """``GET /api/projects/{project_id}`` — return the loaded ``Project``.
+
+    Spec §02-backend.md line 220 — returns the loaded ``Project`` model
+    by ``project_id``. This is M2-proper's read endpoint that pairs
+    with slice-5's load handler: load mutates ``ProjectState``, GET
+    reads it back.
+
+    Behavior:
+
+    - If ``ProjectState.loaded_project is None`` → ``404 project_not_found``.
+      The spec ties ``project_not_found`` to "no project with that id is
+      open"; the no-project-loaded case is a special instance of the
+      same ("zero projects loaded means no id can match").
+    - If ``loaded_project.project_id != project_id`` → ``404
+      project_not_found``. The single-``ProjectState`` carrier addresses
+      exactly one project at a time; asking for a different id is the
+      same shape of miss.
+    - Otherwise → ``200`` with the ``Project`` JSON, identical to the
+      ``project`` field of ``LoadProjectResponse``.
+
+    No on-demand load: this route never reaches the filesystem. To open
+    a project, the SPA calls ``POST /api/projects/load`` first.
+
+    The trailing-slash variant is NOT registered — FastAPI normalizes
+    ``/api/projects/foo/`` to ``/api/projects/foo``, so a single route
+    suffices.
+    """
+    project = project_state.loaded_project
+    if project is None or project.project_id != project_id:
+        return _api_error(
+            404,
+            "project_not_found",
+            f"project not found: {project_id}",
+        )
+    return JSONResponse(status_code=200, content=project.model_dump(mode="json"))
 
 
 def install_projects_router(app) -> None:  # type: ignore[no-untyped-def]
