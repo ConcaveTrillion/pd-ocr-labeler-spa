@@ -144,6 +144,11 @@ def test_paths_module_does_not_call_os_or_platform() -> None:
     ``PersistencePathsOperations`` class shape (which DOES call
     ``platform.system()`` and ``os.getenv``) and re-introduces the
     double-OS-awareness bug.
+
+    B-61: also covers dynamic-import escape hatches —
+    ``__import__("os")`` and ``importlib.import_module("os")`` — so a
+    future "convenience" refactor can't slip OS-awareness past the
+    static-import check.
     """
     import ast
     from pathlib import Path as _Path
@@ -169,3 +174,86 @@ def test_paths_module_does_not_call_os_or_platform() -> None:
             assert node.module not in forbidden_imports, (
                 f"paths.py imports from {node.module!r} — OS-awareness belongs in Settings."
             )
+        elif isinstance(node, ast.Call):
+            # B-61: dynamic-import forms — ``__import__("os")`` and
+            # ``importlib.import_module("os")``. Both produce the same
+            # OS-awareness leak as a static ``import os`` but slip past
+            # the ``ast.Import`` / ``ast.ImportFrom`` walkers above.
+            func = node.func
+            # Form 1: ``__import__("os")`` — call to a Name.
+            if isinstance(func, ast.Name) and func.id == "__import__":
+                if node.args and isinstance(node.args[0], ast.Constant):
+                    arg = node.args[0].value
+                    assert arg not in forbidden_imports, (
+                        f"paths.py calls __import__({arg!r}) — dynamic OS-awareness import banned."
+                    )
+            # Form 2: ``importlib.import_module("os")`` — Attribute call.
+            # Flag ANY call to ``importlib.import_module`` regardless of
+            # arg, since the arg may be a runtime-computed string we
+            # can't statically inspect.
+            if (
+                isinstance(func, ast.Attribute)
+                and func.attr == "import_module"
+                and isinstance(func.value, ast.Name)
+                and func.value.id == "importlib"
+            ):
+                raise AssertionError(
+                    "paths.py calls importlib.import_module(...) — dynamic "
+                    "imports defeat the OS-awareness purity guard. If a "
+                    "specific module is genuinely needed at this layer, "
+                    "amend spec §1 first and document why."
+                )
+
+
+def test_paths_purity_scan_catches_dynamic_import_call() -> None:
+    """B-61 meta-test: confirm the AST scan in
+    ``test_paths_module_does_not_call_os_or_platform`` actually
+    flags ``__import__("os")`` — not just static ``import os``.
+
+    We feed the scan a synthetic source string containing the dynamic
+    form and assert the scan raises AssertionError. Without this
+    meta-test the bug B-61 originally described — silent gap in the
+    walker — would never re-surface even after the gap was reopened.
+    """
+    import ast
+
+    forbidden_imports = {"platform", "os"}
+    bad_source = "x = __import__('os')\n"
+    tree = ast.parse(bad_source)
+
+    triggered = False
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Name) and func.id == "__import__":
+                if node.args and isinstance(node.args[0], ast.Constant):
+                    arg = node.args[0].value
+                    if arg in forbidden_imports:
+                        triggered = True
+    assert triggered, (
+        "Dynamic-import scan failed to flag __import__('os') — B-61 gap reopened."
+    )
+
+
+def test_paths_purity_scan_catches_importlib_import_module() -> None:
+    """B-61 meta-test: confirm the AST scan flags any
+    ``importlib.import_module(...)`` call (regardless of the arg)."""
+    import ast
+
+    bad_source = "import importlib\nx = importlib.import_module('os')\n"
+    tree = ast.parse(bad_source)
+
+    triggered = False
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            func = node.func
+            if (
+                isinstance(func, ast.Attribute)
+                and func.attr == "import_module"
+                and isinstance(func.value, ast.Name)
+                and func.value.id == "importlib"
+            ):
+                triggered = True
+    assert triggered, (
+        "Dynamic-import scan failed to flag importlib.import_module(...) — B-61 gap reopened."
+    )
