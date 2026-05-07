@@ -20,6 +20,7 @@ curl -fsSL https://raw.githubusercontent.com/<org>/pd-ocr-labeler-spa/main/insta
 ```
 
 `install.sh` does:
+
 1. Verify `uv` is installed; bail with installation hint otherwise.
 2. Fetch the latest GitHub Release wheel via the GitHub API.
 3. `uv tool install <wheel> --reinstall`.
@@ -92,6 +93,7 @@ make setup            # uv sync + npm install + pre-commit + playwright install
 ```
 
 `make setup` does:
+
 - `uv sync` — Python deps + dev group.
 - `cd frontend && npm install`.
 - `pre-commit install`.
@@ -346,6 +348,7 @@ isn't slowed by openapi regen.
 ## 9. Versioning
 
 `hatch-vcs` derives version from git tags:
+
 - `v0.1.0` tag → version `0.1.0`.
 - Any commit between tags → `0.1.0.dev<n>+<sha>`.
 
@@ -382,6 +385,7 @@ devcontainer at `/workspaces/ocr-container/` is supported but
 can `make setup` and be productive without ever opening the devcontainer.
 
 `make setup` does:
+
 - `uv sync` (Python deps + dev group).
 - `cd frontend && npm install`.
 - `pre-commit install`.
@@ -446,3 +450,103 @@ make release         Tag + push (manual; CI handles wheel/container)
   CUDA. Out of scope for v1; add in M9 if requested.
 - **Auto-update.** No in-app update prompt. Users re-run `install.sh`.
   Acceptable.
+
+---
+
+## 15. Dev-local mode + safe `upgrade-deps` (deferred)
+
+**Status.** Deferred until the `Makefile` lands
+(see [`16-milestones.md`](16-milestones.md) M0). Captured here so the
+requirement is not lost when the Makefile is authored. Workspace-wide
+standard agreed 2026-05-07; mirrored across all `pd-*` repos.
+
+### 15.1 Problem
+
+A workspace developer can opt into **dev-local mode** for the venv:
+editable installs of sibling `pd-*` checkouts (notably
+[`pd-book-tools`](../../pd-book-tools/)), GPU/CUDA torch wheels, and
+`doctr` from git. None of that state is captured in `uv.lock` — it's
+applied imperatively after `uv sync`. So the obvious recipe
+
+```make
+upgrade-deps:
+    uv lock --upgrade
+    uv sync --group dev
+```
+
+silently reverts a dev-local venv back to canonical published / CPU
+the moment it runs `uv sync`. The developer's editable
+`pd-book-tools` checkout becomes a published wheel; the GPU torch
+becomes CPU torch; and the next `make test` run is testing something
+materially different from what the developer thinks they're testing.
+
+The fix below is the workspace-standard pattern; once this repo grows
+a Makefile (M0), it must implement this pattern rather than the naive
+recipe above.
+
+### 15.2 Required behavior
+
+1. **Detect mode before any `uv sync`.** `make upgrade-deps` (and any
+   other target that calls `uv sync`) must probe the current venv to
+   determine whether it is in dev-local or canonical mode, before
+   running the sync.
+2. **Detection probes**, in order:
+   1. Run `uv pip show pd-book-tools` and look for an
+      `Editable project location:` line. `pd-book-tools` is the
+      cross-repo anchor — every `pd-*` repo depends on it, so its
+      editable-vs-wheel state is the load-bearing signal. If editable
+      → dev-local.
+   2. Fallback marker file inside the venv (e.g.
+      `.venv/.pd-dev-local`). The companion `upgrade-deps-local`
+      target (15.3) writes this after a successful dev-local restore;
+      the marker is honored on subsequent runs in case the editable
+      probe is unavailable.
+   3. Last-resort env var: `PD_DEV_LOCAL=1` forces dev-local.
+3. **UX — refuse-with-message default.** When dev-local is detected,
+   `make upgrade-deps` must **not** run `uv sync`. It must print a
+   clear message naming the detected dev-local state, citing the
+   probe that fired, and pointing at `make upgrade-deps-local`.
+4. **Sibling target — `upgrade-deps-local`.** Performs:
+   `uv lock --upgrade`, then `uv sync --group dev`, then re-applies
+   the dev-local restore (editable sibling installs, GPU torch index,
+   `doctr` from git, etc.), then writes/refreshes the
+   `.venv/.pd-dev-local` marker.
+5. **Canonical-mode behavior unchanged.** When no dev-local state is
+   detected, `make upgrade-deps` behaves exactly as the naive recipe:
+   `uv lock --upgrade && uv sync --group dev`. No new prompts.
+6. **Cross-platform.** Detection and both targets must work on Linux
+   (workspace devcontainer) and macOS. Avoid GNU-only `make`
+   constructs and bash-only `[[ ]]` tests in shell snippets that run
+   in either environment; stick to POSIX-compatible probes.
+
+### 15.3 Spec for the implementation milestone
+
+When this lands (planned M0; see [`16-milestones.md`](16-milestones.md)),
+the Makefile must include:
+
+- `upgrade-deps` — canonical recipe, gated by the detection above.
+- `upgrade-deps-local` — lock + sync + dev-local restore + marker write.
+- A small shared shell function (or `mise task`/Make macro) that
+  performs the three-probe detection and exports the result; reused
+  by any other target that calls `uv sync`.
+
+The dev-local restore step itself (which siblings to install editable,
+which torch index to use, which `doctr` ref) is shared workspace
+state and should be sourced from a single workspace location rather
+than duplicated per-repo. That location is TBD at the workspace
+level; this spec only requires that the repo's Makefile honor the
+detect-and-refuse contract.
+
+### 15.4 Acceptance criteria
+
+- In a canonical venv: `make upgrade-deps` runs lock + sync to
+  completion; `uv pip show pd-book-tools` continues to show a
+  published wheel; nothing prompts.
+- In a dev-local venv (editable `pd-book-tools` sibling installed):
+  `make upgrade-deps` exits **without** mutating the venv, prints the
+  refusal message, and names the probe that fired.
+- `make upgrade-deps-local` in either mode produces a dev-local venv
+  with editable siblings + GPU torch + `doctr`-from-git intact, and
+  leaves `.venv/.pd-dev-local` present.
+- `PD_DEV_LOCAL=1 make upgrade-deps` refuses on a venv that probes as
+  canonical.

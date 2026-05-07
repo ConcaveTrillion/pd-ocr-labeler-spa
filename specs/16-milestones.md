@@ -67,12 +67,14 @@ pd-ocr-labeler-spa/
 ```
 
 **Specs that govern this milestone.**
+
 - [`00-overview.md`](00-overview.md) — tech stack, repo layout
 - [`02-backend.md`](02-backend.md) §1, §2, §3 — module layout, factory, settings
 - [`03-frontend.md`](03-frontend.md) §1, §2 — folder layout, tech choices
 - [`15-deployment-dev.md`](15-deployment-dev.md) — Makefile, CI, install
 
 **Acceptance tests.**
+
 - `make setup && make test` — green.
 - `make frontend-test` — green (one smoke test).
 - `make frontend-build` — produces `dist/` and copies to `static/`.
@@ -84,6 +86,13 @@ pd-ocr-labeler-spa/
   `frontend/src/api/types.ts` (the latter is just empty interfaces).
 - ESLint and ruff pass clean.
 - Pre-commit hooks installed and pass.
+- `Makefile` implements the dev-local-aware `upgrade-deps` /
+  `upgrade-deps-local` pair per
+  [`15-deployment-dev.md`](15-deployment-dev.md) §15: `upgrade-deps`
+  refuses-with-message in a dev-local venv (editable `pd-book-tools`
+  detected, fallback `.venv/.pd-dev-local`, or `PD_DEV_LOCAL=1`),
+  while `upgrade-deps-local` performs lock + sync + dev-local
+  restore + marker write. Canonical-mode behavior unchanged.
 
 **Pre-conditions.** None.
 
@@ -94,6 +103,7 @@ pd-ocr-labeler-spa/
 ## M1 — Settings + adapters + AppState seam
 
 **Outcome.** `build_app(settings)` wires:
+
 - `Settings` (env-driven, OS-aware roots).
 - `IStorage(filesystem)` adapter (verbatim port from pgdp-prep, with
   path-traversal guard).
@@ -107,6 +117,7 @@ No real domain endpoints yet. Frontend renders an empty header bar +
 "No project loaded" placeholder.
 
 **Files to create / modify.**
+
 - `src/pd_ocr_labeler_spa/adapters/storage/{base,filesystem,__init__}.py`
 - `src/pd_ocr_labeler_spa/adapters/auth/{base,none_,__init__}.py`
 - `src/pd_ocr_labeler_spa/adapters/ocr/{base,local_doctr,__init__}.py`
@@ -124,6 +135,7 @@ No real domain endpoints yet. Frontend renders an empty header bar +
 - `frontend/src/components/HeaderBar.test.tsx`
 
 **Specs.**
+
 - [`01-data-models.md`](01-data-models.md) §5, §6 — paths, OpenAPI
 - [`02-backend.md`](02-backend.md) §3, §6, §7, §8, §9 — settings,
   deps, adapters, errors, logging
@@ -131,6 +143,7 @@ No real domain endpoints yet. Frontend renders an empty header bar +
 - [`15-deployment-dev.md`](15-deployment-dev.md) — env vars
 
 **Acceptance tests.**
+
 - `tests/unit/test_app_factory.py::test_build_app_returns_fastapi` —
   no exceptions wiring all adapters.
 - `tests/unit/test_request_id.py::test_request_id_echoed` — sends a
@@ -155,6 +168,7 @@ and see the first page's metadata (page name + source badge). No image,
 no overlays, no word matches yet.
 
 **Backend.**
+
 - `core/project_state.py` — `ProjectState` minus per-page work.
 - `core/persistence/{project_envelope,ground_truth,__init__}.py` — read
   `pages.json` / `pages_manifest.json`, scan project dirs, build `Project`.
@@ -166,6 +180,7 @@ no overlays, no word matches yet.
 - Session state read on startup; written on every successful load.
 
 **Frontend.**
+
 - `components/ProjectLoadControls.tsx` — dropdown + LOAD + folder +
   tune buttons (tune is wired to a placeholder `OCRConfigModal` in M3).
 - `components/SourceFolderDialog.tsx` — full path-picker (Home / Up /
@@ -178,11 +193,13 @@ no overlays, no word matches yet.
   page change updates URL.
 
 **Specs.**
+
 - [`08-page-actions.md`](08-page-actions.md)
 - [`13-driver-contract.md`](13-driver-contract.md) §URL, §load controls
 - [`12-hotkeys-a11y.md`](12-hotkeys-a11y.md) §source-folder dialog
 
 **Acceptance tests.**
+
 - Backend: `tests/integration/test_project_load.py::test_load_real_fixture`
   loads a fixture project, asserts `Project.total_pages == 5`,
   `current_page_index == 0`, GT map populated, session_state.json written.
@@ -209,6 +226,7 @@ detection+recognition models, with the auto-pick reason surfaced in
 notifications.
 
 **Backend.**
+
 - `adapters/ocr/local_doctr.py` — actually wraps
   `Document.from_image_ocr_via_doctr`; cached predictor.
 - `core/ocr/{model_selection,predictor,provenance,__init__}.py` —
@@ -218,7 +236,7 @@ notifications.
   cache > load saved > run OCR), `_resolve_save_directory`,
   `persist_page_to_file`. Auto-cache write after first OCR.
 - `core/persistence/user_page_envelope.py` — full schema 2.1 reader
-  + writer.
+  - writer.
 - `api/ocr_config.py` — `GET /api/ocr-config`,
   `POST /api/ocr-config/models`, `POST /api/ocr-config/rescan`.
 - `api/pages.py::get_page` returns full `PagePayload` minus line
@@ -229,6 +247,7 @@ notifications.
   in-memory job runner + SSE.
 
 **Frontend.**
+
 - `components/OCRConfigModal.tsx` — detection / recognition selects,
   HF revision input, Rescan / Cancel / Apply.
 - `components/PageImageCanvas.tsx` — Konva `<Stage>` + `<Image>` only.
@@ -238,11 +257,13 @@ notifications.
   shows a busy toast with progress.
 
 **Specs.**
+
 - [`08-page-actions.md`](08-page-actions.md) (Reload OCR section)
 - [`09-persistence.md`](09-persistence.md) — envelope, image cache
 - [`11-notifications.md`](11-notifications.md) — busy overlay, jobs
 
 **Acceptance tests.**
+
 - Backend: `tests/integration/test_first_ocr.py` — load fixture,
   assert page parsed, `page_source == "ocr"`, cached envelope written
   to `<cache>/page-images/<project>_001_envelope.json`.
@@ -265,12 +286,14 @@ on the image, and modifiers (Shift = remove, Ctrl = symmetric diff)
 work as in the legacy.
 
 **Backend.**
+
 - `core/selection.py` — `Selection` model + helpers.
 - `api/pages.py::get_matches` — returns `LineMatch[]` for the page
   with `line_filter` query param.
 - `core/line_match.py` — build `LineMatch` + `WordMatch` from a `Page`.
 
 **Frontend.**
+
 - `components/BBoxOverlay.tsx` — Konva layer drawing rects per layer
   with the right colors (paragraphs green, lines pink, words blue).
   Match exact RGBA values from
@@ -286,10 +309,12 @@ work as in the legacy.
   `useSelectionStore` (optimistic) → POST to backend selection endpoint.
 
 **Specs.**
+
 - [`04-image-viewport.md`](04-image-viewport.md) — full
 - [`12-hotkeys-a11y.md`](12-hotkeys-a11y.md) — modifier keys
 
 **Acceptance tests.**
+
 - Backend: `tests/unit/test_line_match.py` — given a saved fixture
   envelope, build LineMatch correctly (counts, status, etc.).
 - Frontend: Playwright `test_image_viewport.py` — load project,
@@ -309,6 +334,7 @@ columns. Filter toggle works. Inline GT edit (Enter / blur / Tab/Shift-Tab)
 works. Validation per-word and per-line works. No toolbar yet.
 
 **Backend.**
+
 - `api/words.py` — `ground-truth`, `validate`, `validate-batch`.
 - `api/lines.py` — `validate`, `copy-gt`.
 - `core/page_state.py` — `update_word_ground_truth`,
@@ -316,6 +342,7 @@ works. Validation per-word and per-line works. No toolbar yet.
 - Auto-save to cache after every mutation (best-effort).
 
 **Frontend.**
+
 - `components/WordMatchView.tsx` — virtualised list of `LineCard`s,
   filter toggle.
 - `components/LineCard.tsx` — header row + word table.
@@ -326,11 +353,13 @@ works. Validation per-word and per-line works. No toolbar yet.
 - Hotkey: Enter commits GT, Tab/Shift-Tab moves to next/prev GT input.
 
 **Specs.**
+
 - [`05-word-matches.md`](05-word-matches.md) — full
 - [`12-hotkeys-a11y.md`](12-hotkeys-a11y.md) — Enter/Tab on GT inputs
 - [`13-driver-contract.md`](13-driver-contract.md) §word cell testids
 
 **Acceptance tests.**
+
 - Backend: `tests/integration/test_inline_gt_edit.py` — POST inline
   edit, GET matches, see updated text + status (auto re-classify).
 - Frontend: Playwright `test_word_match.py` ports legacy
@@ -350,6 +379,7 @@ Style / Apply Component / Clear Component rows wired. Add Word drag
 mode wired.
 
 **Backend.**
+
 - `api/words.py` — `style`, `component`, `add`, `delete-batch`,
   `style-batch`, `component-batch`.
 - `api/lines.py` — `delete-batch`, `merge`, `split-after-word`,
@@ -361,6 +391,7 @@ mode wired.
   helpers.
 
 **Frontend.**
+
 - `components/ToolbarActionGrid.tsx` — 14-column grid with one row per
   scope. Buttons disabled per `update_button_state` semantics.
 - `components/ApplyStyleRow.tsx` — Style select / Scope select / Apply
@@ -370,10 +401,12 @@ mode wired.
 - Mutation hooks for all batch endpoints.
 
 **Specs.**
+
 - [`06-toolbar-actions.md`](06-toolbar-actions.md) — full
 - [`13-driver-contract.md`](13-driver-contract.md) §toolbar testids
 
 **Acceptance tests.**
+
 - Backend: `tests/integration/test_toolbar_actions.py` — every batch
   endpoint round-trips.
 - Frontend: Playwright `test_toolbar_*_actions.py` (port from legacy
@@ -392,21 +425,25 @@ mode, nudge grid, crop buttons, refine/expand-refine, merge/split,
 tag chips. Page-scope `Refine all bboxes` button works.
 
 **Backend.**
+
 - `api/refine.py` — page-scope refine queues a job.
 - `api/words.py` — `rebox`, `nudge`, `split`, `merge`, `erase-pixels`.
 - `core/jobs/handlers/refine_bboxes.py` — page + project handlers.
 
 **Frontend.**
+
 - `components/WordEditDialog.tsx` — full layout per spec.
 - `components/PageImageCanvas.tsx` — extend to support rebox / add /
   erase modes (already partially done in M4 for selection).
 
 **Specs.**
+
 - [`07-word-edit-dialog.md`](07-word-edit-dialog.md) — full
 - [`12-hotkeys-a11y.md`](12-hotkeys-a11y.md) — Enter on dialog GT,
   Escape close
 
 **Acceptance tests.**
+
 - Backend: `tests/integration/test_refine_bboxes.py` — page-scope
   refine produces a job, SSE emits progress, terminal `complete`
   event, page payload reflects new bboxes.
@@ -426,12 +463,14 @@ The `pd-ocr-labeler-driver` agent operates the SPA UI without code
 changes.
 
 **Backend.**
+
 - `api/pages.py` — `save`, `load`, `rematch-gt` finalised.
 - `api/projects.py::save-all` — wraps in a job (`SAVE_PROJECT`).
 - `core/page_state.py` — auto-save vs explicit save semantics
   (`update_page_source` flag).
 
 **Frontend.**
+
 - `components/PageActions.tsx` — wire Save Page, Save Project, Load
   Page, Rematch GT to mutations + SSE jobs as appropriate.
 - `components/SaveStatus.tsx` — small "saved 2s ago" indicator near
@@ -440,11 +479,13 @@ changes.
   asserted in a single test.
 
 **Specs.**
+
 - [`08-page-actions.md`](08-page-actions.md) — full
 - [`13-driver-contract.md`](13-driver-contract.md) — full
   conformance
 
 **Acceptance tests.**
+
 - Backend: `tests/integration/test_save_load_round_trip.py` — save
   page → load page → assert state matches, image fingerprint matches.
 - Backend: `tests/integration/test_save_project.py` — multi-page job
@@ -466,22 +507,26 @@ style filter). Notification stream is fully wired. Final QA pass.
 Optional: declare GA + remove the legacy `pd-ocr-labeler` repo.
 
 **Backend.**
+
 - `api/export.py` + `core/jobs/handlers/export.py` — runs
   `DocTRExportOperations` in a background thread, emits per-page
   progress, surfaces results.
 - `api/notifications.py` — full SSE.
 
 **Frontend.**
+
 - `components/ExportDialog.tsx` — scope radio, style checkboxes,
   results panel, Close.
 - Final pass on `BusyOverlay` / `ProjectLoadingOverlay` sequencing.
 - Final pass on hotkey help affordance (a "?" button or shortcut).
 
 **Specs.**
+
 - [`10-export.md`](10-export.md) — full
 - [`11-notifications.md`](11-notifications.md) — full
 
 **Acceptance tests.**
+
 - Backend: `tests/integration/test_export.py` — current/all-validated
   scopes; per-style subfolder layout; resulting `labels.json` matches
   legacy schema byte-for-byte (golden).
@@ -503,6 +548,7 @@ Optional: declare GA + remove the legacy `pd-ocr-labeler` repo.
 image. `rotation-badge` shows current rotation.
 
 **Files.**
+
 - `src/pd_ocr_labeler_spa/api/pages.py` — new POST `.../rotate`.
 - `src/pd_ocr_labeler_spa/core/page_state.py` — `rotate_page(degrees)` mutator.
 - `src/pd_ocr_labeler_spa/core/jobs/handlers/rotate_page.py`.
@@ -527,6 +573,7 @@ configurable method (`gt-best-match` if GT available else `layout`).
 Indicator badge distinguishes auto vs manual.
 
 **Files.**
+
 - `src/pd_ocr_labeler_spa/core/page_state.py` — auto-rotate hook in
   `ensure_page_model`.
 - `src/pd_ocr_labeler_spa/core/jobs/handlers/auto_rotate_all.py`.
@@ -547,6 +594,7 @@ ergonomic for power users. Audit + fill in any gaps from the M5–M8
 keymap; document via the `?` help modal.
 
 **Files.**
+
 - `frontend/src/lib/hotkeyMap.ts` — additions.
 - `frontend/src/components/HotkeyHelpDialog.tsx` (M9 polish).
 - `tests/e2e/test_keyboard_only_full.py` — extends `test_keyboard_only`
@@ -566,6 +614,7 @@ uses normalization-aware GT matching when toggle on, so `ſhall` vs
 ASCII-normalized via `pd_book_tools.text.normalize`.
 
 **Files.**
+
 - `src/pd_ocr_labeler_spa/core/line_match.py` — opt-in normalize on
   matcher.
 - `src/pd_ocr_labeler_spa/api/ocr_config.py` — new fields.
