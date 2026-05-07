@@ -144,11 +144,18 @@ def _guess_media_type(key: str) -> str:
 def _resolve_static_dir() -> Path | None:
     """Resolve the bundled SPA static dir, or ``None`` if it isn't present.
 
-    Production: ``importlib.resources.files("pd_ocr_labeler_spa") /
-    "static"`` resolves to the in-wheel directory. Dev: the same path
-    against the source tree resolves to ``src/pd_ocr_labeler_spa/static/``,
-    which is empty (just a ``.gitkeep``) until ``make frontend-build``
-    has run.
+    Production (pip/uv-extracted wheel): ``importlib.resources.files(
+    "pd_ocr_labeler_spa") / "static"`` returns a ``PosixPath`` we can
+    use directly. Dev: the same path against the source tree resolves
+    to ``src/pd_ocr_labeler_spa/static/``, also a ``Path``.
+
+    Zip-imported packages (``zipapp``, frozen importer, legacy ``.egg``)
+    return a non-``Path`` ``Traversable`` (e.g. ``MultiplexedPath`` /
+    ``ZipPath``) — B-59. We check ``is_dir()`` and
+    ``index.html`` existence on the Traversable directly (the abc
+    defines both), then materialise to disk via ``resources.as_file``
+    so the rest of the route handler (which expects a real on-disk
+    ``Path``) sees the same shape regardless of import strategy.
 
     Returns ``None`` (rather than raising) when the dir is missing or
     empty, so the SPA fallback degrades gracefully in M0/dev mode.
@@ -158,15 +165,66 @@ def _resolve_static_dir() -> Path | None:
     except (FileNotFoundError, ModuleNotFoundError):
         return None
 
-    path = Path(str(traversable))
-    if not path.is_dir():
+    # Use the Traversable abc directly — works for both Path-backed
+    # (pip-extracted) and non-Path-backed (zip-imported) traversables.
+    # ``Path(str(traversable))`` would silently fail for the latter.
+    try:
+        if not traversable.is_dir():
+            return None
+        index = traversable.joinpath("index.html")
+        if not index.is_file():
+            # Empty static dir (M0 — only ``.gitkeep`` lives here).
+            return None
+    except (FileNotFoundError, NotADirectoryError):
         return None
-    if not (path / "index.html").is_file():
-        # Empty static dir (M0 — only ``.gitkeep`` lives here). Not an
-        # error: the catch-all just 404s with a helpful message instead
-        # of trying to serve a non-existent ``index.html``.
+
+    if isinstance(traversable, Path):
+        # Fast path: pip/uv-extracted wheel or source tree — already a
+        # real on-disk ``Path``, no materialisation needed.
+        return traversable
+
+    # Zip-imported / frozen package: materialise to a tmpdir whose
+    # lifetime spans the process. We hold the ExitStack reference on
+    # the function attribute so subsequent calls return the same
+    # extracted dir rather than re-extracting on every request.
+    return _materialise_traversable(traversable)
+
+
+def _materialise_traversable(traversable: object) -> Path | None:
+    """Extract a non-Path Traversable to disk for the process lifetime.
+
+    Cached on the module so repeated calls (e.g. tests, lifespan
+    re-init) reuse the same materialised path. The underlying
+    ``ExitStack`` is intentionally never closed — the SPA bundle has to
+    outlive every request that may consume it, and the tmpdir is
+    cleaned up by the OS on process exit.
+    """
+    cache = getattr(_materialise_traversable, "_cache", {})
+    key = id(traversable)
+    if key in cache:
+        return cache[key]
+
+    import contextlib
+
+    stack = contextlib.ExitStack()
+    try:
+        materialised = stack.enter_context(resources.as_file(traversable))  # type: ignore[arg-type]
+    except (FileNotFoundError, ModuleNotFoundError, OSError):
+        stack.close()
         return None
-    return path
+
+    real = Path(materialised)
+    if not real.is_dir():
+        stack.close()
+        return None
+
+    cache[key] = real
+    _materialise_traversable._cache = cache  # type: ignore[attr-defined]
+    # Keep the ExitStack alive on the module so the tmpdir survives.
+    keepalive = getattr(_materialise_traversable, "_keepalive", [])
+    keepalive.append(stack)
+    _materialise_traversable._keepalive = keepalive  # type: ignore[attr-defined]
+    return real
 
 
 def _is_reserved(full_path: str) -> bool:

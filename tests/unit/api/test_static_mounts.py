@@ -433,6 +433,115 @@ def test_spa_fallback_blocks_path_traversal_into_assets(settings: Settings, spa_
         assert r.content == expected_index
 
 
+# ── B-59: zip-imported wheel resolution ────────────────────────────────────
+
+
+def test_resolve_static_dir_handles_non_path_traversable() -> None:
+    """B-59: ``_resolve_static_dir`` must NOT use ``Path(str(traversable))``.
+
+    For wheels installed via pip/uv the traversable IS a ``PosixPath``,
+    but for zip-imported packages (``zipapp``, frozen importers,
+    legacy ``.egg``s) it's a ``MultiplexedPath`` / ``ZipPath`` — and
+    ``Path(str(zippath))`` produces a meaningless string like
+    ``<MultiplexedPath object at 0x…>`` whose ``.is_dir()`` is False.
+    The result is "404 — run make frontend-build" for a wheel that
+    DOES ship the bundle, with no diagnostic.
+
+    We monkeypatch ``importlib.resources.files`` to return a fake
+    ``Traversable`` (not a ``Path``) backed by a real on-disk dir, and
+    assert the resolver still finds ``index.html``.
+    """
+    import importlib
+    import os
+    import tempfile
+
+    from pd_ocr_labeler_spa.api import static_mounts
+
+    # Build a real on-disk dir with index.html — but wrap it in a
+    # Traversable that is NOT a pathlib.Path subclass.
+    tmp = tempfile.mkdtemp()
+    static_root = Path(tmp) / "static"
+    static_root.mkdir()
+    (static_root / "index.html").write_bytes(b"<html/>")
+
+    class _FakeTraversable:
+        """Minimal Traversable backed by an on-disk dir but NOT a Path.
+
+        Implements enough of the Traversable abc for ``importlib.resources``
+        to materialise it via ``as_file`` — see CPython's
+        ``_common._write_contents`` which calls ``.iterdir()`` / ``.name``
+        / ``.read_bytes()``.
+        """
+
+        def __init__(self, real: Path, name: str | None = None) -> None:
+            self._real = real
+            self.name = name if name is not None else real.name
+
+        def is_dir(self) -> bool:
+            return self._real.is_dir()
+
+        def is_file(self) -> bool:
+            return self._real.is_file()
+
+        def joinpath(self, name: str) -> _FakeTraversable:
+            return _FakeTraversable(self._real / name, name=name)
+
+        def __truediv__(self, name: str) -> _FakeTraversable:
+            return self.joinpath(name)
+
+        def iterdir(self):
+            for child in self._real.iterdir():
+                yield _FakeTraversable(child, name=child.name)
+
+        def read_bytes(self) -> bytes:
+            return self._real.read_bytes()
+
+        def open(self, mode: str = "r", *args, **kwargs):  # noqa: ANN001
+            return self._real.open(mode, *args, **kwargs)
+
+        # The resolver must NOT do Path(str(self)) — that would produce
+        # a path that doesn't exist on disk. Make __str__ deliberately
+        # useless so any code that tries to round-trip it via str()
+        # blows up the test.
+        def __str__(self) -> str:
+            return f"<FakeTraversable bogus repr at 0x{id(self):x}>"
+
+    # Confirm the fake is NOT a Path (so the test is meaningful).
+    fake = _FakeTraversable(static_root)
+    assert not isinstance(fake, Path)
+    # And confirm that the buggy "Path(str(traversable))" form would fail.
+    assert not Path(str(fake)).is_dir(), (
+        "test setup: stringifying a non-Path Traversable must NOT round-trip"
+    )
+
+    class _FilesShim:
+        def joinpath(self, name: str) -> _FakeTraversable:
+            assert name == "static"
+            return fake
+
+    real_files = importlib.resources.files
+
+    def _patched_files(pkg: str) -> object:
+        if pkg == "pd_ocr_labeler_spa":
+            return _FilesShim()
+        return real_files(pkg)
+
+    importlib.resources.files = _patched_files  # type: ignore[assignment]
+    try:
+        resolved = static_mounts._resolve_static_dir()
+    finally:
+        importlib.resources.files = real_files  # type: ignore[assignment]
+
+    assert resolved is not None, (
+        "_resolve_static_dir returned None for a zip-style Traversable "
+        "that does ship index.html — the Path(str(...)) cast is the bug."
+    )
+    # Sanity: the bundle's index.html must be reachable from the result.
+    index_path = Path(os.fspath(resolved)) / "index.html"
+    assert index_path.is_file()
+
+
+
 # ── catch-all is registered LAST ──────────────────────────────────────────
 
 
