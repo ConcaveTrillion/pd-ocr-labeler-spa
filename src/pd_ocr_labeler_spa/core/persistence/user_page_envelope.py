@@ -54,8 +54,18 @@ filename describes the shape, not the verb.
 
 from __future__ import annotations
 
+import json
+import logging
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
+
+from pd_ocr_labeler_spa.core.persistence.paths import (
+    image_cache_root,
+    labeled_projects_root,
+)
+
+logger = logging.getLogger(__name__)
 
 USER_PAGE_SCHEMA_NAME = "pd_ocr_labeler.user_page"
 USER_PAGE_SCHEMA_VERSION = "2.1"
@@ -506,6 +516,82 @@ def envelope_to_dict(envelope: UserPageEnvelope) -> dict[str, Any]:
     return envelope.to_dict()
 
 
+# ── path helpers (slice 8b-iv) ───────────────────────────────────────────
+
+
+def _envelope_filename(project_id: str, page_index: int) -> str:
+    """``<project_id>_<page:03d>.json`` — legacy parity, used as the base
+    filename for the labeled lane (legacy ``page_operations.py:444``)."""
+    page_number = page_index + 1
+    return f"{project_id}_{page_number:03d}.json"
+
+
+def labeled_envelope_path(data_root: Path, project_id: str, page_index: int) -> Path:
+    """Path to the labeled-lane envelope file.
+
+    Spec: ``specs/09-persistence.md §1`` line 22 —
+    ``<data_root>/labeled-projects/<project_id>/<project_id>_<page:03d>.json``.
+
+    Page numbering is 1-based zero-padded to **at least** three digits
+    (legacy ``page_operations.py:430,444`` — ``page_number = index + 1``,
+    formatted via ``{:03d}`` which is a *minimum* width). This is shared
+    on disk with the legacy labeler under D-003.
+    """
+    return labeled_projects_root(data_root) / project_id / _envelope_filename(project_id, page_index)
+
+
+def cached_envelope_path(cache_root: Path, project_id: str, page_index: int) -> Path:
+    """Path to the cached-lane envelope file.
+
+    Spec: ``specs/09-persistence.md §1`` line 28 + §4.2 line 161 —
+    ``<cache_root>/page-images/<project_id>_<page:03d>_envelope.json``.
+
+    The ``_envelope`` suffix is **SPA-specific**: legacy writes plain
+    ``<project_id>_<page:03d>.json`` to this same dir, so the suffix
+    avoids collision when both binaries write to the shared cache dir
+    (D-003). The SPA only reads/writes its own ``_envelope.json``
+    files; the per-image-type cache files
+    (``<project>_<page:03d>_<image_type>_<sha>.{jpg,png}``) are still
+    legacy-shared because the content-addressed names can't collide.
+    """
+    page_number = page_index + 1
+    return image_cache_root(cache_root) / f"{project_id}_{page_number:03d}_envelope.json"
+
+
+def read_envelope_file(path: Path) -> UserPageEnvelope | None:
+    """Read + parse an envelope file from disk. Failure-mode-tolerant.
+
+    Returns ``None`` for every failure path (file missing, unparsable
+    JSON, non-dict root, schema-name mismatch). Never raises. Same
+    contract shape as ``persistence/session_state.load_session_state``;
+    rationale: per spec §9 lines 32–40, the load-precedence dispatcher
+    falls through to the next lane (cached / OCR) on a failed read,
+    and that fall-through must not be gated on raised exceptions.
+
+    Failure paths emit a DEBUG-level log so a corrupt file shows up in
+    debug traces but doesn't pollute INFO.
+    """
+    if not path.exists():
+        return None
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        logger.debug("envelope read failed: %s (%s)", path, exc)
+        return None
+    try:
+        data = json.loads(text)
+    except (json.JSONDecodeError, ValueError) as exc:
+        logger.debug("envelope JSON parse failed: %s (%s)", path, exc)
+        return None
+    if not isinstance(data, dict):
+        logger.debug("envelope root is not a dict: %s", path)
+        return None
+    if not is_user_page_envelope(data):
+        logger.debug("envelope schema name mismatch (not a user_page envelope): %s", path)
+        return None
+    return parse_envelope(data)
+
+
 __all__ = [
     "OCRModelProvenance",
     "OCRProvenance",
@@ -523,7 +609,10 @@ __all__ = [
     "UserPageProvenance",
     "UserPageSchema",
     "UserPageSource",
+    "cached_envelope_path",
     "envelope_to_dict",
     "is_user_page_envelope",
+    "labeled_envelope_path",
     "parse_envelope",
+    "read_envelope_file",
 ]

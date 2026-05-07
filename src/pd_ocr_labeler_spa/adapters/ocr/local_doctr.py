@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import importlib
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from ...core.models import Project
@@ -36,6 +37,11 @@ from ...core.page_state import (
     PageImageNotFoundError,
     PageLoadOutcome,
     PageSource,
+)
+from ...core.persistence.user_page_envelope import (
+    cached_envelope_path,
+    labeled_envelope_path,
+    read_envelope_file,
 )
 from .base import OCRProvenance
 
@@ -75,17 +81,45 @@ class LocalDoctrPageLoader:
     The ``PredictorCache`` is shared across loaders / route handlers
     so successive page loads with the same models reuse the predictor.
 
-    Slice 8b-ii contract:
+    Slice 8b-iv contract:
 
-    - ``run_ocr(page_index)`` is wired and returns a
-      ``PageLoadOutcome(page_index, source=OCR, payload=Page)``.
-    - ``load_labeled(page_index)`` and ``load_cached(page_index)``
-      return ``None`` — the on-disk envelope reader
-      (``core/persistence/user_page_envelope.py``) is a separate slice.
+    - ``run_ocr(page_index)`` returns a ``PageLoadOutcome(source=OCR,
+      payload=Page)`` (slice 8b-ii).
+    - ``load_labeled(page_index)`` reads the labeled-lane envelope from
+      ``<data_root>/labeled-projects/<project_id>/<project_id>_
+      <page:03d>.json``. Returns ``PageLoadOutcome(source=FILESYSTEM,
+      payload=UserPageEnvelope)`` on hit, ``None`` on miss / corrupt
+      file (so ``ensure_page_model`` falls through per spec §9).
+    - ``load_cached(page_index)`` reads from ``<cache_root>/
+      page-images/<project_id>_<page:03d>_envelope.json``. Returns
+      ``PageLoadOutcome(source=CACHED_OCR, payload=UserPageEnvelope)``
+      on hit, ``None`` otherwise.
+    - When ``data_root`` / ``cache_root`` are ``None``, the
+      corresponding lane is a no-op (returns ``None``). This preserves
+      the slice-8b-ii constructor signature so callers wiring only OCR
+      can keep the previous shape; the route layer that builds the
+      loader passes the real Settings paths.
+
+    **Payload divergence between lanes** (intentional): ``run_ocr``'s
+    payload is a ``pd_book_tools.ocr.page.Page`` (the live OCR result);
+    ``load_labeled`` / ``load_cached`` payloads are
+    ``UserPageEnvelope`` instances (the deserialised on-disk shape, NOT
+    yet lifted to a ``Page``). The route layer (M3-proper
+    ``api/pages.py::get_page``) is responsible for lifting
+    ``envelope.payload.page`` (a ``dict``) into a ``Page`` via
+    ``pd_book_tools.ocr.page.Page.from_dict``. This keeps the loader
+    pd_book_tools-import-free on the labeled/cached lanes — important
+    because reading a saved envelope must work even when DocTR isn't
+    installed (B-46 IOCREngine vs PageLoader split).
+
+    Failure modes:
     - ``run_ocr`` raises ``PageImageNotFoundError`` if the on-disk
       image is missing, ``IndexError`` if ``page_index`` is out of
       range. OCR engine errors propagate verbatim (page-state cache
       *does not* cache the failure — next call retries).
+    - ``load_labeled`` / ``load_cached`` return ``None`` on ANY read
+      failure (missing file, unparsable JSON, schema-name mismatch).
+      Never raise — the dispatcher needs fall-through semantics.
     """
 
     project: Project
@@ -93,15 +127,34 @@ class LocalDoctrPageLoader:
     detection_key: str
     recognition_key: str
     hf_revision: str | None
+    data_root: Path | None = None
+    cache_root: Path | None = None
 
     def load_labeled(self, page_index: int) -> PageLoadOutcome | None:
-        # Slice 8b-ii deferral — wires when user_page_envelope lands.
-        # See class docstring + specs/09-persistence.md lines 32-40.
-        return None
+        if self.data_root is None:
+            return None
+        path = labeled_envelope_path(self.data_root, self.project.project_id, page_index)
+        envelope = read_envelope_file(path)
+        if envelope is None:
+            return None
+        return PageLoadOutcome(
+            page_index=page_index,
+            source=PageSource.FILESYSTEM,
+            payload=envelope,
+        )
 
     def load_cached(self, page_index: int) -> PageLoadOutcome | None:
-        # Slice 8b-ii deferral — wires when user_page_envelope lands.
-        return None
+        if self.cache_root is None:
+            return None
+        path = cached_envelope_path(self.cache_root, self.project.project_id, page_index)
+        envelope = read_envelope_file(path)
+        if envelope is None:
+            return None
+        return PageLoadOutcome(
+            page_index=page_index,
+            source=PageSource.CACHED_OCR,
+            payload=envelope,
+        )
 
     def run_ocr(self, page_index: int) -> PageLoadOutcome:
         if page_index < 0 or page_index >= len(self.project.image_paths):
