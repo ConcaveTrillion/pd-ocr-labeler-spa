@@ -2137,7 +2137,8 @@ Iter 50 = next code-review checkpoint.
 
 ## B-64 — Spec internal contradiction: `<config_root>/pd-ocr-labeler/config.yaml` (specs/01 §3, specs/09 §7) double-suffixes the app name vs the §5 path table
 
-- **Status:** Open. Filed iter 49 (spec-drift sweep).
+- **Status:** **Resolved iter 51.** Spec-only amend in `specs/01-data-models.md` (config.yaml line) and `specs/09-persistence.md §7`: both lines now read `<config_root>/config.yaml` with an inline note that `<config_root>` is the §5 OS-aware root which already includes the `pd-ocr-labeler/` segment. The impl was already correct (`paths.py:96-103` returns `config_root / "config.yaml"`).
+- **Severity:** low (spec-only; impl is correct).
 - **Severity:** low (spec-only; impl is correct).
 - **Where:**
   - `specs/01-data-models.md` line 658 (config.yaml location) — says `<config_root>/pd-ocr-labeler/config.yaml`.

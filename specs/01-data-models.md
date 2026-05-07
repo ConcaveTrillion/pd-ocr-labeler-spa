@@ -655,7 +655,8 @@ other's cache entries.
 
 ### YAML config
 
-`<config_root>/pd-ocr-labeler/config.yaml`:
+`<config_root>/config.yaml` (note: `<config_root>` already includes the
+`pd-ocr-labeler/` app-name suffix per §5's path table):
 
 ```yaml
 # Root directory containing OCR project subdirectories.

@@ -208,7 +208,8 @@ images, ignore.
 
 ## 7. config.yaml
 
-`<config>/pd-ocr-labeler/config.yaml`:
+`<config_root>/config.yaml` (where `<config_root>` is the §5 OS-aware
+root which already includes the `pd-ocr-labeler/` app-name suffix):
 
 ```yaml
 source_projects_root: "/path/to/projects"
