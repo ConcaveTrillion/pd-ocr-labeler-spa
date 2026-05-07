@@ -128,10 +128,7 @@ def test_startup_shutdown_clean(tmp_path: Path) -> None:
         w
         for w in captured
         if issubclass(w.category, ResourceWarning)
-        and (
-            "pd_ocr_labeler_spa" in (w.filename or "")
-            or "/tests/" in (w.filename or "")
-        )
+        and ("pd_ocr_labeler_spa" in (w.filename or "") or "/tests/" in (w.filename or ""))
     ]
     assert not leaks, (
         f"lifespan exit produced {len(leaks)} ResourceWarning(s) "
@@ -260,10 +257,7 @@ def test_resource_warning_filter_excludes_third_party_sources() -> None:
         w
         for w in captured
         if issubclass(w.category, ResourceWarning)
-        and (
-            "pd_ocr_labeler_spa" in (w.filename or "")
-            or "/tests/" in (w.filename or "")
-        )
+        and ("pd_ocr_labeler_spa" in (w.filename or "") or "/tests/" in (w.filename or ""))
     ]
 
     assert third_party not in leaks, (

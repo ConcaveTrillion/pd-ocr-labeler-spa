@@ -67,8 +67,7 @@ def test_settings_has_spec_section_3_fields_with_correct_defaults(
         "settings.py."
     )
     assert getattr(s, field_name) == expected_default, (
-        f"Settings.{field_name} default = {getattr(s, field_name)!r}, "
-        f"spec §3 declares {expected_default!r}."
+        f"Settings.{field_name} default = {getattr(s, field_name)!r}, spec §3 declares {expected_default!r}."
     )
 
 
