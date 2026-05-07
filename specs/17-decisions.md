@@ -795,6 +795,133 @@ shape — but the default rule is one verbosity flag, matching legacy.
 
 ---
 
+## D-040 — Unhandled-exception traceback disclosure gated by `debug_unhandled_traceback` flag
+
+**Date.** 2026-05-07. Resolves Q-A11 / pairs with B-51.
+
+**Decision.** Add `Settings.debug_unhandled_traceback: bool = True`
+(env `PDLABELER_DEBUG_UNHANDLED_TRACEBACK`). The 500 envelope emitted
+from the `Exception` catch-all in `api/middleware/error_handler.py`
+becomes flag-conditional:
+
+- When `True` (default — single-user-on-laptop UX, current behaviour
+  preserved): `details = traceback.format_exc().splitlines()[-3:]` and
+  `message = str(exc)`. Browser-console triage works without server
+  log access.
+- When `False` (any deployment past v1 single-user, or any future
+  managed/multi-tenant shape): `details = null`, `message =
+  "internal server error"`. Full traceback is still emitted via
+  `logger.exception(...)` server-side; correlation to the client-side
+  envelope is via the `X-Request-ID` header (echoed in the response
+  and stamped on every log line via `RequestIdFilter` per spec §9).
+  An operator triages from server logs, not the browser console.
+
+In both modes the server-side log emission is unchanged.
+
+**Why default `True`.** v1 ships single-user-on-laptop. The user IS
+the operator, the browser DevTools console IS the triage tool, and
+opening a separate terminal to tail logs for a 500 would be hostile
+ergonomics. Parity with pgdp-prep stays intact for the default path.
+
+**Why a flag rather than a hardcoded choice.** The spec explicitly
+admits future adapter axes (managed multi-tenant via JWT + S3 storage
++ off-machine GPU per D-005 / D-018 / D-019). The moment any of those
+land, the verbatim-traceback in the 500 body becomes a real disclosure
+vector — the last 3 traceback lines on Python 3.13 include the
+*source code of the raising line*, which means string literals in
+`raise X(...)` expressions, hard-coded SQL fragments, paths with
+usernames, internal endpoint names, etc. all leak into the response.
+A flag lets a deployment flip the default without code change at the
+moment its threat model shifts.
+
+**Why not always redact (option C of Q-A11).** Removes the v1 ergonomic
+win for no v1 benefit. The flag default + opt-in redaction gives both
+populations what they want.
+
+**Spec §8 amendment (security clause).** `02-backend.md §8` grows a
+sub-clause naming the flag, the default, and the trade-off:
+
+> The `Exception` catch-all's emission of `details` is gated on
+> `Settings.debug_unhandled_traceback`. Default `True` (v1 single-user
+> ergonomics: browser-console triage). Set `False` for any deployment
+> whose threat model includes information disclosure via 500 bodies —
+> the response becomes `{error: "internal_error", message: "internal
+> server error", details: null}` while `logger.exception` continues
+> to emit the full traceback server-side, correlated to the request
+> via `X-Request-ID`.
+
+**Implementation pending.** Iter that lands the impl: add the field to
+`Settings` (frozen — D-004 settings model is `frozen=True`); plumb the
+read into `error_handler.py`; add the spec §8 sub-clause; flip
+`tests/unit/core/test_error_handler.py:175-189` to parametrise across
+both flag values rather than asserting the literal "internal secret"
+leak.
+
+**Refs.** [`OPEN_QUESTIONS.md Q-A11`](../OPEN_QUESTIONS.md), [`02-backend.md`](02-backend.md) §3 (Settings field list) and §8 (error handling), [`docs/BUGS_FOUND.md` B-51](../docs/BUGS_FOUND.md).
+
+---
+
+## D-041 — `session_state.json` extras-tolerance with WARNING-level drift signal
+
+**Date.** 2026-05-07. Resolves Q-A12 / pairs with B-58.
+
+**Decision.** `SessionState.model_config` becomes
+`ConfigDict(extra="ignore")` (the legacy `from_dict` semantic). When
+the SPA reads a `session_state.json` containing keys outside the
+known set (`schema_version`, `last_project_path`, `last_page_index`),
+it logs the dropped keys at **WARNING** with the stable grep-able
+substring `session_state_extras_dropped` and the dropped key names
+in `extra=`. The user's last session is preserved; the operator gets
+a loud-but-non-fatal signal.
+
+**Why WARNING, not `info`.** Per the user's framing: an emission of
+this log in a release that didn't coordinate a session_state shape
+change is "*possible indication of library drift* in a release that
+shouldn't have had it." That's the threshold at which an operator (or
+release-time CI gate) wants to be paged, not the threshold at which a
+debug-log noise filter eats it. WARNING is the closest stdlib level
+to "soft fail, but loud."
+
+**Why a stable substring (`session_state_extras_dropped`).** A
+release CI step or operator can grep for it across structured/plain
+log streams without parsing JSON. Stability is the contract — future
+iters that change the human-readable wording must keep the substring
+intact.
+
+**Spec §6 amendment.** `09-persistence.md §6` (session_state.json)
+grows the explicit reader contract:
+
+> Readers MUST tolerate unknown keys per the D-003 forward-compat
+> contract — the SPA and legacy share this file, and either may
+> introduce additive fields without coordinating a release. Readers
+> MUST log dropped keys at WARNING with the stable substring
+> `session_state_extras_dropped` so an emission of the warning in a
+> release that did not coordinate a session_state shape change is
+> visible evidence of unintended SPA/legacy library drift.
+>
+> *Asymmetry note:* `UserPageEnvelope` (spec §11) keeps
+> `extra="forbid"`. The asymmetry is deliberate: `UserPageEnvelope`
+> has a versioned `schema_version` gate that session_state.json does
+> not, and the envelope's strictness is the deliberate forward-compat
+> circuit-breaker for that schema. session_state.json has no such
+> gate and the legacy reader has historically been silent-drop, so
+> the SPA matches that behaviour while still emitting an operator
+> signal.
+
+**Implementation pending.** Iter that lands the impl: flip
+`core/persistence/session_state.py` `model_config`; add the WARNING
+log in `load_session_state` after parse (compare parsed keys to the
+known set); update the module docstring to cite spec §6 instead of
+§11; pin with `test_session_state_load_ignores_unknown_keys` (loads a
+JSON with an unknown key, asserts `SessionState` returned and unknown
+key dropped) and `test_session_state_load_logs_warning_with_stable_substring`
+(captures `caplog`, asserts WARNING level + substring +
+dropped-key-name in `extra=`).
+
+**Refs.** [`OPEN_QUESTIONS.md Q-A12`](../OPEN_QUESTIONS.md), [`09-persistence.md`](09-persistence.md) §6 (session_state.json) — to be amended; §11 (UserPageEnvelope) — kept strict per documented asymmetry, [`docs/BUGS_FOUND.md` B-58](../docs/BUGS_FOUND.md).
+
+---
+
 ## Pending decisions
 
 See [`OPEN_QUESTIONS.md`](../OPEN_QUESTIONS.md) for any sub-questions

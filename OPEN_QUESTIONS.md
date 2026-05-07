@@ -9,12 +9,36 @@ the user has answered, a **Resolution** line linking the resulting ADR.
 > **2026-05-06:** All initial Q1–Q20 resolved by user. New sub-blockers
 > Q-A1 through Q-A4 surfaced and listed below; the rest is in the
 > Resolution log at the bottom.
+>
+> **2026-05-07:** Q-A11 and Q-A12 resolved by user. Decisions recorded
+> in [D-040](specs/17-decisions.md#d-040--unhandled-exception-traceback-disclosure-gated-by-debug_unhandled_traceback-flag)
+> and [D-041](specs/17-decisions.md#d-041--session_statejson-extras-tolerance-with-warning-level-drift-signal).
+> Implementation of both deferred to a future iter; B-51 / B-58 stay
+> open until that lands.
 
 ---
 
 ## Open — needs user input
 
+(none — all surfaced sub-questions have been resolved; see Resolution log.)
+
+---
+
+## Resolved — implementation pending
+
 ### Q-A11 — 500 traceback in client `details`: keep verbatim pgdp-prep parity, or redact?
+
+**Resolution.** 2026-05-07 — option **(B)**. Add
+`Settings.debug_unhandled_traceback: bool = True` (default-on, env
+`PDLABELER_DEBUG_UNHANDLED_TRACEBACK`). When `True` (single-user UX
+default, current behaviour preserved) the 500 envelope's `details`
+includes the last 3 traceback lines. When `False`, `details` is null /
+absent and `message` becomes the redacted form; `logger.exception`
+still fires server-side with the X-Request-ID correlation so triage
+remains possible from server logs. Implementation deferred to a future
+iter. See [D-040](specs/17-decisions.md#d-040--unhandled-exception-traceback-disclosure-gated-by-debug_unhandled_traceback-flag).
+
+**Original question for context:**
 
 **Filed.** 2026-05-06 (iter-40 review checkpoint, B-51).
 
@@ -50,13 +74,32 @@ probe map our internals" — contradictory with the implementation.
 single-user case, gives a knob deployments can flip, and aligns spec
 §8 with explicit guidance instead of leaving security implicit.
 
-**Blocks.** B-51 closeout. The pgdp-prep agent should be polled in
-parallel — if pgdp-prep adopts (B), labeler-spa stays parity. If
-pgdp-prep diverges, labeler-spa picks independently.
+**Blocks.** B-51 closeout — **still open**, blocked-on:
+implementation per D-040, not blocked on user decision. The pgdp-prep
+agent should be polled in parallel — if pgdp-prep adopts (B),
+labeler-spa stays parity. If pgdp-prep diverges, labeler-spa picks
+independently.
 
 ---
 
 ### Q-A12 — `session_state.json` extras-tolerance policy under D-003
+
+**Resolution.** 2026-05-07 — option **(A) with WARNING-level drift
+signal**. Switch `SessionState.model_config` to
+`ConfigDict(extra="ignore")` to match legacy `from_dict` semantics
+under D-003. Per the user's framing — "warning in log maybe and
+possible *indication of library drift* in a release that shouldn't have
+had it" — the dropped-keys log fires at **WARNING** (not `info`,
+upgrading the recommendation in option A) with the stable grep-able
+substring `session_state_extras_dropped` so a release-time CI gate or
+operator can detect unintended SPA-vs-legacy schema drift. Spec §6
+gains an explicit reader-tolerance clause; the deliberate asymmetry vs
+spec §11 (`UserPageEnvelope` keeps `extra="forbid"`) is documented
+because `UserPageEnvelope` has a versioned `schema_version` gate that
+session_state.json does not. Implementation deferred to a future iter.
+See [D-041](specs/17-decisions.md#d-041--session_statejson-extras-tolerance-with-warning-level-drift-signal).
+
+**Original question for context:**
 
 **Filed.** 2026-05-07 (iter-45 review checkpoint, B-58).
 
@@ -103,8 +146,9 @@ catcher" argument behind (B) is better served by the optional `info`
 log when extras are dropped — that's still visible without breaking
 the user.
 
-**Blocks.** B-58 closeout. Iter 46 should pick this and pair the spec
-amendment with the one-line code change.
+**Blocks.** B-58 closeout — **still open**, blocked-on:
+implementation per D-041, not blocked on user decision. Iter 46 should
+pick this and pair the spec amendment with the one-line code change.
 
 ---
 
@@ -143,6 +187,8 @@ in [`specs/17-decisions.md`](specs/17-decisions.md).
 | Q-A9 | ESLint config shape | (A) flat `eslint.config.ts` + typescript-eslint v8 + `@vitejs/plugin-react` recommended (resolved 2026-05-07) | [D-037](specs/17-decisions.md) |
 | Q-A10 | PyPI publishing | (A) defer; ship via GitHub Releases + future pd-index PEP 503 index; no `PYPI_TOKEN` (resolved 2026-05-07) | [D-038](specs/17-decisions.md) |
 | Q-A13 | `--log-level` CLI flag | (D) drop it; `-v/--verbose` (count) is spec-canonical and matches legacy (resolved 2026-05-07) | [D-039](specs/17-decisions.md) |
+| Q-A11 | 500 traceback `details` redaction | (B) `Settings.debug_unhandled_traceback: bool = True` default; `False` redacts client `details` while `logger.exception` keeps full server log + X-Request-ID correlation (resolved 2026-05-07; impl pending, B-51 stays open) | [D-040](specs/17-decisions.md) |
+| Q-A12 | session_state.json extras tolerance | (A) with WARNING-level drift signal — `extra="ignore"` + `logger.warning("session_state_extras_dropped …")` so library/SPA-legacy drift in a release that shouldn't have had it surfaces as a grep-able log signal (resolved 2026-05-07; impl pending, B-58 stays open) | [D-041](specs/17-decisions.md) |
 
 ### Delegations to peer-repo agents (2026-05-06)
 
