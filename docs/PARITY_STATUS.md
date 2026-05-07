@@ -15,6 +15,7 @@ adapters + AppState + middleware + lifespan; B-51 closed iter 53 per
 D-040). **M2 startup-discovery: slice-4 router shipped, M2-proper state
 in progress** (slice 1: `resolve_initial_project` +
 `validate_project_dir`; slice 2: `ActiveProjectCarrier` + DI providers
+
 + bootstrap wiring; slice 3: FastAPI lifespan startup hook calls
 `resolve_initial_project(settings, session_state=load_session_state(...))`
 and feeds the result into
@@ -126,7 +127,7 @@ needed.)
 |---|---|---|
 | **B-72** | medium | `tests/unit/api/test_static_mounts.py` `test_spa_static_asset_does_not_set_no_store` + `test_spa_fallback_serves_static_asset_directly` call `asset.parent.rmdir()` on `static/assets/` — fails after `make frontend-build` populates the dir. Real `make test` regression. |
 | **B-58** | medium | `SessionState` `extra="forbid"` breaks D-003 forward-compat; D-041 decided (A), impl pending. |
-| **B-42** | low | `IAuth.verify` signature drifts from spec §7 (`creds: HTTPAuthorizationCredentials | None` → `credentials: str | None`). One-line spec/impl alignment. |
+| **B-42** | low | `IAuth.verify` signature drifts from spec §7 (`creds: HTTPAuthorizationCredentials \| None` → `credentials: str \| None`). One-line spec/impl alignment. |
 
 Everything else open is **nit/low** (B-68 browser-open race, B-70
 empty-string `--host` bypass, B-71 `_keepalive` micro-leak). Full table
