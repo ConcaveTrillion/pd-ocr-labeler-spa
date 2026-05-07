@@ -3,11 +3,15 @@
 Reads ``PDLABELER_*`` env vars. Read **once** in
 ``pd_ocr_labeler_spa.__main__.main()`` and passed into ``build_app(settings)``.
 
-This is the M0 stub: only the fields referenced by the M0 acceptance
-tests are populated. Fields specified by ``specs/02-backend.md §3`` that
-aren't yet exercised (storage_backend, ocr_engine, source_projects_root,
-…) are added in M1 and later. Keep this file lean until the consuming
-code lands — premature fields invite drift between spec and impl.
+The Settings shape mirrors ``specs/02-backend.md §3`` verbatim — every
+field listed there must exist here, even if its consumer is M2 / M3
+deferred. The "lean stub" policy from earlier milestones was retired
+in iter 51 (B-63) after the iter-47 M1.g work added pre-emptive fields
+for `--projects-root` / positional `project_dir`: keeping some
+no-consumer-yet fields and rejecting others created spec-vs-impl drift
+that was harder to reason about than just declaring the full shape.
+Fields with deferred consumers are tagged ``M{n}-deferred consumer``
+in their docstring so future readers know which milestone wires them.
 """
 
 from __future__ import annotations
@@ -92,3 +96,21 @@ class Settings(BaseSettings):
 
     ocr_engine: OCREngine = "local_doctr"
     """``modal`` / ``shared_container`` are ``NotImplementedYet`` (D-018); only ``local_doctr`` is wired."""
+
+    # ── Job runner (specs/02-backend.md §3 line 138) ─────────────────────────
+    # Consumer lands in M3 (JobRunner background loop). Declared now so
+    # the Settings shape matches spec §3 verbatim — drift between spec
+    # and impl is the failure mode B-63 was filed against, even though
+    # no consumer is wired today.
+    poll_interval_seconds: float = 0.5
+    """Background JobRunner poll cadence — M3-deferred consumer."""
+
+    # ── OCR (specs/02-backend.md §3 lines 141-142) ───────────────────────────
+    # Consumers land in M3 (OCR predictor cache + model prefetch). The
+    # `hf_repo` default mirrors legacy `pd-ocr-labeler/...` — see
+    # spec §3 for the canonical name.
+    hf_repo: str = "CT2534/pd-ocr-models"
+    """HuggingFace repo for OCR model weights — M3-deferred consumer."""
+
+    no_prefetch: bool = False
+    """When True, skip the startup model-prefetch step — M3-deferred consumer."""

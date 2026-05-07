@@ -2112,7 +2112,8 @@ Iter 50 = next code-review checkpoint.
 
 ## B-63 — `Settings` is missing the spec-§3 fields `poll_interval_seconds`, `hf_repo`, `no_prefetch`
 
-- **Status:** Open. Filed iter 49 (spec-drift sweep).
+- **Status:** **Resolved iter 51.** Picked option (a): added all three fields with spec-§3 defaults verbatim, tagged `M3-deferred consumer` in docstrings. Updated `settings.py` module docstring to retire the lean-stub policy (it was already inconsistent with the iter-47 pre-emptive fields). Pinned by parametrised `tests/unit/test_settings.py::test_settings_has_spec_section_3_fields_with_correct_defaults` which iterates over the full spec §3 field list — future spec edits surface as a single failing test with the exact field name in the failure message.
+- **Severity:** low (no consumer wired yet, but spec promises the fields exist now).
 - **Severity:** low (no consumer wired yet, but spec promises the fields exist now).
 - **Where:** `src/pd_ocr_labeler_spa/settings.py` vs `specs/02-backend.md §3` (lines 137-143).
 - **Issue:** Spec §3 declares the canonical Settings shape. Three fields listed in the spec are absent from the impl:

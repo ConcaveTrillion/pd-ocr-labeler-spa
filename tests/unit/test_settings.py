@@ -12,6 +12,66 @@ import pytest
 from pd_ocr_labeler_spa.settings import Settings
 
 
+@pytest.mark.parametrize(
+    ("field_name", "expected_default"),
+    [
+        # Server (specs/02-backend.md §3 lines 117-119)
+        ("host", "127.0.0.1"),
+        ("port", 8080),
+        ("frontend_dev_url", None),
+        # Logging (lines 119-120)
+        ("log_format", "plain"),
+        ("request_id_header", "X-Request-ID"),
+        # Adapter axes (lines 126-128)
+        ("storage_backend", "filesystem"),
+        ("auth_mode", "none"),
+        ("ocr_engine", "local_doctr"),
+        # Project discovery (lines 131-132)
+        ("source_projects_root", None),
+        ("cli_project_dir", None),
+        # Job runner (line 138) — consumer M3-deferred (B-63)
+        ("poll_interval_seconds", 0.5),
+        # OCR (lines 141-142) — consumers M3-deferred (B-63)
+        ("hf_repo", "CT2534/pd-ocr-models"),
+        ("no_prefetch", False),
+        # Mode flag (line 144)
+        ("mode", "normal"),
+    ],
+)
+def test_settings_has_spec_section_3_fields_with_correct_defaults(
+    monkeypatch: pytest.MonkeyPatch, field_name: str, expected_default: object
+) -> None:
+    """B-63 (iter 51): every field listed in ``specs/02-backend.md §3``
+    must exist on ``Settings`` with the spec-stated default.
+
+    Drift-pin test: if a future spec edit changes a default, this fails
+    with the exact field name; if an impl edit drops a field, this
+    fails on attribute access. Either way the spec and impl re-converge
+    in one commit, not via a slow-burn drift filed weeks later.
+
+    The path-shaped roots (config_root / data_root / cache_root) are
+    NOT in this list — their defaults are derived from `~`/$XDG_* and
+    are tested separately in `test_path_roots_default_under_user_home`
+    (the values are env- and OS-dependent so a literal expected-default
+    here would over-pin).
+    """
+    # Strip any inherited PDLABELER_* env so we observe true defaults.
+    for var in list(__import__("os").environ):
+        if var.startswith("PDLABELER_"):
+            monkeypatch.delenv(var, raising=False)
+
+    s = Settings()
+    assert hasattr(s, field_name), (
+        f"Settings is missing spec-§3 field {field_name!r} — drift "
+        "between specs/02-backend.md §3 and src/pd_ocr_labeler_spa/"
+        "settings.py."
+    )
+    assert getattr(s, field_name) == expected_default, (
+        f"Settings.{field_name} default = {getattr(s, field_name)!r}, "
+        f"spec §3 declares {expected_default!r}."
+    )
+
+
 def test_default_settings_have_expected_server_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     # Strip any inherited PDLABELER_* env so we observe true defaults.
     for var in list(__import__("os").environ):
