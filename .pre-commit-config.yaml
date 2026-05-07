@@ -42,6 +42,20 @@ repos:
     # Run the formatter.
     -   id: ruff-format
 
+# Markdown lint. Pinned to the same rev all peer pd-* repos use
+# (pd-ocr-labeler, pd-book-tools, pd-prep-for-pgdp, pd-ocr-trainer,
+# pd-ocr-synth, pd-png-optimizer all sit on v0.22.1) so the hook
+# environment can be cached across the workspace and bumps happen
+# in one place. Per-repo rules live in `.markdownlint-cli2.jsonc`.
+-   repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.22.1
+    hooks:
+    -   id: markdownlint-cli2
+    -   id: markdownlint-cli2
+        alias: markdownlint-cli2-fix
+        args: [--fix]
+        stages: [manual]
+
 -   repo: local
     hooks:
     # B-11 + B-17: refresh hatch-vcs derived version after any
