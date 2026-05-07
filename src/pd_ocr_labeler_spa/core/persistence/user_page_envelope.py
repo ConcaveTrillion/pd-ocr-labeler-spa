@@ -592,6 +592,172 @@ def read_envelope_file(path: Path) -> UserPageEnvelope | None:
     return parse_envelope(data)
 
 
+# ── high-level constructor (build_envelope writer) ───────────────────────
+
+
+_SPA_APP_NAME = "pd_ocr_labeler_spa"
+
+
+def _safe_package_version(name: str) -> str:
+    """Best-effort package version lookup. Mirrors legacy
+    ``page_operations._safe_package_version`` semantics: returns the
+    installed version string or ``"unknown"`` on any error.
+
+    Lifted into envelope module so ``build_envelope`` can populate
+    provenance without reaching into the operations layer.
+    """
+    try:
+        from importlib.metadata import PackageNotFoundError, version
+
+        try:
+            return version(name)
+        except PackageNotFoundError:
+            return UNKNOWN_METADATA_VALUE
+    except Exception:  # pragma: no cover - defensive
+        return UNKNOWN_METADATA_VALUE
+
+
+def _now_iso_z() -> str:
+    """Current UTC time as ISO8601 with ``Z`` suffix.
+
+    Legacy parity (``page_operations.py:1160``):
+    ``datetime.now(UTC).isoformat().replace("+00:00", "Z")``.
+    """
+    from datetime import UTC, datetime
+
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+def _python_version() -> str:
+    """``major.minor.micro`` per legacy line 1163."""
+    import sys
+
+    info = sys.version_info
+    return f"{info.major}.{info.minor}.{info.micro}"
+
+
+def build_envelope(
+    *,
+    page: Any,
+    project: Any,  # core.models.Project — typed Any to avoid circular import
+    page_index: int,
+    ocr_provenance: OCRProvenance,
+    source_lane: str = USER_PAGE_SOURCE_LANE_LABELED,
+    saved_at: str | None = None,
+    saved_by: str = USER_PAGE_SAVED_BY_SAVE_PAGE,
+    cached_images: dict[str, str] | None = None,
+    word_attributes: dict[str, dict[str, bool]] | None = None,
+    original_page: dict[str, Any] | None = None,
+) -> UserPageEnvelope:
+    """High-level envelope constructor.
+
+    Composes a ``UserPageEnvelope`` from a ``Page``-like object (anything
+    with ``to_dict() -> dict``), the bound ``Project``, and selection
+    metadata. Legacy ref:
+    ``pd-ocr-labeler/pd_ocr_labeler/operations/ocr/page_operations.py:1141-1183``
+    (``_build_user_page_envelope``).
+
+    Parameters
+    ----------
+    page
+        A ``pd_book_tools.ocr.page.Page`` (or any object exposing
+        ``to_dict()``). Tests inject a stub. The dict is placed verbatim
+        into ``payload.page``; this function never inspects its
+        contents.
+    project
+        The bound ``core.models.Project``. Used for ``project_id`` and
+        the page filename via ``project.image_paths[page_index].name``.
+    page_index
+        0-based index into ``project.image_paths``. ``page_number``
+        becomes ``page_index + 1`` (legacy line 1145).
+    ocr_provenance
+        Pre-built ``OCRProvenance`` (engine + models + version). The
+        caller is responsible for assembling this from the
+        ``OCRConfigCarrier`` snapshot + ``PredictorCache`` keys.
+    source_lane
+        ``"labeled"`` (default; user-saved files) or ``"cached"``
+        (auto-cache writer after first OCR). Drives the lane the file
+        is written to and the metadata read by the labeler when it
+        re-loads the file.
+    saved_at
+        ISO8601-with-``Z`` timestamp. Defaults to ``datetime.now(UTC)``
+        formatted to match legacy. Caller can pin a value (deterministic
+        tests; route layer wanting one shared timestamp across pages).
+    saved_by
+        Free-form provenance label; default matches legacy "Save Page".
+    cached_images
+        Map of cached image variant filenames (e.g.
+        ``{"corrected": "proj_001_corrected_<sha>.jpg"}``). When empty
+        the writer omits the key from the JSON output (legacy parity).
+    word_attributes
+        Per-word attribute map; ``None`` omits the field on write.
+    original_page
+        Pre-edit ``Page.to_dict()`` snapshot (used by labeler's diff/
+        revert flow); ``None`` omits the field.
+
+    Returns
+    -------
+    UserPageEnvelope
+        The composed envelope. Pass it to :func:`envelope_to_dict` to
+        get the JSON-ready dict.
+
+    Raises
+    ------
+    IndexError
+        If ``page_index`` is out of range for ``project.image_paths``.
+        Mirrors :class:`LocalDoctrPageLoader.run_ocr`'s shape — the two
+        places that index into image_paths use the same exception type.
+
+    Notes
+    -----
+    - ``app.name`` is hardcoded to ``"pd_ocr_labeler_spa"`` (spec §3
+      line 530); legacy writes ``"pd_ocr_labeler"``. The reader accepts
+      either, so D-003 round-trip identity holds for legacy-written
+      files (the reader doesn't normalise the name).
+    - ``app.version`` and ``toolchain.python`` / ``toolchain.pd_book_tools``
+      are populated from package metadata (legacy line 1161-1164). They
+      can be ``"unknown"`` if the package isn't installed via metadata
+      (e.g. editable install without metadata) — never raise.
+    """
+    image_paths = project.image_paths
+    if page_index < 0 or page_index >= len(image_paths):
+        raise IndexError(f"page_index {page_index} out of range (total_pages={len(image_paths)})")
+
+    image_filename = image_paths[page_index].name
+
+    page_dict = page.to_dict()
+
+    return UserPageEnvelope(
+        schema=UserPageSchema(version=USER_PAGE_SCHEMA_VERSION),
+        provenance=UserPageProvenance(
+            saved_at=saved_at if saved_at is not None else _now_iso_z(),
+            saved_by=saved_by,
+            source_lane=source_lane,
+            app=ProvenanceApp(
+                name=_SPA_APP_NAME,
+                version=_safe_package_version("pd-ocr-labeler-spa"),
+            ),
+            toolchain=ProvenanceToolchain(
+                python=_python_version(),
+                pd_book_tools=_safe_package_version("pd-book-tools"),
+            ),
+            ocr=ocr_provenance,
+        ),
+        source=UserPageSource(
+            project_id=project.project_id,
+            page_index=page_index,
+            page_number=page_index + 1,
+            image_path=image_filename,
+        ),
+        payload=UserPagePayload(
+            page=page_dict,
+            original_page=original_page,
+            word_attributes=word_attributes,
+        ),
+        cached_images=dict(cached_images) if cached_images else {},
+    )
+
+
 __all__ = [
     "OCRModelProvenance",
     "OCRProvenance",
@@ -609,6 +775,7 @@ __all__ = [
     "UserPageProvenance",
     "UserPageSchema",
     "UserPageSource",
+    "build_envelope",
     "cached_envelope_path",
     "envelope_to_dict",
     "is_user_page_envelope",

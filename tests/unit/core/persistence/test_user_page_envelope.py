@@ -546,3 +546,314 @@ def test_pytest_module_imports_clean() -> None:
     import importlib
 
     importlib.import_module("pd_ocr_labeler_spa.core.persistence.user_page_envelope")
+
+
+# ── build_envelope (high-level constructor) ──────────────────────────────
+#
+# Slice "build_envelope writer". Composes a ``UserPageEnvelope`` from a
+# ``Page``-like object (anything exposing ``to_dict()`` returning a dict),
+# the bound ``Project``, plus selection metadata. Legacy ref:
+# ``pd-ocr-labeler/pd_ocr_labeler/operations/ocr/page_operations.py:1141-1183``
+# (``_build_user_page_envelope``).
+#
+# Tests stay pd_book_tools-free by using a tiny stub ``Page`` whose
+# ``to_dict`` returns a fixed dict — the writer never inspects the dict.
+
+from pathlib import Path  # noqa: E402
+
+import pytest  # noqa: E402
+
+from pd_ocr_labeler_spa.core.models import Project  # noqa: E402
+from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (  # noqa: E402
+    build_envelope,
+)
+
+
+class _StubPage:
+    """Stand-in for ``pd_book_tools.ocr.page.Page``.
+
+    The writer is supposed to call ``page.to_dict()`` and use the
+    returned dict verbatim as ``payload.page``. The optional ``index``
+    attr, if set, becomes ``source.page_index`` (legacy line 1172).
+    """
+
+    def __init__(self, page_dict: dict[str, Any], *, index: int | None = None) -> None:
+        self._dict = page_dict
+        if index is not None:
+            self.index = index
+
+    def to_dict(self) -> dict[str, Any]:
+        return self._dict
+
+
+def _project(tmp_path: Path) -> Project:
+    return Project(
+        project_id="test-proj",
+        project_root=tmp_path,
+        image_paths=[tmp_path / "001.png", tmp_path / "002.png"],
+        ground_truth_map={},
+        total_pages=2,
+    )
+
+
+def test_build_envelope_minimum_shape(tmp_path: Path) -> None:
+    """Build with the smallest plausible inputs. Schema + page-index +
+    payload.page must come straight from inputs; provenance and source
+    take legacy-compatible defaults."""
+    page = _StubPage({"type": "Page", "width": 1, "height": 1}, index=0)
+    project = _project(tmp_path)
+
+    env = build_envelope(
+        page=page,
+        project=project,
+        page_index=0,
+        ocr_provenance=OCRProvenance(engine="doctr"),
+    )
+
+    assert env.schema.name == USER_PAGE_SCHEMA_NAME
+    assert env.schema.version == USER_PAGE_SCHEMA_VERSION
+    assert env.source.project_id == "test-proj"
+    # 1-based page_number per legacy line 1145.
+    assert env.source.page_index == 0
+    assert env.source.page_number == 1
+    assert env.source.image_path == "001.png"
+    assert env.payload.page == {"type": "Page", "width": 1, "height": 1}
+    assert env.provenance.ocr.engine == "doctr"
+    # Legacy app name is "pd_ocr_labeler" but SPA writes its own ident.
+    # build_envelope always sets app.name to "pd_ocr_labeler_spa" so the
+    # writer's output is distinguishable from a legacy save (spec §3
+    # line 530). Round-trip on the *legacy* golden still works because
+    # the *reader* accepts any name string.
+    assert env.provenance.app.name == "pd_ocr_labeler_spa"
+
+
+def test_build_envelope_uses_page_index_for_page_number(tmp_path: Path) -> None:
+    """page_number = page_index + 1 (legacy line 1145).
+    Filename in ``source.image_path`` is the basename of
+    ``project.image_paths[page_index]``."""
+    page = _StubPage({"type": "Page"})
+    project = _project(tmp_path)
+
+    env = build_envelope(
+        page=page,
+        project=project,
+        page_index=1,
+        ocr_provenance=OCRProvenance(engine="doctr"),
+    )
+
+    assert env.source.page_index == 1
+    assert env.source.page_number == 2
+    assert env.source.image_path == "002.png"
+
+
+def test_build_envelope_default_source_lane_is_labeled(tmp_path: Path) -> None:
+    """Default source_lane is ``labeled`` per legacy line 247 default;
+    auto-cache writers will pass ``source_lane="cached"`` explicitly."""
+    page = _StubPage({"type": "Page"})
+    project = _project(tmp_path)
+
+    env = build_envelope(
+        page=page,
+        project=project,
+        page_index=0,
+        ocr_provenance=OCRProvenance(engine="doctr"),
+    )
+
+    assert env.provenance.source_lane == "labeled"
+
+
+def test_build_envelope_explicit_cached_source_lane(tmp_path: Path) -> None:
+    """Auto-cache-write lane sets ``source_lane='cached'``."""
+    page = _StubPage({"type": "Page"})
+    project = _project(tmp_path)
+
+    env = build_envelope(
+        page=page,
+        project=project,
+        page_index=0,
+        ocr_provenance=OCRProvenance(engine="doctr"),
+        source_lane="cached",
+    )
+
+    assert env.provenance.source_lane == "cached"
+
+
+def test_build_envelope_saved_at_is_iso_z(tmp_path: Path) -> None:
+    """Legacy line 1160: ISO8601 with ``Z`` suffix (UTC). Writer sets
+    one if caller doesn't override; pin the shape, not the exact time."""
+    page = _StubPage({"type": "Page"})
+    project = _project(tmp_path)
+
+    env = build_envelope(
+        page=page,
+        project=project,
+        page_index=0,
+        ocr_provenance=OCRProvenance(engine="doctr"),
+    )
+
+    saved_at = env.provenance.saved_at
+    assert saved_at  # non-empty
+    assert saved_at.endswith("Z")  # legacy parity
+    # Parseable as ISO with the Z replaced (datetime.fromisoformat 3.11+
+    # accepts Z, but be conservative).
+    from datetime import datetime
+
+    datetime.fromisoformat(saved_at.replace("Z", "+00:00"))
+
+
+def test_build_envelope_explicit_saved_at(tmp_path: Path) -> None:
+    """Caller can pin ``saved_at`` (useful for deterministic tests +
+    when the route layer wants a single shared timestamp across pages)."""
+    page = _StubPage({"type": "Page"})
+    project = _project(tmp_path)
+
+    env = build_envelope(
+        page=page,
+        project=project,
+        page_index=0,
+        ocr_provenance=OCRProvenance(engine="doctr"),
+        saved_at="2026-05-07T00:00:00.000Z",
+    )
+
+    assert env.provenance.saved_at == "2026-05-07T00:00:00.000Z"
+
+
+def test_build_envelope_includes_ocr_models(tmp_path: Path) -> None:
+    """Caller-supplied OCRProvenance.models flows through verbatim."""
+    page = _StubPage({"type": "Page"})
+    project = _project(tmp_path)
+
+    env = build_envelope(
+        page=page,
+        project=project,
+        page_index=0,
+        ocr_provenance=OCRProvenance(
+            engine="doctr",
+            engine_version="0.7.0",
+            models=[
+                OCRModelProvenance(name="db_resnet50"),
+                OCRModelProvenance(name="crnn_vgg16_bn", weights_id="stock"),
+            ],
+        ),
+    )
+
+    assert env.provenance.ocr.engine == "doctr"
+    assert env.provenance.ocr.engine_version == "0.7.0"
+    assert [m.name for m in env.provenance.ocr.models] == [
+        "db_resnet50",
+        "crnn_vgg16_bn",
+    ]
+
+
+def test_build_envelope_serialises_page_to_dict(tmp_path: Path) -> None:
+    """``payload.page`` is the result of ``page.to_dict()`` verbatim —
+    the writer doesn't inspect or mutate it. The dict is also what the
+    legacy reader returns from ``UserPagePayload.page``."""
+    page_dict = {
+        "type": "Page",
+        "width": 2480,
+        "height": 3508,
+        "items": [{"type": "Block", "items": []}],
+    }
+    page = _StubPage(page_dict)
+    project = _project(tmp_path)
+
+    env = build_envelope(
+        page=page,
+        project=project,
+        page_index=0,
+        ocr_provenance=OCRProvenance(engine="doctr"),
+    )
+
+    assert env.payload.page == page_dict
+    # not a copy is fine here, but cross-reference identity is not
+    # promised; just check value equality
+    out = envelope_to_dict(env)
+    assert out["payload"]["page"] == page_dict
+
+
+def test_build_envelope_round_trip_through_writer(tmp_path: Path) -> None:
+    """``parse_envelope(envelope_to_dict(build_envelope(...)))`` round-trips
+    to a structurally-equal envelope. Pins that the writer's output is
+    a valid envelope shape — i.e. you can save and reload your own work.
+    """
+    page = _StubPage({"type": "Page", "width": 1, "height": 2})
+    project = _project(tmp_path)
+    env = build_envelope(
+        page=page,
+        project=project,
+        page_index=0,
+        ocr_provenance=OCRProvenance(engine="doctr"),
+        saved_at="2026-05-07T00:00:00.000Z",
+    )
+
+    raw = envelope_to_dict(env)
+    parsed = parse_envelope(raw)
+
+    assert parsed.schema.name == env.schema.name
+    assert parsed.source.project_id == env.source.project_id
+    assert parsed.source.page_number == env.source.page_number
+    assert parsed.payload.page == env.payload.page
+    assert parsed.provenance.saved_at == env.provenance.saved_at
+    assert parsed.provenance.source_lane == env.provenance.source_lane
+
+
+def test_build_envelope_rejects_out_of_range_page_index(tmp_path: Path) -> None:
+    """Mirror ``run_ocr``'s IndexError shape — the writer is the second
+    place that indexes into ``project.image_paths``, so an invalid index
+    must surface as IndexError, not silently produce an envelope with a
+    bogus filename."""
+    page = _StubPage({"type": "Page"})
+    project = _project(tmp_path)
+
+    with pytest.raises(IndexError):
+        build_envelope(
+            page=page,
+            project=project,
+            page_index=99,
+            ocr_provenance=OCRProvenance(engine="doctr"),
+        )
+
+
+def test_build_envelope_default_app_version_is_string(tmp_path: Path) -> None:
+    """app.version comes from package metadata where possible; falls
+    back to ``"unknown"`` (legacy parity, line 1161 calls
+    ``_safe_package_version``). Either way it's a non-empty string."""
+    page = _StubPage({"type": "Page"})
+    project = _project(tmp_path)
+
+    env = build_envelope(
+        page=page,
+        project=project,
+        page_index=0,
+        ocr_provenance=OCRProvenance(engine="doctr"),
+    )
+
+    assert isinstance(env.provenance.app.version, str)
+    assert env.provenance.app.version  # non-empty
+
+
+def test_build_envelope_toolchain_python_is_x_y_z(tmp_path: Path) -> None:
+    """Legacy line 1163: ``f"{major}.{minor}.{micro}"`` for Python ver."""
+    page = _StubPage({"type": "Page"})
+    project = _project(tmp_path)
+
+    env = build_envelope(
+        page=page,
+        project=project,
+        page_index=0,
+        ocr_provenance=OCRProvenance(engine="doctr"),
+    )
+
+    py = env.provenance.toolchain.python
+    parts = py.split(".")
+    assert len(parts) == 3
+    assert all(p.isdigit() for p in parts)
+
+
+def test_build_envelope_in_public_api() -> None:
+    """``build_envelope`` is the canonical writer entry — must be in
+    ``__all__`` so callers can import it from the top of the module."""
+    from pd_ocr_labeler_spa.core.persistence import user_page_envelope as mod
+
+    assert "build_envelope" in mod.__all__
