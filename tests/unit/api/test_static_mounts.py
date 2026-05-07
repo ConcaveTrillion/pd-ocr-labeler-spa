@@ -142,9 +142,7 @@ def test_image_cache_sets_immutable_cache_control(client: TestClient, image_cach
         OSError("broken symlink / ENOSPC"),
     ],
 )
-def test_image_cache_treats_oserror_subclasses_as_404(
-    tmp_path: Path, exc: BaseException
-) -> None:
+def test_image_cache_treats_oserror_subclasses_as_404(tmp_path: Path, exc: BaseException) -> None:
     """B-57: every ``OSError`` subclass from the storage adapter must
     surface as 404 (not propagate to the generic 500 handler).
 
@@ -245,9 +243,7 @@ def test_spa_fallback_serves_index_for_root(settings: Settings, spa_dir: Path) -
     assert r.content == expected
 
 
-def test_spa_index_html_sets_no_store_cache_control(
-    settings: Settings, spa_dir: Path
-) -> None:
+def test_spa_index_html_sets_no_store_cache_control(settings: Settings, spa_dir: Path) -> None:
     """B-62: the SPA shell ``index.html`` MUST be served with
     ``Cache-Control: no-store``.
 
@@ -270,9 +266,7 @@ def test_spa_index_html_sets_no_store_cache_control(
         assert "no-store" in cc, f"expected no-store on SPA shell; got {cc!r}"
 
 
-def test_spa_static_asset_does_not_set_no_store(
-    settings: Settings, spa_dir: Path
-) -> None:
+def test_spa_static_asset_does_not_set_no_store(settings: Settings, spa_dir: Path) -> None:
     """B-62 sibling: hash-named static assets keep default caching
     (no explicit ``no-store``). They're content-addressed so they're
     safe to cache aggressively; only the SPA shell needs no-store.
@@ -286,9 +280,7 @@ def test_spa_static_asset_does_not_set_no_store(
             r = client.get("/assets/hashed.js")
         assert r.status_code == 200
         cc = r.headers.get("cache-control", "")
-        assert "no-store" not in cc, (
-            f"hashed asset should NOT carry no-store; got {cc!r}"
-        )
+        assert "no-store" not in cc, f"hashed asset should NOT carry no-store; got {cc!r}"
     finally:
         asset.unlink()
         asset.parent.rmdir()
@@ -510,9 +502,7 @@ def test_resolve_static_dir_handles_non_path_traversable() -> None:
     fake = _FakeTraversable(static_root)
     assert not isinstance(fake, Path)
     # And confirm that the buggy "Path(str(traversable))" form would fail.
-    assert not Path(str(fake)).is_dir(), (
-        "test setup: stringifying a non-Path Traversable must NOT round-trip"
-    )
+    assert not Path(str(fake)).is_dir(), "test setup: stringifying a non-Path Traversable must NOT round-trip"
 
     class _FilesShim:
         def joinpath(self, name: str) -> _FakeTraversable:
@@ -539,7 +529,6 @@ def test_resolve_static_dir_handles_non_path_traversable() -> None:
     # Sanity: the bundle's index.html must be reachable from the result.
     index_path = Path(os.fspath(resolved)) / "index.html"
     assert index_path.is_file()
-
 
 
 # ── catch-all is registered LAST ──────────────────────────────────────────

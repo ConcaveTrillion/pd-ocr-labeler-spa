@@ -230,9 +230,7 @@ def test_paths_purity_scan_catches_dynamic_import_call() -> None:
                     arg = node.args[0].value
                     if arg in forbidden_imports:
                         triggered = True
-    assert triggered, (
-        "Dynamic-import scan failed to flag __import__('os') — B-61 gap reopened."
-    )
+    assert triggered, "Dynamic-import scan failed to flag __import__('os') — B-61 gap reopened."
 
 
 def test_paths_purity_scan_catches_importlib_import_module() -> None:
@@ -254,6 +252,4 @@ def test_paths_purity_scan_catches_importlib_import_module() -> None:
                 and func.value.id == "importlib"
             ):
                 triggered = True
-    assert triggered, (
-        "Dynamic-import scan failed to flag importlib.import_module(...) — B-61 gap reopened."
-    )
+    assert triggered, "Dynamic-import scan failed to flag importlib.import_module(...) — B-61 gap reopened."

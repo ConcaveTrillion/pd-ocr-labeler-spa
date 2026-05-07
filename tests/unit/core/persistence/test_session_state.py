@@ -257,9 +257,7 @@ def test_load_session_state_returns_state_for_stale_path(tmp_path: Path) -> None
     explicitly disclaims.
     """
     stale = tmp_path / "this-project-was-moved-away"
-    save_session_state(
-        tmp_path, SessionState(last_project_path=str(stale), last_page_index=3)
-    )
+    save_session_state(tmp_path, SessionState(last_project_path=str(stale), last_page_index=3))
     assert not stale.exists(), "test setup: project dir must not exist"
     loaded = load_session_state(tmp_path)
     # Stage-1 read returns a SessionState even though the path is stale.
