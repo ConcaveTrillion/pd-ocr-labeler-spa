@@ -51,6 +51,12 @@ every iteration.
 | M10 Text normalization | ⬜ blocked | Pre: pd-book-tools `text.normalize`. |
 | M11 Glyph-level annotations | ⬜ blocked | Pre: M9 + pd-book-tools/pd-ocr-trainer upstreams + Q-A5/A6/A7. |
 
+> **BLOCKED** — upstream dependencies not yet shipped:
+>
+> - `pd-book-tools`: `glyph_annotations` module (Q-A5 in `specs/20-glyph-annotations.md` §11)
+> - `pd-ocr-trainer`: glyph classifier
+> - Open questions: Q-A5, Q-A6, Q-A7 (see `specs/20-glyph-annotations.md` §11)
+
 ## M0 sub-tasks
 
 - [x] **Iter 1.** Backend skeleton: `pyproject.toml`, `__init__`,

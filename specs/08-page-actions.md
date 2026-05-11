@@ -291,13 +291,37 @@ uses `Cmd` automatically via `react-hotkeys-hook`'s `Mod+` syntax.
 
 ---
 
-## 14. Open issues
+## 14. Image drift recovery (resolved)
 
-- **Image drift recovery.** When `409 image_drift` happens, what's the
-  user-facing flow? Options: (a) toast with "image changed; reload page
-  before saving" + auto-trigger Reload OCR; (b) modal asking the user
-  to choose. Legacy bails to a notification. Spec author bet: (a) auto-
-  reload; show clear toast. Verify in M8.
-- **Cancel-during-save?** Save Project may take a minute on a 200-page
-  project. The Job runner supports cooperative cancellation. Wire a
-  Cancel button in the busy overlay during `SAVE_PROJECT`.
+**Decision.** On `409 { reason: 'image_drift' }`, the client automatically
+reloads the page (same as a manual page navigation) and shows a toast:
+`"Page reloaded — image was updated since last load."` No user confirmation
+required.
+
+Implementation:
+
+1. The mutation's `onError` handler intercepts `status === 409` with
+   `body.reason === "image_drift"`.
+2. Invalidate `["page", pid, idx]` immediately — the refetch loads the
+   current page state from the server.
+3. Show `toast.info("Page reloaded — image was updated since last load.")`.
+4. The user's unsaved edit is discarded; no retry of the original save is
+   attempted.
+
+Rationale: the legacy bails to a notification with no recovery action, which
+leaves the user confused. Auto-reload matches what a manual "Load Page" would
+do, makes the recovery self-describing, and requires no user decision. If the
+user had meaningful edits in flight, the cache lane (auto-save) will have
+preserved most of them — they can re-apply after the reload.
+
+**Confirm in M8** integration tests and Playwright `test_image_drift.py`.
+
+---
+
+## 15. Cancel during Save Project
+
+Wire a Cancel button in the busy overlay during `SAVE_PROJECT` jobs. The Job
+runner supports cooperative cancellation; the handler checks
+`runner.is_cancelled(job.id)` between page saves and exits early, reporting
+`cancelled_count` in the final `SaveProjectResponse`. The SPA sends
+`POST /api/projects/{id}/jobs/{job_id}/cancel`.

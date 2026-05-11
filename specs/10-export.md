@@ -241,14 +241,36 @@ boot the FastAPI server; reads envelopes directly from disk.
 
 ---
 
-## 7. Open issues
+## 7. Export cancellation (resolved)
+
+**Decision.** Cancelling a running export sends
+`POST /api/projects/{id}/jobs/{job_id}/cancel`. The SSE stream closes with a
+final `{ type: 'cancelled' }` event. The export dialog returns to idle state
+(spinner hides, Export button re-enables). Partially-written output files are
+deleted by the server.
+
+Implementation details:
+
+- The `ExportDialog` renders a `Cancel` button while `useJobProgress` reports
+  a running job. The button posts to the cancel endpoint and the SSE listener
+  handles the terminal `cancelled` event identically to `error` (resets state).
+- Server-side, the `handle_export` handler checks `runner.is_cancelled(job.id)`
+  between page iterations. On cancellation: (1) stop the loop; (2) delete the
+  partially-written output directory (`shutil.rmtree(output_root, ignore_errors=True)`);
+  (3) emit `{ type: 'cancelled' }` and close the SSE stream.
+- The run history row is **not** appended on cancellation.
+
+Wire in M9. Test in `tests/integration/test_export_cancel.py` and the E2E
+`test_export_dialog.py::test_cancel_mid_export`.
+
+---
+
+## 8. Open issues
 
 - **Per-export style subfolder vs combined.** The legacy creates one
   subfolder per style. We preserve this. But the user may want a
   "combined" mode (one folder, all styles, with style as a label
   field). Out of scope for v1.
-- **Cancel during export.** Long export jobs benefit from cancellation.
-  Wire `useJobProgress.cancel()` in M9.
 - **Output dir collision.** Re-running export with the same scope
   overwrites the previous output. Acceptable but noisy. Consider
   appending a timestamp suffix to the subfolder name in v2.

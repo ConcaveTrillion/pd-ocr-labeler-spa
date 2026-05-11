@@ -327,7 +327,12 @@ work as in the legacy.
 - Driver-contract: every `data-testid` from
   [`13-driver-contract.md`](13-driver-contract.md) §image-tabs exists.
 
-**Pre-conditions.** M3.
+**Pre-conditions.** M3. **Renderer ADR required** — see Q-A14 in
+[`OPEN_QUESTIONS.md`](../OPEN_QUESTIONS.md) and the blockquote below.
+
+> **Pre-condition:** Renderer ADR filed (spike: compare Konva vs raw canvas on a
+> 4K-page bbox overlay; outcome committed to `specs/17-decisions.md` before
+> writing any M4 component code).
 
 ---
 
@@ -712,14 +717,18 @@ additions).
 **Pre-conditions.**
 
 - M9 (editing UX solid; envelope path stable).
-- pd-book-tools ships `pd_book_tools.ocr.glyph_annotations`
-  (delegation needed — see Q-A5).
-- pd-ocr-trainer ships glyph-feature classifier + inference adapter
+- `pd-book-tools` ships `pd_book_tools.ocr.glyph_annotations`
+  (delegation needed — see Q-A5 in [`specs/20-glyph-annotations.md`](20-glyph-annotations.md) §11).
+- `pd-ocr-trainer` ships glyph-feature classifier + inference adapter
   for the predictions half (delegation needed; the manual half of
   M11 can ship without it).
 - Q-A5 (legacy envelope tolerance), Q-A6 (predictions overlay color),
   Q-A7 (per-mark provenance) resolved in
-  [`OPEN_QUESTIONS.md`](../OPEN_QUESTIONS.md).
+  [`specs/20-glyph-annotations.md`](20-glyph-annotations.md) §11.
+
+> **Pre-condition:** `pd-book-tools` `glyph_annotations` shipped + `pd-ocr-trainer`
+> glyph classifier shipped + Q-A5/Q-A6/Q-A7 (in `specs/20-glyph-annotations.md`
+> §11) resolved.
 
 ---
 
