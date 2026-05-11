@@ -233,7 +233,8 @@ representation. The driver-facing URL bar still uses 1-based
 - `GET /api/projects/{project_id}/pages/{page_index}?line_filter=unvalidated`
   → `PagePayload`.
   Lazily ensures the page is loaded (cache > saved > OCR), returns the
-  full payload (record + line matches + image URL + overlay URLs).
+  full payload (record + line matches + image URL + overlay URLs +
+  `has_edited_image`).
 - `POST /api/projects/{project_id}/pages/{page_index}/save`
   → `SavePageResponse`.
   Body: `SavePageRequest`. Writes envelope + copies image; flips source

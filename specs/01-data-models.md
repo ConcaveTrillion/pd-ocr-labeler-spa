@@ -247,6 +247,7 @@ class PagePayload(BaseModel):
     page_text_gt: str               # pre-built GT plaintext
     image_url: str                  # /image-cache/<project>_<page>_original_<hash>.jpg
     overlay_urls: dict[str, str]    # {"lines":"/image-cache/...", ...}
+    has_edited_image: bool          # True when a user-cropped or user-edited image exists in the image cache for this page, enabling the "Reload OCR (Edited)" button.
 
 class GetPageRequest(BaseModel):
     project_id: str
