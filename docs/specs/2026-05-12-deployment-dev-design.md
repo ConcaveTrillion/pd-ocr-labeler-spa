@@ -84,8 +84,8 @@ copied in) → `python:3.13-slim` runtime (install wheel, expose 8080, ENTRYPOIN
 6 required jobs: `lint` (ruff + eslint + `tsc --noEmit`), `test-backend` (pytest
 unit+integration+conformance), `test-frontend` (vitest + frontend build), `test-e2e`
 (playwright), `build-wheel` (assert `static/index.html` in wheel zip), `openapi-drift`
-(`make openapi-export` + `git diff --exit-code`). `build-container` and `release` jobs trigger
-on tag push only.
+(`make openapi-export` + `git diff --exit-code frontend/src/api/types.ts
+frontend/openapi.json`). `build-container` and `release` jobs trigger on tag push only.
 
 ### Logging
 
