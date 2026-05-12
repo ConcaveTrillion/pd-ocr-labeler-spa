@@ -71,9 +71,9 @@ CI gate (D-024).
 Devcontainer optional, `make setup` canonical onboarding (D-028); auto-rotation deferred to
 M9.1/M9.2 (D-029); export cancel via `runner.is_cancelled` + rmtree (D-031); per-page glyph
 annotations stored in envelope, not sidecar (D-032, pending Q-A5); text normalization toggle
-is project-level in OCRConfig (D-033); predictions not persisted in envelope (D-034); mise
-`node = "24"` is the workspace-pinned default (D-037); `UV_PYTHON = "3.13"` pinned in CI to
-avoid anyio/SQLite segfault (D-038).
+is project-level in OCRConfig (D-033); predictions not persisted in envelope (D-034);
+ESLint flat config with `typescript-eslint` v8 (D-037); `UV_PYTHON = "3.13"` pinned in CI
+to avoid anyio/SQLite segfault (D-038).
 
 ### ADR format convention
 
