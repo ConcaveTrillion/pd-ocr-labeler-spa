@@ -57,6 +57,8 @@ class FilesystemStorage:
         """
         if key.startswith("/"):
             raise ValueError(f"key escapes data root: {key!r} (absolute paths are not valid storage keys)")
+        if any(part == ".." for part in Path(key).parts):
+            raise ValueError(f"key escapes data root: {key!r} (contains parent-dir reference)")
         candidate = (self._root / key).resolve()
         root = self._root.resolve()
         # candidate must be the root itself or strictly under it
