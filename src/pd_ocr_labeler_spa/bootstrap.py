@@ -158,8 +158,9 @@ def build_app(settings: Settings | None = None) -> FastAPI:
 
     # Spec §2 step 1: configure logging first so the rest of the
     # factory (and the lifespan tasks queued from here) emit through
-    # the configured root handler.
-    configure_logging(settings.log_format)
+    # the configured root handler. Use the log_level from settings
+    # (set by --verbose CLI flag or PDLABELER_LOG_LEVEL env).
+    configure_logging(settings.log_format, level=settings.log_level)
 
     # Spec §2 step 5 + §13: construct the active-project carrier and
     # the lifespan closure BEFORE ``FastAPI(...)`` so the lifespan can

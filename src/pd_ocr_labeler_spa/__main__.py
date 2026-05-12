@@ -191,6 +191,8 @@ def _build_overrides(args: argparse.Namespace) -> dict[str, object]:
     None / False defaults are skipped so env precedence is preserved.
     Spec §3: Settings is constructed exactly once; mutation is forbidden.
     """
+    import logging
+
     overrides: dict[str, object] = {}
     if args.host is not None:
         overrides["host"] = args.host
@@ -204,6 +206,12 @@ def _build_overrides(args: argparse.Namespace) -> dict[str, object]:
         overrides["source_projects_root"] = args.projects_root
     if args.project_dir is not None:
         overrides["cli_project_dir"] = Path(args.project_dir)
+    if args.verbose >= 2:
+        # -vv and higher enable DEBUG logging. -v (single) is INFO, which is the default,
+        # so we don't add it to overrides to preserve env precedence (same pattern as
+        # other omitted-by-default flags). Anything >= 2 is DEBUG for the app, though
+        # -vvv may have future meaning for turning on pd-book-tools / third-party modes.
+        overrides["log_level"] = logging.DEBUG
     return overrides
 
 
