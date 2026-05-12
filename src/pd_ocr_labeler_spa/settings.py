@@ -52,6 +52,12 @@ class Settings(BaseSettings):
 
     # ── Logging ──────────────────────────────────────────────────────────────
     log_format: LogFormat = "plain"
+    log_level: int = 20  # logging.INFO
+    """Logging level (10=DEBUG, 20=INFO, 30=WARNING, 40=ERROR, 50=CRITICAL).
+
+    Set by --verbose count: -v enables INFO, -vv enables DEBUG, -vvv enables full DEBUG.
+    Default is INFO (20). M1.g CLI feature."""
+
     request_id_header: str = "X-Request-ID"
 
     # ── OS-aware roots (specs/01-data-models.md §5) ──────────────────────────
