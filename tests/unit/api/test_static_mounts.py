@@ -92,9 +92,9 @@ def test_image_cache_404_on_missing_key(client: TestClient, image_cache_root: Pa
 @pytest.mark.parametrize(
     "key",
     [
-        "../etc/passwd",
-        "../../etc/passwd",
-        "subdir/../../escape.png",
+        "%2e%2e/etc/passwd",
+        "%2e%2e/%2e%2e/etc/passwd",
+        "subdir/%2e%2e/%2e%2e/escape.png",
     ],
 )
 def test_image_cache_blocks_path_traversal(client: TestClient, key: str) -> None:
