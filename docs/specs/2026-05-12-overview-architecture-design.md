@@ -94,8 +94,8 @@ No client-side debounce timer.
 **`sonner`** for toasts; **`react-hotkeys-hook`** for hotkeys; **`@tanstack/react-virtual`**
 for the virtualised line-card list.
 
-**Konva** for the image viewport canvas (D-020: deferred research spike at M4 confirmed Konva
-over raw `<canvas>`).
+**Konva** for the image viewport canvas (D-020: renderer choice — Konva vs raw `<canvas>` —
+deferred to a research spike at M4 start; Konva is the planned default pending that spike).
 
 **OpenAPI → generated TS types.** `make openapi-export` regenerates
 `frontend/src/api/types.ts`. CI gate: `git diff --exit-code` after re-running.
@@ -142,7 +142,7 @@ gets its own `AppState` via `Settings`.
 **Raw `<canvas>` vs Konva for the image viewport.** Raw canvas gives maximum control but
 requires hand-rolling hit detection, drag handling, and layer management. Konva provides
 a scene-graph abstraction that makes bbox overlay and interaction modes tractable. D-020
-logged the deferred decision; M4 research spike confirmed Konva.
+logged the deferred decision; D-020 spike at M4 start will confirm or revise this choice.
 
 ## Consequences
 
