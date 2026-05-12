@@ -737,3 +737,98 @@ def test_open_when_ready_swallows_webbrowser_exceptions(
         deadline_s=1.0,
         poll_s=0.0,
     )
+
+
+# ── Verbose logging (--verbose / -v flag) ────────────────────────────────
+
+
+def test_verbose_flag_sets_log_level_in_settings(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """`--verbose -vv` enables DEBUG logging. Acceptance criterion for issue #251.
+
+    Tests that the verbose flag correctly sets the log_level in Settings to DEBUG.
+    """
+    import logging
+
+    for var in list(__import__("os").environ):
+        if var.startswith("PDLABELER_"):
+            monkeypatch.delenv(var, raising=False)
+
+    captured_settings: dict[str, Settings] = {}
+    real_settings = Settings
+
+    def _capture_settings(**kwargs: Any) -> Settings:
+        s = real_settings(**kwargs)
+        captured_settings["last"] = s
+        return s
+
+    with (
+        patch.object(main_mod, "uvicorn"),
+        patch.object(main_mod, "webbrowser"),
+        patch.object(main_mod, "Settings", side_effect=_capture_settings),
+    ):
+        rc = main(["--verbose", "--verbose", "--no-browser", "--data-root", str(tmp_path)])
+
+    assert rc == 0
+    # -vv should set log_level to DEBUG (10)
+    assert captured_settings["last"].log_level == logging.DEBUG
+
+
+def test_single_verbose_flag_preserves_info_level(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """`-v` (single) should keep INFO level, not switch to DEBUG.
+
+    Since INFO is the default, -v doesn't add log_level to overrides, preserving
+    env precedence like other omitted flags. But the resulting Settings.log_level
+    should still be INFO (the default).
+    """
+    import logging
+
+    for var in list(__import__("os").environ):
+        if var.startswith("PDLABELER_"):
+            monkeypatch.delenv(var, raising=False)
+
+    captured_settings: dict[str, Settings] = {}
+    real_settings = Settings
+
+    def _capture_settings(**kwargs: Any) -> Settings:
+        s = real_settings(**kwargs)
+        captured_settings["last"] = s
+        return s
+
+    with (
+        patch.object(main_mod, "uvicorn"),
+        patch.object(main_mod, "webbrowser"),
+        patch.object(main_mod, "Settings", side_effect=_capture_settings),
+    ):
+        rc = main(["--verbose", "--no-browser", "--data-root", str(tmp_path)])
+
+    assert rc == 0
+    # -v doesn't add to overrides (env precedence), but Settings defaults to INFO
+    assert captured_settings["last"].log_level == logging.INFO
+
+
+def test_no_verbose_flag_uses_default_info_level(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Without any verbose flag, log_level should be INFO (the default)."""
+    import logging
+
+    for var in list(__import__("os").environ):
+        if var.startswith("PDLABELER_"):
+            monkeypatch.delenv(var, raising=False)
+
+    captured_settings: dict[str, Settings] = {}
+    real_settings = Settings
+
+    def _capture_settings(**kwargs: Any) -> Settings:
+        s = real_settings(**kwargs)
+        captured_settings["last"] = s
+        return s
+
+    with (
+        patch.object(main_mod, "uvicorn"),
+        patch.object(main_mod, "webbrowser"),
+        patch.object(main_mod, "Settings", side_effect=_capture_settings),
+    ):
+        rc = main(["--no-browser", "--data-root", str(tmp_path)])
+
+    assert rc == 0
+    # Default log_level should be INFO (20)
+    assert captured_settings["last"].log_level == logging.INFO
