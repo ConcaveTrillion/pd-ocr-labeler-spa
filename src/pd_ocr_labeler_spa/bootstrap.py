@@ -38,12 +38,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api.env_js import install_env_js
+from .api.export import install_export_router
 from .api.healthz import install_healthz
+from .api.jobs import install_jobs_router
+from .api.lines_paragraphs import install_lines_paragraphs_router
 from .api.middleware.error_handler import install_error_handlers
 from .api.middleware.request_id import RequestIdMiddleware
 from .api.ocr_config import install_ocr_config_router
+from .api.pages import install_pages_router
 from .api.projects import install_projects_router
+from .api.refine import install_refine_router
 from .api.static_mounts import install_image_cache, install_spa_fallback
+from .api.words import install_words_router
 from .core.active_project import (
     ActiveProjectCarrier,
     InvalidProjectDirError,
@@ -268,6 +274,16 @@ def build_app(settings: Settings | None = None) -> FastAPI:
     # /healthz for symmetry. M2-proper will add /api/pages, /api/words,
     # etc.
     install_projects_router(app)
+
+    # /api/pages, /api/words, /api/lines+paragraphs, /api/refine, /api/export,
+    # /api/jobs routers — wire-shape stubs (M3 implementations). All use the
+    # /api/projects prefix so they slot in naturally alongside the projects router.
+    install_pages_router(app)
+    install_words_router(app)
+    install_lines_paragraphs_router(app)
+    install_refine_router(app)
+    install_export_router(app)
+    install_jobs_router(app)
 
     # /api/ocr-config router — M3 slice 8a. Read-only stock-fallback
     # skeleton composed from the iter-7 OCR config DTOs; spec §5.8

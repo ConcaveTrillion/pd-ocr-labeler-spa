@@ -140,6 +140,19 @@ class LoadProjectRequest(BaseModel):
     initial_page_index: int = 0
 
 
+class SetSourceProjectsRootRequest(BaseModel):
+    """Body for ``POST /api/projects/source-root`` — spec §2 line 230."""
+
+    path: Path
+
+
+class SetSourceProjectsRootResponse(BaseModel):
+    """Response for ``POST /api/projects/source-root`` — spec §2 lines 232-234."""
+
+    projects_root: Path
+    projects: list[ProjectKey]
+
+
 class LoadProjectResponse(BaseModel):
     """M2 slice-5 response — interim shape on the path to spec-canonical.
 
@@ -503,6 +516,15 @@ def get_project_by_id(
     return JSONResponse(status_code=200, content=project.model_dump(mode="json"))
 
 
+@router.post("/source-root", response_model=SetSourceProjectsRootResponse)
+def set_source_projects_root(body: SetSourceProjectsRootRequest) -> JSONResponse:
+    """``POST /api/projects/source-root`` — stub; M2-proper config milestone."""
+    return JSONResponse(
+        status_code=501,
+        content={"error": "not_implemented", "message": "source-root route lands in M2-proper"},
+    )
+
+
 def install_projects_router(app) -> None:  # type: ignore[no-untyped-def]
     """Register the projects router. Called from ``bootstrap.build_app``."""
     app.include_router(router)
@@ -513,6 +535,8 @@ __all__ = [
     "LoadProjectRequest",
     "LoadProjectResponse",
     "ProjectKey",
+    "SetSourceProjectsRootRequest",
+    "SetSourceProjectsRootResponse",
     "install_projects_router",
     "router",
 ]

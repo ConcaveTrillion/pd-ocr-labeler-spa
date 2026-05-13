@@ -12,6 +12,7 @@ Adding new models: append; never reorder. Generated TS via
 
 from __future__ import annotations
 
+from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any, Literal
@@ -49,7 +50,7 @@ class Project(BaseModel):
 
 
 class PageSource(StrEnum):
-    """``specs/01-data-models.md §1`` lines 55-59."""
+    """How a page's OCR data was sourced — spec §1 ``PageSource``."""
 
     OCR = "ocr"
     CACHED_OCR = "cached_ocr"
@@ -58,9 +59,9 @@ class PageSource(StrEnum):
 
 
 class MatchStatus(StrEnum):
-    """Five-value match status — ``specs/01-data-models.md §1`` lines 87-93.
+    """Per-word match result — spec §1 ``MatchStatus``.
 
-    Matches legacy ``pd_ocr_labeler.models.word_match.MatchStatus`` exactly.
+    Exactly five values, matching legacy ``WordMatch.match_status``.
     """
 
     EXACT = "exact"
@@ -118,10 +119,11 @@ class CachedImageSet(BaseModel):
 
 
 class PageRecord(BaseModel):
-    """Per-page metadata — ``specs/01-data-models.md §1`` lines 49-80.
+    """Per-page metadata — spec §1 ``PageRecord``.
 
-    The actual ``Page`` object lives in ``PageState`` in-memory; it is
-    NOT serialised through this model.
+    The actual ``Page`` object lives in ``PageState`` in-memory and is
+    NOT serialised here. Wire shapes that need page contents use
+    ``PagePayload`` (defined in ``api/pages.py``).
     """
 
     page_index: int
@@ -135,7 +137,7 @@ class PageRecord(BaseModel):
 
 
 class WordMatch(BaseModel):
-    """Per-word match result — ``specs/01-data-models.md §1`` lines 96-109."""
+    """Per-word match result — spec §1 ``WordMatch``."""
 
     line_index: int
     word_index: int | None
@@ -151,7 +153,7 @@ class WordMatch(BaseModel):
 
 
 class LineMatch(BaseModel):
-    """Per-line rollup with pre-computed counters — ``specs/01-data-models.md §1``."""
+    """Per-line rollup with pre-computed counters — spec §1 ``LineMatch``."""
 
     line_index: int
     paragraph_index: int | None
@@ -179,20 +181,67 @@ class Selection(BaseModel):
 
 
 class LineFilter(StrEnum):
-    """Line filter toggle — ``specs/01-data-models.md §1`` lines 183-192."""
+    """Line display filter — spec §1 ``LineFilter``."""
 
     UNVALIDATED = "unvalidated"
     MISMATCHED = "mismatched"
     ALL = "all"
 
 
+class JobStatus(StrEnum):
+    """Job lifecycle state — spec §1 ``JobStatus``."""
+
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETE = "complete"
+    ERROR = "error"
+
+
+class JobType(StrEnum):
+    """Discriminant for background job kind — spec §1 ``JobType``."""
+
+    REFINE_BBOXES_PAGE = "refine_bboxes_page"
+    EXPAND_REFINE_BBOXES_PAGE = "expand_refine_bboxes_page"
+    RELOAD_OCR_PAGE = "reload_ocr_page"
+    EXPORT = "export"
+    SAVE_PROJECT = "save_project"
+    REFINE_BBOXES_PROJECT = "refine_bboxes_project"
+
+
+class JobProgress(BaseModel):
+    """Progress counters for a running job — spec §1 ``JobProgress``."""
+
+    current: int = 0
+    total: int = 0
+    current_page: int | None = None
+    message: str = ""
+
+
+class Job(BaseModel):
+    """Background job record — spec §1 ``Job``. Mirrors pgdp-prep ``core/models.py``."""
+
+    id: str
+    type: JobType
+    project_id: str | None
+    status: JobStatus
+    progress: JobProgress
+    error_message: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
 __all__ = [
     "BBox",
     "CachedImageSet",
     "EncodedDims",
+    "Job",
+    "JobProgress",
+    "JobStatus",
+    "JobType",
     "LineFilter",
     "LineMatch",
     "MatchStatus",
+    "OCRProvenance",
     "PageRecord",
     "PageSource",
     "Project",
