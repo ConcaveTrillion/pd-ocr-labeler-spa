@@ -3,7 +3,7 @@ export class ApiError extends Error {
     public status: number,
     public error: string,
     public message: string,
-    public details?: unknown
+    public details?: unknown,
   ) {
     super(message);
     this.name = "ApiError";
@@ -22,7 +22,7 @@ export class ApiClient {
     path: string,
     options?: {
       body?: unknown;
-    }
+    },
   ): Promise<T> {
     const url = new URL(path, this.baseUrl).toString();
     const headers: Record<string, string> = {
@@ -65,7 +65,7 @@ export class ApiClient {
         response.status,
         errorData.error || `http_${response.status}`,
         message,
-        errorData.details
+        errorData.details,
       );
     }
 

@@ -10,8 +10,6 @@ describe("App", () => {
 
   it("renders the milestone heading", () => {
     render(<App />);
-    expect(
-      screen.getByRole("heading", { name: /pd-ocr-labeler-spa/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /pd-ocr-labeler-spa/i })).toBeInTheDocument();
   });
 });

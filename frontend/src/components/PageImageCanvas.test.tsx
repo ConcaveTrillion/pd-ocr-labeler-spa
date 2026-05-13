@@ -51,9 +51,7 @@ describe("PageImageCanvas", () => {
       scale: 0.5,
     };
 
-    const { getByTestId } = render(
-      <PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />
-    );
+    const { getByTestId } = render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
 
     const canvas = getByTestId("image-viewport");
     expect(canvas.getAttribute("data-width")).toBe("800");

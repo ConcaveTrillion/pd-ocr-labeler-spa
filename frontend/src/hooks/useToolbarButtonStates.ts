@@ -75,10 +75,7 @@ export interface ButtonStates {
   word_delete: boolean;
 }
 
-export function useToolbarButtonStates(
-  selection: Selection,
-  page: PageData,
-): ButtonStates {
+export function useToolbarButtonStates(selection: Selection, page: PageData): ButtonStates {
   const nParas = selection.selected_paragraphs.length;
   const nLines = selection.selected_lines.length;
   const nWords = selection.selected_words.length;
@@ -108,16 +105,14 @@ export function useToolbarButtonStates(
     }
   }
 
-  const pageHasUnvalidated = page.lines.some(
-    (l) => l.validated_word_count < l.total_word_count,
-  );
+  const pageHasUnvalidated = page.lines.some((l) => l.validated_word_count < l.total_word_count);
   const pageHasValidated = page.lines.some((l) => l.validated_word_count > 0);
 
-  const selectedParasHaveUnvalidated = selection.selected_paragraphs.some(
-    (pi) => (paraLines.get(pi) ?? []).some((l) => l.validated_word_count < l.total_word_count),
+  const selectedParasHaveUnvalidated = selection.selected_paragraphs.some((pi) =>
+    (paraLines.get(pi) ?? []).some((l) => l.validated_word_count < l.total_word_count),
   );
-  const selectedParasHaveValidated = selection.selected_paragraphs.some(
-    (pi) => (paraLines.get(pi) ?? []).some((l) => l.validated_word_count > 0),
+  const selectedParasHaveValidated = selection.selected_paragraphs.some((pi) =>
+    (paraLines.get(pi) ?? []).some((l) => l.validated_word_count > 0),
   );
 
   const selectedLinesHaveUnvalidated = selection.selected_lines.some((li) => {

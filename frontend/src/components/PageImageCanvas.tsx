@@ -6,10 +6,7 @@ interface PageImageCanvasProps {
   encoded: EncodedDims;
 }
 
-export default function PageImageCanvas({
-  imageUrl: _imageUrl,
-  encoded,
-}: PageImageCanvasProps) {
+export default function PageImageCanvas({ imageUrl: _imageUrl, encoded }: PageImageCanvasProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const dims = getStageDimensions(encoded);
 

@@ -1,23 +1,23 @@
-import { describe, it, expect } from 'vitest';
-import { toolbarMapping } from './toolbarMapping';
+import { describe, it, expect } from "vitest";
+import { toolbarMapping } from "./toolbarMapping";
 
-describe('toolbarMapping', () => {
-  it('should have all 56 cells (4 rows x 14 columns)', () => {
-    const scopes = ['page', 'paragraph', 'line', 'word'];
+describe("toolbarMapping", () => {
+  it("should have all 56 cells (4 rows x 14 columns)", () => {
+    const scopes = ["page", "paragraph", "line", "word"];
     const actions = [
-      'merge',
-      'refine',
-      'expand-refine',
-      'expand',
-      'split-after',
-      'split-selected',
-      'word-to-line',
-      'word-to-para',
-      'gt-to-ocr',
-      'ocr-to-gt',
-      'validate',
-      'unvalidate',
-      'delete',
+      "merge",
+      "refine",
+      "expand-refine",
+      "expand",
+      "split-after",
+      "split-selected",
+      "word-to-line",
+      "word-to-para",
+      "gt-to-ocr",
+      "ocr-to-gt",
+      "validate",
+      "unvalidate",
+      "delete",
     ];
 
     // Grid is 4 rows × 14 columns = 56 cells
@@ -40,16 +40,16 @@ describe('toolbarMapping', () => {
     // Mapping covers the 52 action cells, not the 4 scope label cells
   });
 
-  it('should map each action to a valid endpoint', () => {
+  it("should map each action to a valid endpoint", () => {
     for (const [_key, mapping] of Object.entries(toolbarMapping)) {
       if (mapping === null) {
         // null mappings are allowed for disabled cells
         continue;
       }
-      expect(mapping).toHaveProperty('endpoint');
-      expect(mapping).toHaveProperty('method');
+      expect(mapping).toHaveProperty("endpoint");
+      expect(mapping).toHaveProperty("method");
       expect(mapping.endpoint).toMatch(/^\/api\//);
-      expect(['GET', 'POST', 'DELETE', 'PUT']).toContain(mapping.method);
+      expect(["GET", "POST", "DELETE", "PUT"]).toContain(mapping.method);
     }
   });
 });

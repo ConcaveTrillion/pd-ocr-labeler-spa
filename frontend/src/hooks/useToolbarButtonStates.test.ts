@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  type PageData,
-  type Selection,
-  useToolbarButtonStates,
-} from "./useToolbarButtonStates";
+import { type PageData, type Selection, useToolbarButtonStates } from "./useToolbarButtonStates";
 
 const emptySelection: Selection = {
   selection_mode: "word",
@@ -13,12 +9,8 @@ const emptySelection: Selection = {
 };
 
 /** Page with 3 lines, each with 2 words. Line i has paragraph_index = Math.floor(i/2). */
-function makePage(overrides?: {
-  validatedWords?: [number, number][];
-}): PageData {
-  const validatedSet = new Set(
-    (overrides?.validatedWords ?? []).map(([li, wi]) => `${li}-${wi}`),
-  );
+function makePage(overrides?: { validatedWords?: [number, number][] }): PageData {
+  const validatedSet = new Set((overrides?.validatedWords ?? []).map(([li, wi]) => `${li}-${wi}`));
   return {
     lines: [0, 1, 2].map((li) => ({
       line_index: li,
@@ -28,9 +20,7 @@ function makePage(overrides?: {
         word_index: wi,
         is_validated: validatedSet.has(`${li}-${wi}`),
       })),
-      validated_word_count: [0, 1].filter((wi) =>
-        validatedSet.has(`${li}-${wi}`),
-      ).length,
+      validated_word_count: [0, 1].filter((wi) => validatedSet.has(`${li}-${wi}`)).length,
       total_word_count: 2,
     })),
   };
@@ -96,10 +86,7 @@ describe("page validate / unvalidate", () => {
   });
 
   it("page_unvalidate is true when some words are validated", () => {
-    const s = useToolbarButtonStates(
-      emptySelection,
-      makePage({ validatedWords: [[0, 0]] }),
-    );
+    const s = useToolbarButtonStates(emptySelection, makePage({ validatedWords: [[0, 0]] }));
     expect(s.page_unvalidate).toBe(true);
   });
 
@@ -310,7 +297,12 @@ describe("line validate / unvalidate", () => {
 
   it("line_validate is false when all words in selected line are validated", () => {
     const sel: Selection = { ...emptySelection, selected_lines: [0] };
-    const page = makePage({ validatedWords: [[0, 0], [0, 1]] });
+    const page = makePage({
+      validatedWords: [
+        [0, 0],
+        [0, 1],
+      ],
+    });
     const s = useToolbarButtonStates(sel, page);
     expect(s.line_validate).toBe(false);
   });
@@ -453,7 +445,12 @@ describe("word validate / unvalidate", () => {
         [0, 1],
       ],
     };
-    const page = makePage({ validatedWords: [[0, 0], [0, 1]] });
+    const page = makePage({
+      validatedWords: [
+        [0, 0],
+        [0, 1],
+      ],
+    });
     const s = useToolbarButtonStates(sel, page);
     expect(s.word_validate).toBe(false);
   });
@@ -488,38 +485,25 @@ describe("word validate / unvalidate", () => {
 
 describe("delete rules", () => {
   it("para_delete requires ≥1 paragraph", () => {
+    expect(useToolbarButtonStates(emptySelection, emptyPage).para_delete).toBe(false);
     expect(
-      useToolbarButtonStates(emptySelection, emptyPage).para_delete,
-    ).toBe(false);
-    expect(
-      useToolbarButtonStates(
-        { ...emptySelection, selected_paragraphs: [0] },
-        emptyPage,
-      ).para_delete,
+      useToolbarButtonStates({ ...emptySelection, selected_paragraphs: [0] }, emptyPage)
+        .para_delete,
     ).toBe(true);
   });
 
   it("line_delete requires ≥1 line", () => {
-    expect(useToolbarButtonStates(emptySelection, emptyPage).line_delete).toBe(
-      false,
-    );
+    expect(useToolbarButtonStates(emptySelection, emptyPage).line_delete).toBe(false);
     expect(
-      useToolbarButtonStates(
-        { ...emptySelection, selected_lines: [0] },
-        emptyPage,
-      ).line_delete,
+      useToolbarButtonStates({ ...emptySelection, selected_lines: [0] }, emptyPage).line_delete,
     ).toBe(true);
   });
 
   it("word_delete requires ≥1 word", () => {
-    expect(useToolbarButtonStates(emptySelection, emptyPage).word_delete).toBe(
-      false,
-    );
+    expect(useToolbarButtonStates(emptySelection, emptyPage).word_delete).toBe(false);
     expect(
-      useToolbarButtonStates(
-        { ...emptySelection, selected_words: [[0, 0]] },
-        emptyPage,
-      ).word_delete,
+      useToolbarButtonStates({ ...emptySelection, selected_words: [[0, 0]] }, emptyPage)
+        .word_delete,
     ).toBe(true);
   });
 });
