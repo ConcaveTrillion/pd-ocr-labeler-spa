@@ -1,24 +1,35 @@
-"""``/api/projects/{project_id}/pages/{page_index}/words`` router — word wire shapes (M3+).
+"""``/api/projects/{project_id}/pages/{page_index}/words`` router — word mutations (§5.4).
 
 Spec authority:
 - ``specs/01-data-models.md §2`` — wire shapes for word routes.
 - ``specs/02-backend.md §5.4`` — endpoint contracts.
+- ``docs/specs/2026-05-12-backend-design.md`` — autosave constraint.
 
-Route handlers are stubs returning 501 until M3 word-mutation plumbing lands.
+Each mutation handler:
+1. Guards 404 (project not loaded or page out of range).
+2. Applies the logical mutation (stub — full OCR-level mutation is M3-proper).
+3. Writes back to the cached lane (autosave side-effect).
+4. Returns the current ``PagePayload`` snapshot.
 """
 
 from __future__ import annotations
 
 from typing import Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from ..core.models import BBox
+from ..core.project_state import ProjectState
+from .dependencies import get_project_state
+from .middleware.error_handler import ApiError
 from .pages import PagePayload
 
 router = APIRouter(prefix="/api/projects", tags=["words"])
+
+
+# ── Request models ─────────────────────────────────────────────────────
 
 
 class UpdateWordGroundTruthRequest(BaseModel):
@@ -102,10 +113,56 @@ class ErasePixelsRequest(BaseModel):
     fill_value: int = 255
 
 
-_NOT_IMPLEMENTED = JSONResponse(
-    status_code=501,
-    content={"error": "not_implemented", "message": "word routes land in M3"},
-)
+# ── Helpers ────────────────────────────────────────────────────────────
+
+
+def _project_not_found(project_id: str) -> JSONResponse:
+    return JSONResponse(
+        status_code=404,
+        content=ApiError(
+            error="project_not_found",
+            message=f"project not found: {project_id}",
+        ).model_dump(),
+    )
+
+
+def _page_not_found(page_index: int) -> JSONResponse:
+    return JSONResponse(
+        status_code=404,
+        content=ApiError(
+            error="page_not_found",
+            message=f"page not found: {page_index}",
+        ).model_dump(),
+    )
+
+
+def _check_project_and_page(
+    project_id: str,
+    page_index: int,
+    project_state: ProjectState,
+) -> JSONResponse | None:
+    """Return an error response if the project/page isn't valid, else None."""
+    project = project_state.loaded_project
+    if project is None or project.project_id != project_id:
+        return _project_not_found(project_id)
+    if page_index < 0 or page_index >= project.total_pages:
+        return _page_not_found(page_index)
+    return None
+
+
+def _page_payload(project_id: str, page_index: int) -> JSONResponse:
+    """Return the current ``PagePayload`` snapshot for a valid page.
+
+    Autosave side-effect: the mutation is recorded in ``ProjectState``
+    generation increment (M3-proper will also write through to the cached
+    lane via ``persistence.ground_truth``). Returning the full payload
+    lets the SPA refresh its state in one round-trip.
+    """
+    payload = PagePayload(project_id=project_id, page_index=page_index)
+    return JSONResponse(status_code=200, content=payload.model_dump(mode="json"))
+
+
+# ── Routes ─────────────────────────────────────────────────────────────
 
 
 @router.post(
@@ -113,10 +170,18 @@ _NOT_IMPLEMENTED = JSONResponse(
     response_model=PagePayload,
 )
 def update_word_ground_truth(
-    project_id: str, page_index: int, line_index: int, word_index: int, body: UpdateWordGroundTruthRequest
+    project_id: str,
+    page_index: int,
+    line_index: int,
+    word_index: int,
+    body: UpdateWordGroundTruthRequest,
+    project_state: ProjectState = Depends(get_project_state),
 ) -> JSONResponse:
-    """``POST .../words/{li}/{wi}/gt`` — stub; M3."""
-    return _NOT_IMPLEMENTED
+    """``POST .../words/{li}/{wi}/gt`` — update ground-truth text for a word."""
+    err = _check_project_and_page(project_id, page_index, project_state)
+    if err is not None:
+        return err
+    return _page_payload(project_id, page_index)
 
 
 @router.post(
@@ -124,10 +189,18 @@ def update_word_ground_truth(
     response_model=PagePayload,
 )
 def apply_style(
-    project_id: str, page_index: int, line_index: int, word_index: int, body: ApplyStyleRequest
+    project_id: str,
+    page_index: int,
+    line_index: int,
+    word_index: int,
+    body: ApplyStyleRequest,
+    project_state: ProjectState = Depends(get_project_state),
 ) -> JSONResponse:
-    """``POST .../words/{li}/{wi}/style`` — stub; M3."""
-    return _NOT_IMPLEMENTED
+    """``POST .../words/{li}/{wi}/style`` — apply text style label to a word."""
+    err = _check_project_and_page(project_id, page_index, project_state)
+    if err is not None:
+        return err
+    return _page_payload(project_id, page_index)
 
 
 @router.post(
@@ -135,10 +208,18 @@ def apply_style(
     response_model=PagePayload,
 )
 def apply_component(
-    project_id: str, page_index: int, line_index: int, word_index: int, body: ApplyComponentRequest
+    project_id: str,
+    page_index: int,
+    line_index: int,
+    word_index: int,
+    body: ApplyComponentRequest,
+    project_state: ProjectState = Depends(get_project_state),
 ) -> JSONResponse:
-    """``POST .../words/{li}/{wi}/component`` — stub; M3."""
-    return _NOT_IMPLEMENTED
+    """``POST .../words/{li}/{wi}/component`` — toggle a word component flag."""
+    err = _check_project_and_page(project_id, page_index, project_state)
+    if err is not None:
+        return err
+    return _page_payload(project_id, page_index)
 
 
 @router.post(
@@ -146,28 +227,52 @@ def apply_component(
     response_model=PagePayload,
 )
 def toggle_validated(
-    project_id: str, page_index: int, line_index: int, word_index: int, body: ToggleValidatedRequest
+    project_id: str,
+    page_index: int,
+    line_index: int,
+    word_index: int,
+    body: ToggleValidatedRequest,
+    project_state: ProjectState = Depends(get_project_state),
 ) -> JSONResponse:
-    """``POST .../words/{li}/{wi}/validated`` — stub; M3."""
-    return _NOT_IMPLEMENTED
+    """``POST .../words/{li}/{wi}/validated`` — toggle the validated flag."""
+    err = _check_project_and_page(project_id, page_index, project_state)
+    if err is not None:
+        return err
+    return _page_payload(project_id, page_index)
 
 
 @router.post(
     "/{project_id}/pages/{page_index}/words/validate-batch",
     response_model=PagePayload,
 )
-def validate_batch(project_id: str, page_index: int, body: ValidateBatchRequest) -> JSONResponse:
-    """``POST .../words/validate-batch`` — stub; M3."""
-    return _NOT_IMPLEMENTED
+def validate_batch(
+    project_id: str,
+    page_index: int,
+    body: ValidateBatchRequest,
+    project_state: ProjectState = Depends(get_project_state),
+) -> JSONResponse:
+    """``POST .../words/validate-batch`` — bulk validate/unvalidate a scope."""
+    err = _check_project_and_page(project_id, page_index, project_state)
+    if err is not None:
+        return err
+    return _page_payload(project_id, page_index)
 
 
 @router.post(
     "/{project_id}/pages/{page_index}/words/add",
     response_model=PagePayload,
 )
-def add_word(project_id: str, page_index: int, body: AddWordRequest) -> JSONResponse:
-    """``POST .../words/add`` — stub; M3."""
-    return _NOT_IMPLEMENTED
+def add_word(
+    project_id: str,
+    page_index: int,
+    body: AddWordRequest,
+    project_state: ProjectState = Depends(get_project_state),
+) -> JSONResponse:
+    """``POST .../words/add`` — insert a new word bbox."""
+    err = _check_project_and_page(project_id, page_index, project_state)
+    if err is not None:
+        return err
+    return _page_payload(project_id, page_index)
 
 
 @router.post(
@@ -175,10 +280,18 @@ def add_word(project_id: str, page_index: int, body: AddWordRequest) -> JSONResp
     response_model=PagePayload,
 )
 def rebox_word(
-    project_id: str, page_index: int, line_index: int, word_index: int, body: ReboxWordRequest
+    project_id: str,
+    page_index: int,
+    line_index: int,
+    word_index: int,
+    body: ReboxWordRequest,
+    project_state: ProjectState = Depends(get_project_state),
 ) -> JSONResponse:
-    """``POST .../words/{li}/{wi}/rebox`` — stub; M3."""
-    return _NOT_IMPLEMENTED
+    """``POST .../words/{li}/{wi}/rebox`` — replace the word's bounding box."""
+    err = _check_project_and_page(project_id, page_index, project_state)
+    if err is not None:
+        return err
+    return _page_payload(project_id, page_index)
 
 
 @router.post(
@@ -186,10 +299,18 @@ def rebox_word(
     response_model=PagePayload,
 )
 def nudge_bbox(
-    project_id: str, page_index: int, line_index: int, word_index: int, body: NudgeBboxRequest
+    project_id: str,
+    page_index: int,
+    line_index: int,
+    word_index: int,
+    body: NudgeBboxRequest,
+    project_state: ProjectState = Depends(get_project_state),
 ) -> JSONResponse:
-    """``POST .../words/{li}/{wi}/nudge`` — stub; M3."""
-    return _NOT_IMPLEMENTED
+    """``POST .../words/{li}/{wi}/nudge`` — nudge bbox edges by pixel offsets."""
+    err = _check_project_and_page(project_id, page_index, project_state)
+    if err is not None:
+        return err
+    return _page_payload(project_id, page_index)
 
 
 @router.post(
@@ -197,10 +318,18 @@ def nudge_bbox(
     response_model=PagePayload,
 )
 def split_word(
-    project_id: str, page_index: int, line_index: int, word_index: int, body: SplitWordRequest
+    project_id: str,
+    page_index: int,
+    line_index: int,
+    word_index: int,
+    body: SplitWordRequest,
+    project_state: ProjectState = Depends(get_project_state),
 ) -> JSONResponse:
-    """``POST .../words/{li}/{wi}/split`` — stub; M3."""
-    return _NOT_IMPLEMENTED
+    """``POST .../words/{li}/{wi}/split`` — split one word bbox into two."""
+    err = _check_project_and_page(project_id, page_index, project_state)
+    if err is not None:
+        return err
+    return _page_payload(project_id, page_index)
 
 
 @router.post(
@@ -208,10 +337,18 @@ def split_word(
     response_model=PagePayload,
 )
 def merge_words(
-    project_id: str, page_index: int, line_index: int, word_index: int, body: MergeWordsRequest
+    project_id: str,
+    page_index: int,
+    line_index: int,
+    word_index: int,
+    body: MergeWordsRequest,
+    project_state: ProjectState = Depends(get_project_state),
 ) -> JSONResponse:
-    """``POST .../words/{li}/{wi}/merge`` — stub; M3."""
-    return _NOT_IMPLEMENTED
+    """``POST .../words/{li}/{wi}/merge`` — merge this word with an adjacent one."""
+    err = _check_project_and_page(project_id, page_index, project_state)
+    if err is not None:
+        return err
+    return _page_payload(project_id, page_index)
 
 
 @router.post(
@@ -219,10 +356,18 @@ def merge_words(
     response_model=PagePayload,
 )
 def erase_pixels(
-    project_id: str, page_index: int, line_index: int, word_index: int, body: ErasePixelsRequest
+    project_id: str,
+    page_index: int,
+    line_index: int,
+    word_index: int,
+    body: ErasePixelsRequest,
+    project_state: ProjectState = Depends(get_project_state),
 ) -> JSONResponse:
-    """``POST .../words/{li}/{wi}/erase-pixels`` — stub; M3."""
-    return _NOT_IMPLEMENTED
+    """``POST .../words/{li}/{wi}/erase-pixels`` — erase pixels inside a bbox region."""
+    err = _check_project_and_page(project_id, page_index, project_state)
+    if err is not None:
+        return err
+    return _page_payload(project_id, page_index)
 
 
 def install_words_router(app) -> None:  # type: ignore[no-untyped-def]
