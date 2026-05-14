@@ -32,6 +32,7 @@ from ..core.jobs import JobEventBroker, JobRunner
 from ..core.notifications import NotificationQueue
 from ..core.ocr_config_state import OCRConfigCarrier
 from ..core.project_state import ProjectState
+from ..core.source_root_state import SourceRootCarrier
 from ..settings import Settings
 
 
@@ -176,6 +177,22 @@ def get_ocr_config_carrier(request: Request) -> OCRConfigCarrier:
     return carrier
 
 
+def get_source_root_carrier(request: Request) -> SourceRootCarrier:
+    """The mutable ``SourceRootCarrier`` — runtime-effective source projects root.
+
+    Spec authority: ``specs/09-persistence.md §7`` (config.yaml) +
+    ``specs/02-backend.md §5.2`` (``POST /api/projects/source-root``).
+
+    The carrier holds the effective ``source_projects_root`` as mutated
+    by ``POST /api/projects/source-root`` at runtime.  It is seeded at
+    boot from ``Settings.source_projects_root`` (CLI/env) > ``config.yaml``
+    > ``None`` (``bootstrap.build_app`` step 9).
+    """
+    carrier = _state_attr(request, "source_root_carrier")
+    assert isinstance(carrier, SourceRootCarrier)
+    return carrier
+
+
 __all__ = [
     "get_active_project",
     "get_active_project_carrier",
@@ -188,5 +205,6 @@ __all__ = [
     "get_ocr_engine",
     "get_project_state",
     "get_settings",
+    "get_source_root_carrier",
     "get_storage",
 ]

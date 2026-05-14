@@ -695,3 +695,99 @@ def test_post_discover_no_root_configured_returns_empty_list(
     assert resp.status_code == 200
     body = resp.json()
     assert body["projects"] == []
+
+
+# ──────────────────────────────────────────────────────────────────────
+# POST /api/projects/source-root
+# ──────────────────────────────────────────────────────────────────────
+# Spec §5.2 line 224 — persists to YAML config + re-scans.
+
+
+def test_post_source_root_sets_root_and_returns_list(tmp_path: Path) -> None:
+    """POST /source-root persists the root and returns project list."""
+    projects_root = tmp_path / "projects"
+    projects_root.mkdir()
+    (projects_root / "alpha").mkdir()
+    (projects_root / "beta").mkdir()
+
+    settings = _make_settings(tmp_path)  # no root initially
+    app = build_app(settings)
+    with TestClient(app) as c:
+        resp = c.post(
+            "/api/projects/source-root",
+            json={"path": str(projects_root)},
+        )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "projects_root" in body
+    assert "projects" in body
+    project_ids = {p["project_id"] for p in body["projects"]}
+    assert "alpha" in project_ids
+    assert "beta" in project_ids
+
+
+def test_post_source_root_persists_to_config_yaml(tmp_path: Path) -> None:
+    """POST /source-root writes config.yaml so the root survives restart."""
+    from pd_ocr_labeler_spa.core.persistence.config_yaml import load_config
+
+    projects_root = tmp_path / "projects"
+    projects_root.mkdir()
+
+    settings = _make_settings(tmp_path)
+    app = build_app(settings)
+    with TestClient(app) as c:
+        resp = c.post(
+            "/api/projects/source-root",
+            json={"path": str(projects_root)},
+        )
+    assert resp.status_code == 200
+    loaded = load_config(settings.config_root)
+    assert loaded.source_projects_root == projects_root
+
+
+def test_post_source_root_rejects_nonexistent_path(tmp_path: Path) -> None:
+    """POST /source-root with a non-existent path → 400."""
+    settings = _make_settings(tmp_path)
+    app = build_app(settings)
+    with TestClient(app) as c:
+        resp = c.post(
+            "/api/projects/source-root",
+            json={"path": str(tmp_path / "does_not_exist")},
+        )
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "invalid_path"
+
+
+def test_post_source_root_rejects_regular_file(tmp_path: Path) -> None:
+    """POST /source-root with a file path (not a dir) → 400."""
+    regular_file = tmp_path / "file.txt"
+    regular_file.write_text("not a dir")
+
+    settings = _make_settings(tmp_path)
+    app = build_app(settings)
+    with TestClient(app) as c:
+        resp = c.post(
+            "/api/projects/source-root",
+            json={"path": str(regular_file)},
+        )
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "invalid_path"
+
+
+def test_post_source_root_updates_get_projects_response(tmp_path: Path) -> None:
+    """After POST /source-root, GET /api/projects uses the new root."""
+    projects_root = tmp_path / "projects"
+    projects_root.mkdir()
+    (projects_root / "my_book").mkdir()
+
+    settings = _make_settings(tmp_path)  # no root initially
+    app = build_app(settings)
+    with TestClient(app) as c:
+        before = c.get("/api/projects").json()
+        assert before["projects"] == []
+
+        c.post("/api/projects/source-root", json={"path": str(projects_root)})
+
+        after = c.get("/api/projects").json()
+    project_ids = {p["project_id"] for p in after["projects"]}
+    assert "my_book" in project_ids

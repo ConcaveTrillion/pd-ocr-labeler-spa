@@ -272,10 +272,11 @@ def test_delete_project_returns_404_when_id_mismatches(
     assert resp.json()["error"] == "project_not_found"
 
 
-def test_post_source_root_returns_501(bare_client: TestClient) -> None:
-    """source-root endpoint exists (deferred to M2-proper config milestone)."""
-    resp = bare_client.post("/api/projects/source-root", json={"path": "/some/path"})
-    assert resp.status_code == 501
+def test_post_source_root_rejects_nonexistent_path(bare_client: TestClient) -> None:
+    """source-root endpoint validates the path and rejects non-existent dirs."""
+    resp = bare_client.post("/api/projects/source-root", json={"path": "/does_not_exist_ever"})
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "invalid_path"
 
 
 def test_legacy_project_path_redirects_301(bare_client: TestClient) -> None:

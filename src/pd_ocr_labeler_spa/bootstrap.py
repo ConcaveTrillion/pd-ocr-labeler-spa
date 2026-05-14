@@ -62,9 +62,11 @@ from .core.jobs import JobEventBroker, JobRunner
 from .core.logging_config import configure_logging
 from .core.notifications import NotificationQueue
 from .core.ocr_config_state import OCRConfigCarrier
+from .core.persistence.config_yaml import load_config
 from .core.persistence.ocr_config import load_ocr_config
 from .core.persistence.session_state import load_session_state
 from .core.project_state import ProjectState
+from .core.source_root_state import SourceRootCarrier
 from .core.startup_discovery import resolve_initial_project
 from .settings import Settings
 
@@ -264,6 +266,19 @@ def build_app(settings: Settings | None = None) -> FastAPI:
     app.state.storage = app_state.storage
     app.state.auth = app_state.auth
     app.state.ocr_engine = app_state.ocr_engine
+
+    # Spec §9 §7 + spec §5.2 ``POST /api/projects/source-root``: the
+    # effective projects root may be mutated at runtime by the source-root
+    # route.  ``Settings.source_projects_root`` is the CLI/env-var seed;
+    # ``config.yaml`` is the persistent fallback.  The carrier holds the
+    # runtime-effective value so list/discover routes always read from
+    # one place. Seed order: CLI/env (Settings) > config.yaml > None.
+    _initial_root = settings.source_projects_root
+    if _initial_root is None:
+        _cfg = load_config(settings.config_root)
+        _initial_root = _cfg.source_projects_root
+    source_root_carrier = SourceRootCarrier(initial=_initial_root)
+    app.state.source_root_carrier = source_root_carrier
 
     # Spec §13 + §00 "State model" lines 179-201: the active-project
     # pointer is mutable and lives separately from the frozen

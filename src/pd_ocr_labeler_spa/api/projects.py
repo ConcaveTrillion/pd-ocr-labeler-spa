@@ -67,6 +67,7 @@ from pydantic import BaseModel
 from ..core.active_project import ActiveProjectCarrier, InvalidProjectDirError
 from ..core.jobs import JobRunner
 from ..core.models import Project
+from ..core.persistence.config_yaml import AppConfig, save_config
 from ..core.persistence.ground_truth import load_ground_truth_from_directory
 from ..core.persistence.project_envelope import build_project_from_directory
 from ..core.persistence.session_state import (
@@ -76,12 +77,14 @@ from ..core.persistence.session_state import (
 )
 from ..core.project_enumeration import enumerate_projects
 from ..core.project_state import ProjectState
+from ..core.source_root_state import SourceRootCarrier
 from ..settings import Settings
 from .dependencies import (
     get_active_project_carrier,
     get_job_runner,
     get_project_state,
     get_settings,
+    get_source_root_carrier,
 )
 from .middleware.error_handler import ApiError
 from .pages import SaveProjectResponse
@@ -250,26 +253,22 @@ def _is_under_root(candidate: Path, root: Path) -> bool:
 
 
 # ──────────────────────────────────────────────────────────────────────
-# Routes
+# Private helpers
 # ──────────────────────────────────────────────────────────────────────
 
 
-@router.get("", response_model=ListProjectsResponse)
-def list_projects(
-    settings: Settings = Depends(get_settings),
-    carrier: ActiveProjectCarrier = Depends(get_active_project_carrier),
+def _build_list_response(
+    effective_root: Path | None,
+    carrier: ActiveProjectCarrier,
+    config_source: str = "default",
 ) -> ListProjectsResponse:
-    """``GET /api/projects`` — enumerate + describe selection state.
+    """Shared scan-and-build helper for GET /api/projects + POST /discover.
 
-    Spec §5.2 lines 208-211. Pure read; never mutates the carrier.
-
-    The "is the active project under the configured root?" check uses
-    ``_is_under_root`` so an off-root active project (e.g. one set via
-    ``--project`` CLI override pointing outside the configured
-    ``source_projects_root``) shows up as ``selected: None`` — the SPA
-    dropdown can't mark an entry it doesn't display.
+    Separated so both routes and ``POST /source-root`` can return a
+    consistent ``ListProjectsResponse`` without duplicating the
+    enumeration + selection logic.
     """
-    enumerated = enumerate_projects(settings.source_projects_root)
+    enumerated = enumerate_projects(effective_root)
     projects = [
         ProjectKey(
             project_id=p.project_id,
@@ -281,40 +280,52 @@ def list_projects(
 
     selected: str | None = None
     snap = carrier.snapshot()
-    if (
-        snap is not None
-        and settings.source_projects_root is not None
-        and _is_under_root(snap.path, settings.source_projects_root)
-    ):
-        # Match by resolved path so a symlinked project entry still
-        # marks correctly (slice-4-starter resolves project_root in
-        # the EnumeratedProject; we resolve snap.path here too to be
-        # symmetric).
+    if snap is not None and effective_root is not None and _is_under_root(snap.path, effective_root):
         snap_resolved = snap.path.resolve()
         for p in enumerated:
             if p.project_root == snap_resolved:
                 selected = p.project_id
                 break
 
-    # Sentinel empty path when no root is configured — keeps the
-    # response shape stable (spec §2 line 209 declares the field
-    # non-Optional).
-    projects_root = (
-        settings.source_projects_root.resolve() if settings.source_projects_root is not None else Path("")
-    )
+    projects_root = effective_root.resolve() if effective_root is not None else Path("")
 
     return ListProjectsResponse(
         projects=projects,
         selected=selected,
         projects_root=projects_root,
-        config_source="default",
+        config_source=config_source,  # type: ignore[arg-type]
     )
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Routes
+# ──────────────────────────────────────────────────────────────────────
+
+
+@router.get("", response_model=ListProjectsResponse)
+def list_projects(
+    settings: Settings = Depends(get_settings),
+    carrier: ActiveProjectCarrier = Depends(get_active_project_carrier),
+    src_carrier: SourceRootCarrier = Depends(get_source_root_carrier),
+) -> ListProjectsResponse:
+    """``GET /api/projects`` — enumerate + describe selection state.
+
+    Spec §5.2 lines 208-211. Pure read; never mutates the carrier.
+
+    The effective root comes from ``SourceRootCarrier`` (which is seeded
+    at boot from CLI/env ``Settings.source_projects_root`` and can be
+    updated at runtime by ``POST /api/projects/source-root``). This
+    ensures a call to ``POST /source-root`` is immediately visible in
+    the next ``GET /api/projects`` within the same process.
+    """
+    return _build_list_response(src_carrier.get(), carrier)
 
 
 @router.post("/discover", response_model=ListProjectsResponse)
 def discover_projects(
     settings: Settings = Depends(get_settings),
     carrier: ActiveProjectCarrier = Depends(get_active_project_carrier),
+    src_carrier: SourceRootCarrier = Depends(get_source_root_carrier),
 ) -> ListProjectsResponse:
     """``POST /api/projects/discover`` — force re-scan of the projects root.
 
@@ -326,39 +337,7 @@ def discover_projects(
     Returns the same ``ListProjectsResponse`` shape as the GET endpoint.
     No body is required or accepted.
     """
-    enumerated = enumerate_projects(settings.source_projects_root)
-    projects = [
-        ProjectKey(
-            project_id=p.project_id,
-            project_root=p.project_root,
-            label=p.label,
-        )
-        for p in enumerated
-    ]
-
-    selected: str | None = None
-    snap = carrier.snapshot()
-    if (
-        snap is not None
-        and settings.source_projects_root is not None
-        and _is_under_root(snap.path, settings.source_projects_root)
-    ):
-        snap_resolved = snap.path.resolve()
-        for p in enumerated:
-            if p.project_root == snap_resolved:
-                selected = p.project_id
-                break
-
-    projects_root = (
-        settings.source_projects_root.resolve() if settings.source_projects_root is not None else Path("")
-    )
-
-    return ListProjectsResponse(
-        projects=projects,
-        selected=selected,
-        projects_root=projects_root,
-        config_source="default",
-    )
+    return _build_list_response(src_carrier.get(), carrier)
 
 
 @router.post("/load")
@@ -368,6 +347,7 @@ def load_project(
     settings: Settings = Depends(get_settings),
     carrier: ActiveProjectCarrier = Depends(get_active_project_carrier),
     project_state: ProjectState = Depends(get_project_state),
+    src_carrier: SourceRootCarrier = Depends(get_source_root_carrier),
 ) -> JSONResponse:
     """``POST /api/projects/load`` — validate path, swap carrier.
 
@@ -413,9 +393,11 @@ def load_project(
     M3 will land both.
     """
     target = body.project_root
+    # Use the runtime-effective root (may have been updated by POST /source-root).
+    effective_root = src_carrier.get()
 
     # Step 1: source root configured?
-    if settings.source_projects_root is None:
+    if effective_root is None:
         return _api_error(
             400,
             "project_outside_source_root",
@@ -426,7 +408,7 @@ def load_project(
     # is_dir() because the test fixture for the 'outside-root' case
     # uses a real on-disk dir; we want the under-root tag, not the
     # invalid_project_dir tag.
-    if not _is_under_root(target, settings.source_projects_root):
+    if not _is_under_root(target, effective_root):
         # Could be (a) genuinely outside, (b) ``..`` traversal that
         # resolves outside, or (c) the path doesn't exist so resolve()
         # produced something not under root. Distinguish (c) so the
@@ -572,14 +554,65 @@ def get_project_by_id(
 @router.post("/source-root", response_model=SetSourceProjectsRootResponse)
 def set_source_root(
     body: SetSourceProjectsRootRequest,
+    settings: Settings = Depends(get_settings),
+    carrier: ActiveProjectCarrier = Depends(get_active_project_carrier),
+    src_carrier: SourceRootCarrier = Depends(get_source_root_carrier),
 ) -> JSONResponse:
-    """``POST /api/projects/source-root`` — stub; M2-proper config milestone."""
+    """``POST /api/projects/source-root`` — persist root to config.yaml + re-scan.
+
+    Spec §5.2 line 224 — "Body: ``SetSourceProjectsRootRequest``.
+    Persists to YAML config + re-scans."
+
+    Validation:
+    - ``body.path`` must resolve to an existing directory.  A missing
+      path or a regular-file path both return ``400 invalid_path``.
+
+    On success:
+    1. Writes the new root to ``<config_root>/config.yaml`` atomically.
+    2. Updates the in-process ``SourceRootCarrier`` so subsequent
+       ``GET /api/projects`` and ``POST /discover`` calls see the new
+       root immediately (without a server restart).
+    3. Returns ``SetSourceProjectsRootResponse{projects_root, projects}``
+       where ``projects`` is the freshly-scanned list under the new root.
+
+    Config-write failure (``OSError``) is surfaced as a 500 — a write
+    failure means the change would be lost on restart, which is more
+    serious than a session-state save failure and warrants surfacing.
+    """
+    new_root = body.path
+    try:
+        resolved = new_root.resolve()
+    except (OSError, RuntimeError):
+        resolved = None
+
+    if resolved is None or not resolved.exists() or not resolved.is_dir():
+        return _api_error(
+            400,
+            "invalid_path",
+            f"path is not an existing directory: {new_root}",
+        )
+
+    # Persist to config.yaml (may raise OSError on write failure).
+    save_config(settings.config_root, AppConfig(source_projects_root=resolved))
+
+    # Update in-process carrier so next GET/discover sees the new root.
+    src_carrier.set(resolved)
+
+    # Re-scan under the new root and return the list.
+    response = _build_list_response(resolved, carrier, config_source="yaml")
     return JSONResponse(
-        status_code=501,
-        content=ApiError(
-            error="not_implemented",
-            message="POST /api/projects/source-root requires M2-proper YAML config plumbing",
-        ).model_dump(),
+        status_code=200,
+        content={
+            "projects_root": str(response.projects_root),
+            "projects": [
+                {
+                    "project_id": p.project_id,
+                    "project_root": str(p.project_root),
+                    "label": p.label,
+                }
+                for p in response.projects
+            ],
+        },
     )
 
 
