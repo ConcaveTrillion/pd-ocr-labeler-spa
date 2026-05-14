@@ -1,3 +1,17 @@
+AI ?=
+LOG := .ci-ai.log
+
+ifdef AI
+_goals := $(or $(MAKECMDGOALS),ci)
+.PHONY: $(_goals)
+$(_goals):
+	@rm -f $(LOG)
+	@$(MAKE) --no-print-directory AI= $@ > $(LOG) 2>&1 \
+		&& echo "✅ $@ passed (log: $(LOG))" \
+		|| (echo "❌ $@ failed:"; uv run scripts/ai-filter-log.py $(LOG); echo "(full log: $(LOG))"; exit 1)
+
+else
+
 .PHONY: help setup refresh-version install uninstall reset remove-venv lint fast-check format \
         pre-commit-check test e2e build clean ci dev run \
         frontend-install frontend-build frontend-dev frontend-test \
@@ -334,3 +348,5 @@ release-major: ## Tag + push a major release (vX+1.0.0)
 
 _do-release:
 	BUMP=$(or $(BUMP),minor) ./scripts/do-release.sh
+
+endif

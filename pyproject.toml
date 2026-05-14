@@ -98,6 +98,8 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # Spec-aligned coordinate names (L/R/T/B) trigger E741 in tests.
 "tests/*" = ["E741"]
+# CLI scripts and fixture scripts — print() is the output mechanism
+"scripts/*.py" = ["T201"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
