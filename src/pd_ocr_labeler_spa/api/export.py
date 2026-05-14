@@ -22,7 +22,7 @@ import enum
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from ..core.jobs import JobRunner
 from .dependencies import get_job_runner
@@ -40,6 +40,9 @@ class ExportScope(str, enum.Enum):
 class ExportRequest(BaseModel):
     """Body for ``POST /api/projects/{id}/export`` — spec §2 lines 414-420.
 
+    ``page_index``: required when ``scope == "current"``; ignored for
+    ``all_validated``.  Spec §2 line 419.
+
     ``normalize_recognition_labels``: when ``True``, recognition ``labels.json``
     strings are normalised (long-s → ASCII, ligatures → ASCII) before write.
     Image bytes are unchanged.  Requires ``pd_book_tools.text.normalize``;
@@ -47,12 +50,20 @@ class ExportRequest(BaseModel):
     """
 
     scope: ExportScope
+    page_index: int | None = None
     style_filters: list[str] = []
     component_filter: str | None = None
     include_classification: bool = False
     detection_only: bool = False
     recognition_only: bool = False
     normalize_recognition_labels: bool = False
+
+    @model_validator(mode="after")
+    def _page_index_required_for_current(self) -> ExportRequest:
+        """``page_index`` is mandatory when scope is ``current``."""
+        if self.scope == ExportScope.CURRENT and self.page_index is None:
+            raise ValueError("page_index is required when scope is 'current'")
+        return self
 
 
 class ExportResponse(BaseModel):
@@ -81,6 +92,7 @@ def start_export(
         project_id=project_id,
         payload={
             "scope": body.scope.value,
+            "page_index": body.page_index,
             "style_filters": body.style_filters,
             "component_filter": body.component_filter,
             "include_classification": body.include_classification,
@@ -92,6 +104,24 @@ def start_export(
         status_code=202,
         content=ExportResponse(job_id=job_id).model_dump(),
     )
+
+
+@router.get("/{project_id}/export/styles")
+def list_export_styles(project_id: str) -> JSONResponse:
+    """``GET /api/projects/{id}/export/styles`` — distinct style labels.
+
+    Spec: ``docs/specs/2026-05-12-export-design.md §Decision``
+    ("Switching to 'All Validated Pages' fires GET .../export/styles").
+
+    Returns a JSON array of distinct style label strings present in
+    saved validated pages for this project.  Until the export handler
+    writes manifests (and until the labeled-lane reader is wired), this
+    returns an empty list — callers should render the "All (no style
+    filter)" option as the sole available choice.
+
+    Issue #225 acceptance: route registered, returns 200 JSON array.
+    """
+    return JSONResponse(status_code=200, content=[])
 
 
 @router.get("/{project_id}/exports")
@@ -115,5 +145,6 @@ __all__ = [
     "ExportResponse",
     "ExportScope",
     "install_export_router",
+    "list_export_styles",
     "router",
 ]

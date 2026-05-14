@@ -88,7 +88,7 @@ def test_export_returns_202(client: TestClient) -> None:
     """``POST /api/projects/test-project/export`` returns 202 Accepted."""
     resp = client.post(
         "/api/projects/test-project/export",
-        json={"scope": "current"},
+        json={"scope": "current", "page_index": 0},
     )
     assert resp.status_code == 202, resp.text
 
@@ -110,7 +110,7 @@ def test_export_job_is_visible_in_job_list(client: TestClient) -> None:
     """A submitted export job appears in ``GET /api/jobs``."""
     resp = client.post(
         "/api/projects/test-project/export",
-        json={"scope": "current"},
+        json={"scope": "current", "page_index": 0},
     )
     job_id = resp.json()["job_id"]
     jobs = client.get("/api/jobs").json()
@@ -121,7 +121,7 @@ def test_export_job_has_correct_type(client: TestClient) -> None:
     """The submitted job has ``job_type == "export"``."""
     resp = client.post(
         "/api/projects/test-project/export",
-        json={"scope": "current"},
+        json={"scope": "current", "page_index": 0},
     )
     job_id = resp.json()["job_id"]
     job = client.get(f"/api/jobs/{job_id}").json()
@@ -132,7 +132,7 @@ def test_export_job_carries_project_id(client: TestClient) -> None:
     """The submitted job has ``project_id`` matching the URL parameter."""
     resp = client.post(
         "/api/projects/my-project/export",
-        json={"scope": "current"},
+        json={"scope": "current", "page_index": 0},
     )
     job_id = resp.json()["job_id"]
     job = client.get(f"/api/jobs/{job_id}").json()
@@ -184,7 +184,7 @@ def test_export_sse_cycle_completes(client: TestClient) -> None:
     # Submit the export job.
     resp = client.post(
         "/api/projects/test-project/export",
-        json={"scope": "current"},
+        json={"scope": "current", "page_index": 0},
     )
     assert resp.status_code == 202
     job_id = resp.json()["job_id"]
@@ -213,7 +213,7 @@ def test_export_sse_snapshot_event_has_correct_job_id(client: TestClient) -> Non
     """The first SSE frame (snapshot) contains the correct job state."""
     resp = client.post(
         "/api/projects/test-project/export",
-        json={"scope": "current"},
+        json={"scope": "current", "page_index": 0},
     )
     job_id = resp.json()["job_id"]
 
@@ -240,3 +240,62 @@ def test_exports_list_returns_empty_list(client: TestClient) -> None:
     resp = client.get("/api/projects/test-project/exports")
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+# ── page_index validation (#225) ──────────────────────────────────────────────
+
+
+def test_export_current_without_page_index_returns_400(client: TestClient) -> None:
+    """``scope="current"`` without ``page_index`` returns 400 validation error.
+
+    Issue #225 acceptance: "page_index required when scope=='current'".
+    Our error_handler maps RequestValidationError → 400 validation_error.
+    """
+    resp = client.post(
+        "/api/projects/test-project/export",
+        json={"scope": "current"},
+    )
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body.get("error") == "validation_error"
+
+
+def test_export_current_with_page_index_accepted(client: TestClient) -> None:
+    """``scope="current"`` with ``page_index`` returns 202."""
+    resp = client.post(
+        "/api/projects/test-project/export",
+        json={"scope": "current", "page_index": 0},
+    )
+    assert resp.status_code == 202
+
+
+def test_export_all_validated_without_page_index_accepted(client: TestClient) -> None:
+    """``scope="all_validated"`` without ``page_index`` returns 202 (page_index not required)."""
+    resp = client.post(
+        "/api/projects/test-project/export",
+        json={"scope": "all_validated"},
+    )
+    assert resp.status_code == 202
+
+
+# ── GET /export/styles (#225) ─────────────────────────────────────────────────
+
+
+def test_export_styles_route_in_openapi(client: TestClient) -> None:
+    """``GET /api/projects/{pid}/export/styles`` is registered in the app."""
+    spec = client.get("/openapi.json").json()
+    path = "/api/projects/{project_id}/export/styles"
+    assert path in spec["paths"]
+    assert "get" in spec["paths"][path]
+
+
+def test_export_styles_returns_200(client: TestClient) -> None:
+    """``GET /api/projects/{pid}/export/styles`` returns 200."""
+    resp = client.get("/api/projects/test-project/export/styles")
+    assert resp.status_code == 200
+
+
+def test_export_styles_returns_list(client: TestClient) -> None:
+    """``GET /api/projects/{pid}/export/styles`` returns a JSON array."""
+    resp = client.get("/api/projects/test-project/export/styles")
+    assert isinstance(resp.json(), list)

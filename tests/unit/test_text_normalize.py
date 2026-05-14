@@ -123,7 +123,7 @@ def test_export_request_has_normalize_labels_field() -> None:
     """ExportRequest must have normalize_recognition_labels: bool = False."""
     from pd_ocr_labeler_spa.api.export import ExportRequest, ExportScope
 
-    req = ExportRequest(scope=ExportScope.CURRENT)
+    req = ExportRequest(scope=ExportScope.CURRENT, page_index=0)
     assert req.normalize_recognition_labels is False
 
 
@@ -131,5 +131,5 @@ def test_export_request_normalize_labels_can_be_true() -> None:
     """ExportRequest.normalize_recognition_labels can be set to True."""
     from pd_ocr_labeler_spa.api.export import ExportRequest, ExportScope
 
-    req = ExportRequest(scope=ExportScope.CURRENT, normalize_recognition_labels=True)
+    req = ExportRequest(scope=ExportScope.CURRENT, page_index=0, normalize_recognition_labels=True)
     assert req.normalize_recognition_labels is True

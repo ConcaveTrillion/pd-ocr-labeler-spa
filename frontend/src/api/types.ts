@@ -449,6 +449,37 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/export/styles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Export Styles
+         * @description ``GET /api/projects/{id}/export/styles`` — distinct style labels.
+         *
+         *     Spec: ``docs/specs/2026-05-12-export-design.md §Decision``
+         *     ("Switching to 'All Validated Pages' fires GET .../export/styles").
+         *
+         *     Returns a JSON array of distinct style label strings present in
+         *     saved validated pages for this project.  Until the export handler
+         *     writes manifests (and until the labeled-lane reader is wired), this
+         *     returns an empty list — callers should render the "All (no style
+         *     filter)" option as the sole available choice.
+         *
+         *     Issue #225 acceptance: route registered, returns 200 JSON array.
+         */
+        get: operations["list_export_styles_api_projects__project_id__export_styles_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/exports": {
         parameters: {
             query?: never;
@@ -1036,6 +1067,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/normalize/available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Normalize Available
+         * @description ``GET /api/normalize/available`` — probe for normalize module.
+         *
+         *     Returns ``{"available": true}`` when the installed ``pd_book_tools``
+         *     exposes ``pd_book_tools.text.normalize.normalize_string``.
+         *     Returns ``{"available": false}`` when the module is absent (older pin).
+         *
+         *     Used by ``<OCRConfigModal />`` to decide whether to render the
+         *     text-normalization toggles as enabled or greyed-out with a tooltip.
+         *     Issue #261 acceptance: route registered, returns 200 JSON payload.
+         */
+        get: operations["normalize_available_api_normalize_available_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1184,6 +1243,9 @@ export interface components {
          * ExportRequest
          * @description Body for ``POST /api/projects/{id}/export`` — spec §2 lines 414-420.
          *
+         *     ``page_index``: required when ``scope == "current"``; ignored for
+         *     ``all_validated``.  Spec §2 line 419.
+         *
          *     ``normalize_recognition_labels``: when ``True``, recognition ``labels.json``
          *     strings are normalised (long-s → ASCII, ligatures → ASCII) before write.
          *     Image bytes are unchanged.  Requires ``pd_book_tools.text.normalize``;
@@ -1191,6 +1253,8 @@ export interface components {
          */
         ExportRequest: {
             scope: components["schemas"]["ExportScope"];
+            /** Page Index */
+            page_index?: number | null;
             /**
              * Style Filters
              * @default []
@@ -2531,6 +2595,37 @@ export interface operations {
             };
         };
     };
+    list_export_styles_api_projects__project_id__export_styles_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_exports_api_projects__project_id__exports_get: {
         parameters: {
             query?: never;
@@ -3406,6 +3501,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionStateResponse"];
+                };
+            };
+        };
+    };
+    normalize_available_api_normalize_available_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
