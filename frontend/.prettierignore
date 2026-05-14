@@ -1,0 +1,14 @@
+# Generated build output
+dist/
+
+# Generated OpenAPI schema (exported from FastAPI)
+openapi.json
+
+# Generated TypeScript types from openapi.json
+src/api/types.ts
+
+# Dependencies
+node_modules/
+
+# Lock file (auto-managed, not hand-edited)
+package-lock.json
