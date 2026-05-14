@@ -130,10 +130,10 @@ describe("LineCard", () => {
   it("shows Validate button and flips label to Unvalidate when is_fully_validated=true", () => {
     const line = makeLineMatch({ line_index: 0, is_fully_validated: false });
     const { rerender } = render(<LineCard line={line} />);
-    expect(screen.getByTestId("line-validate-btn")).toHaveTextContent("Validate");
+    expect(screen.getByTestId("line-validate-button-0")).toHaveTextContent("Validate");
 
     rerender(<LineCard line={{ ...line, is_fully_validated: true }} />);
-    expect(screen.getByTestId("line-validate-btn")).toHaveTextContent("Unvalidate");
+    expect(screen.getByTestId("line-validate-button-0")).toHaveTextContent("Unvalidate");
   });
 
   it("renders data-testid='line-card-{line_index}'", () => {

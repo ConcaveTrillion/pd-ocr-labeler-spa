@@ -1,10 +1,10 @@
 // WordCell.test.tsx — unit tests for the per-word grid cell with GT input.
 // Spec: docs/specs/2026-05-12-word-matches-design.md §WordCell grid
-// Issue #203
+// Issue #203, #241
 //
 // Acceptance:
 //   - Renders with data-testid="word-cell-{word_id}"
-//   - GT input has data-testid="gt-input-{word_id}"
+//   - GT input has data-testid="gt-text-input-{l}-{w}" (spec canonical)
 //   - Blur-commit: fires onCommitGt with new value when changed
 //   - Blur with unchanged value: does NOT fire onCommitGt
 //   - word_id used as React key / testid (not line/word index)
@@ -42,24 +42,35 @@ describe("WordCell", () => {
     expect(screen.getByTestId("word-cell-w-abc")).toBeInTheDocument();
   });
 
-  it("GT input has data-testid='gt-input-{word_id}'", () => {
-    const word = makeWordMatch({ word_id: "w-abc" });
+  it("GT input has data-testid='gt-text-input-{l}-{w}' (spec canonical)", () => {
+    // line_index=0, word_index=0 → gt-text-input-0-0
+    const word = makeWordMatch({ word_id: "w-abc", line_index: 0, word_index: 0 });
     render(<WordCell word={word} />);
-    expect(screen.getByTestId("gt-input-w-abc")).toBeInTheDocument();
+    expect(screen.getByTestId("gt-text-input-0-0")).toBeInTheDocument();
   });
 
   it("GT input shows ground_truth_text", () => {
-    const word = makeWordMatch({ word_id: "w-001", ground_truth_text: "world" });
+    const word = makeWordMatch({
+      word_id: "w-001",
+      line_index: 0,
+      word_index: 0,
+      ground_truth_text: "world",
+    });
     render(<WordCell word={word} />);
-    const input = screen.getByTestId("gt-input-w-001") as HTMLInputElement;
+    const input = screen.getByTestId("gt-text-input-0-0") as HTMLInputElement;
     expect(input.value).toBe("world");
   });
 
   it("fires onCommitGt with new value on blur when value changed", () => {
     const onCommitGt = vi.fn();
-    const word = makeWordMatch({ word_id: "w-001", ground_truth_text: "hello" });
+    const word = makeWordMatch({
+      word_id: "w-001",
+      line_index: 0,
+      word_index: 0,
+      ground_truth_text: "hello",
+    });
     render(<WordCell word={word} onCommitGt={onCommitGt} />);
-    const input = screen.getByTestId("gt-input-w-001") as HTMLInputElement;
+    const input = screen.getByTestId("gt-text-input-0-0") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "world" } });
     fireEvent.blur(input);
     expect(onCommitGt).toHaveBeenCalledOnce();
@@ -68,9 +79,14 @@ describe("WordCell", () => {
 
   it("does NOT fire onCommitGt when value is unchanged on blur", () => {
     const onCommitGt = vi.fn();
-    const word = makeWordMatch({ word_id: "w-001", ground_truth_text: "hello" });
+    const word = makeWordMatch({
+      word_id: "w-001",
+      line_index: 0,
+      word_index: 0,
+      ground_truth_text: "hello",
+    });
     render(<WordCell word={word} onCommitGt={onCommitGt} />);
-    const input = screen.getByTestId("gt-input-w-001");
+    const input = screen.getByTestId("gt-text-input-0-0");
     fireEvent.blur(input);
     expect(onCommitGt).not.toHaveBeenCalled();
   });

@@ -209,6 +209,45 @@ export function OCRConfigModal({
         </div>
 
         {/* Footer */}
+        {/* Stub elements for driver-contract §2.3 — model selection not yet implemented */}
+        <div style={{ display: "none" }}>
+          <select
+            data-testid="ocr-detection-model-select"
+            data-testid-stub="true"
+            aria-label="Detection model (stub)"
+          />
+          <select
+            data-testid="ocr-recognition-model-select"
+            data-testid-stub="true"
+            aria-label="Recognition model (stub)"
+          />
+          <input
+            data-testid="ocr-hf-revision-input"
+            data-testid-stub="true"
+            aria-label="HF revision (stub)"
+          />
+          <button
+            data-testid="ocr-rescan-models-button"
+            data-testid-stub="true"
+            aria-label="Rescan models (stub)"
+          >
+            Rescan
+          </button>
+          <button
+            data-testid="ocr-config-cancel-button"
+            data-testid-stub="true"
+            aria-label="Cancel (stub)"
+          >
+            Cancel
+          </button>
+          <button
+            data-testid="ocr-config-apply-button"
+            data-testid-stub="true"
+            aria-label="Apply (stub)"
+          >
+            Apply
+          </button>
+        </div>
         <div className="px-4 py-3 border-t border-gray-200 flex justify-end">
           <button
             type="button"

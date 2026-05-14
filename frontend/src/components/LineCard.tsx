@@ -13,10 +13,13 @@
 // Count chips render only for nonzero counts.
 // Validate / Unvalidate button flips based on is_fully_validated.
 //
-// data-testids:
-//   line-card-{line_index}
-//   line-card-{line_index}-header
-//   line-validate-btn
+// data-testids (driver-contract §2.8):
+//   line-card-{n}              — full card (spec canonical)
+//   line-card-{n}-header       — header row
+//   line-gt-to-ocr-button-{n}  — GT→OCR button (spec canonical)
+//   line-ocr-to-gt-button-{n}  — OCR→GT button (spec canonical)
+//   line-validate-button-{n}   — Validate/Unvalidate (spec canonical)
+//   line-delete-button-{n}     — Delete line (spec canonical)
 //   count-chip-exact / count-chip-fuzzy / count-chip-mismatch /
 //   count-chip-unmatched_gt / count-chip-unmatched_ocr
 
@@ -132,7 +135,7 @@ export function LineCard({
           {!isExact && (
             <>
               <button
-                data-testid={`line-card-${line.line_index}-gt-to-ocr`}
+                data-testid={`line-gt-to-ocr-button-${line.line_index}`}
                 className="px-1.5 py-0.5 text-xs border border-gray-300 rounded bg-white hover:bg-gray-50"
                 onClick={() => onCopyGtToOcr?.(line.line_index)}
                 title="Copy GT to OCR"
@@ -140,7 +143,7 @@ export function LineCard({
                 GT→OCR
               </button>
               <button
-                data-testid={`line-card-${line.line_index}-ocr-to-gt`}
+                data-testid={`line-ocr-to-gt-button-${line.line_index}`}
                 className="px-1.5 py-0.5 text-xs border border-gray-300 rounded bg-white hover:bg-gray-50"
                 onClick={() => onCopyOcrToGt?.(line.line_index)}
                 title="Copy OCR to GT"
@@ -151,7 +154,7 @@ export function LineCard({
           )}
 
           <button
-            data-testid="line-validate-btn"
+            data-testid={`line-validate-button-${line.line_index}`}
             className="px-1.5 py-0.5 text-xs border border-gray-300 rounded bg-white hover:bg-gray-50"
             onClick={() => onValidate?.(line.line_index, !line.is_fully_validated)}
           >
@@ -159,7 +162,7 @@ export function LineCard({
           </button>
 
           <button
-            data-testid={`line-card-${line.line_index}-delete`}
+            data-testid={`line-delete-button-${line.line_index}`}
             className="px-1.5 py-0.5 text-xs border border-red-300 text-red-600 rounded bg-white hover:bg-red-50"
             onClick={() => onDelete?.(line.line_index)}
             title="Delete line"

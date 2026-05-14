@@ -13,9 +13,14 @@
 // Tab/Shift-Tab navigation between GT inputs is handled at the parent level
 // via natural DOM tab order (inputs within a line card render in DOM order).
 //
-// data-testids:
-//   word-cell-{word_id}   — outer container
-//   gt-input-{word_id}    — the GT text input
+// data-testids (driver-contract §2.8):
+//   word-cell-{word_id}         — outer container
+//   gt-text-input-{l}-{w}       — GT text input (spec canonical)
+//   ocr-text-label-{l}-{w}      — OCR text label (spec canonical)
+//   word-status-icon-{l}-{w}    — status icon (spec canonical)
+//   word-tag-chip-{l}-{w}-{key} — style/component chip (CSS class: word-tag-chip)
+// Legacy (kept for backward compat):
+//   gt-input-{word_id}          — GT text input (legacy form)
 
 import { useState, useEffect, useRef } from "react";
 import type { components } from "../api/types";
@@ -82,30 +87,49 @@ export function WordCell({ word, onCommitGt }: WordCellProps) {
 
   const statusColor = STATUS_COLOR[word.match_status] ?? "text-gray-500";
   const statusIcon = STATUS_ICON[word.match_status] ?? "?";
+  const l = word.line_index;
+  const w = word.word_index ?? 0;
 
   return (
     <div
       data-testid={`word-cell-${wordId}`}
+      data-testid-alias={`word-image-cell-${l}-${w}`}
       className="border border-gray-100 rounded p-1 flex flex-col gap-0.5 min-w-16 max-w-32"
     >
-      {/* Row 1: status icon + validated indicator */}
+      {/* Row 1: status icon + validated indicator + edit button stub */}
       <div className="flex items-center justify-between">
         <span
+          data-testid={`word-status-icon-${l}-${w}`}
           className={`text-xs font-bold ${statusColor}`}
           aria-label={`${word.match_status} match`}
           title={word.match_status}
         >
           {statusIcon}
         </span>
-        {word.is_validated && (
-          <span className="text-xs text-green-600" title="Validated">
-            ✔
-          </span>
-        )}
+        <div className="flex items-center gap-0.5">
+          {word.is_validated && (
+            <span className="text-xs text-green-600" title="Validated">
+              ✔
+            </span>
+          )}
+          {/* Stub edit button — visible testid; onclick wired by parent in #213 */}
+          <button
+            data-testid={`edit-word-button-${l}-${w}`}
+            aria-label={`Edit word ${w} in line ${l}`}
+            className="text-[10px] text-gray-400 hover:text-gray-700 px-0.5 leading-none"
+            title="Edit word"
+          >
+            ✎
+          </button>
+        </div>
       </div>
 
       {/* Row 3: OCR text */}
-      <div className="text-xs font-mono text-gray-700 truncate" title={word.ocr_text}>
+      <div
+        data-testid={`ocr-text-label-${l}-${w}`}
+        className="text-xs font-mono text-gray-700 truncate"
+        title={word.ocr_text}
+      >
         {word.ocr_text || <span className="text-gray-300 italic">∅</span>}
       </div>
 
@@ -115,7 +139,8 @@ export function WordCell({ word, onCommitGt }: WordCellProps) {
           {word.text_style_labels?.map((label) => (
             <span
               key={`style-${label}`}
-              className="px-1 py-0 text-[10px] rounded"
+              data-testid={`word-tag-chip-${l}-${w}-${label}`}
+              className="word-tag-chip px-1 py-0 text-[10px] rounded"
               style={{ backgroundColor: "#e7f0ff" }}
               title={`Style: ${label}`}
             >
@@ -125,7 +150,8 @@ export function WordCell({ word, onCommitGt }: WordCellProps) {
           {word.word_components?.map((comp) => (
             <span
               key={`comp-${comp}`}
-              className="px-1 py-0 text-[10px] rounded"
+              data-testid={`word-tag-chip-${l}-${w}-${comp}`}
+              className="word-tag-chip px-1 py-0 text-[10px] rounded"
               style={{ backgroundColor: "#e7f8ee" }}
               title={`Component: ${comp}`}
             >
@@ -138,7 +164,7 @@ export function WordCell({ word, onCommitGt }: WordCellProps) {
       {/* Row 4: GT input */}
       <input
         ref={inputRef}
-        data-testid={`gt-input-${wordId}`}
+        data-testid={`gt-text-input-${l}-${w}`}
         type="text"
         value={gtValue}
         onChange={(e) => setGtValue(e.target.value)}

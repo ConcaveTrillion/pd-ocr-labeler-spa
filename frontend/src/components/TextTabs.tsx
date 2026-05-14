@@ -121,7 +121,10 @@ export function TextTabs({
         className="flex flex-col flex-1 overflow-hidden"
       >
         {/* Filter segmented control — only visible in the matches tab */}
-        <div className="flex gap-1 p-2 bg-gray-50 border-b border-gray-200 shrink-0">
+        <div
+          data-testid="match-filter-toggle"
+          className="flex gap-1 p-2 bg-gray-50 border-b border-gray-200 shrink-0"
+        >
           {FILTER_OPTIONS.map((opt) => (
             <button
               key={opt.value}
