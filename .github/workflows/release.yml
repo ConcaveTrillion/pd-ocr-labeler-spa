@@ -1,135 +1,190 @@
 name: release
 
-# Triggered by an annotated tag push (`v*`). The local pre-flight
-# (`scripts/do-release.sh` → `make ci`) is the primary safety net;
-# this workflow is the build + publish step.
+# Unified workflow:
+#   - push/PR to main  → 6 required jobs (lint, test-backend, test-frontend,
+#                        test-e2e, build-wheel, openapi-drift)
+#   - tag push (v*)    → additional build-container + release jobs
 #
-# build-wheel uploads the wheel + sdist as assets on the GitHub Release
-# for the pushed tag; install.sh downloads that asset directly (no git+
-# install, so end users don't need Node/npm). There is no PyPI publish —
-# see Q-A10 in OPEN_QUESTIONS.md.
+# UV_PYTHON is pinned to 3.13 throughout. uv would otherwise resolve 3.14
+# which segfaults on TestClient / anyio + sqlite3 teardown. Drop the pin
+# once anyio + sqlite3 are 3.14-clean.
 
 on:
   push:
-    # B-29: PEP-440-shaped release tags only — `vMAJOR.MINOR.PATCH`
-    # plus the optional `-rc1` / `-beta1` / `-pre` suffix form. This
-    # rejects strays like `vfeature-test`, `vbeta` (no version), or
-    # `v0.0` (the deprecated retag-target removed in B-09) so they
-    # don't trigger a junk Release that `install.sh`'s
-    # `/releases/latest` would otherwise surface to end users.
+    branches: [main]
+    # PEP-440-shaped release tags: vMAJOR.MINOR.PATCH plus optional suffix.
+    # Rejects strays like `vfeature-test` so they don't trigger a junk Release
+    # that `install.sh`'s `/releases/latest` would surface to end users.
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
       - "v[0-9]+.[0-9]+.[0-9]+-*"
+  pull_request:
+    branches: [main]
 
-# B-30: serialize per-tag release runs so two near-simultaneous
-# `git push --tags` operations (or a "Re-run all jobs" mid-publish)
-# don't double-publish the same Release assets and surface as
-# `409 Conflict` from softprops/action-gh-release. `cancel-in-progress:
-# false` because release jobs are not safely cancellable mid-upload —
-# we'd rather queue the second run than abort the first.
+# Serialize per-tag release runs so two near-simultaneous tag pushes (or a
+# "Re-run all jobs" mid-publish) don't double-publish and surface 409 errors
+# from softprops/action-gh-release. cancel-in-progress: false because release
+# jobs are not safely cancellable mid-upload.
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
+# ---------------------------------------------------------------------------
+# Shared env for every job
+# ---------------------------------------------------------------------------
+env:
+  UV_PYTHON: "3.13"
+  # Suppress GPU enumeration on CPU-only CI runners.  pd-book-tools depends on
+  # cupy-cuda12x; without a GPU the CUDA driver teardown segfaults at exit.
+  CUDA_VISIBLE_DEVICES: ""
+
+# ---------------------------------------------------------------------------
+# 1. lint — ruff + eslint + tsc --noEmit
+# ---------------------------------------------------------------------------
 jobs:
-  build-frontend:
-    name: build SPA
+  lint:
+    name: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
         with:
-          fetch-depth: 0  # hatch-vcs needs full history for the version
+          enable-cache: true
       - uses: actions/setup-node@v4
         with:
-          # Pinned to match mise.toml. Bump both together so the
-          # devcontainer and CI stay aligned.
           node-version: "24"
-          # B-37: npm cache disabled until Q-A8 unblocks a checked-in
-          # `frontend/package-lock.json`. Re-enable `cache: "npm"` +
-          # `cache-dependency-path: frontend/package-lock.json` in the
-          # iter that closes Q-A8 and lands the real lockfile.
-      - name: Build SPA bundle
-        # B-28 / B-19 / B-38: keep this block IDENTICAL in shell to
-        # the corresponding block in `Dockerfile` (stage `spa`) — both
-        # run the same two-pass install so behaviour is unified. The
-        # cross-file anti-drift test
-        # (`test_dockerfile_and_release_workflow_agree_on_npm_install_logic`)
-        # pins `npm ci`, `--package-lock-only`, AND `--include=dev`
-        # in both files so a future runner that sets
-        # `NODE_ENV=production` (or a future GHA default change) can't
-        # silently break `npm run build` here without also breaking
-        # docker.
-        #
-        # Two-pass install: `npm ci` is the right primitive for CI
-        # (fails fast on lockfile drift, never mutates the lock), but
-        # it requires `package-lock.json` to exist. Q-A8 (Node not in
-        # devcontainer) means the lockfile cannot yet be generated and
-        # committed by hand. Until Q-A8 is unblocked, the first pass
-        # generates the lockfile in-place when missing
-        # (`npm install --package-lock-only --include=dev`); the
-        # second pass is the canonical `npm ci --include=dev`. Once a
-        # real, hand-curated lockfile is committed, the first pass
-        # becomes a fast no-op (the file already exists) and `npm ci`
-        # stays the source of truth.
-        #
-        # `--include=dev` is explicit (not relying on the npm default)
-        # because `npm run build` needs vite + tsc devDependencies and
-        # we don't want a future `NODE_ENV=production` env to silently
-        # omit them.
+      - name: Install backend deps
+        run: uv sync --group dev
+      - name: Install frontend deps
         run: |
           cd frontend
           if [ ! -f package-lock.json ]; then
             npm install --package-lock-only --include=dev
           fi
           npm ci --include=dev
+      - name: Run lint (ruff + eslint + tsc)
+        run: make lint
+
+# ---------------------------------------------------------------------------
+# 2. test-backend — pytest unit + integration + conformance
+# ---------------------------------------------------------------------------
+  test-backend:
+    name: test-backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - name: Install backend deps
+        run: uv sync --group dev
+      - name: Run backend tests (excludes e2e/)
+        run: make test
+
+# ---------------------------------------------------------------------------
+# 3. test-frontend — vitest + frontend-build
+# ---------------------------------------------------------------------------
+  test-frontend:
+    name: test-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install frontend deps
+        run: |
+          cd frontend
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock-only --include=dev
+          fi
+          npm ci --include=dev
+      - name: Run vitest suite
+        run: |
+          cd frontend
+          npm test
+      - name: Build SPA bundle (confirms build is healthy)
+        run: |
+          cd frontend
           npm run build
+      - name: Copy bundle to static/
+        run: |
+          mkdir -p src/pd_ocr_labeler_spa/static
+          rm -rf src/pd_ocr_labeler_spa/static/*
+          cp -r frontend/dist/. src/pd_ocr_labeler_spa/static/
       - uses: actions/upload-artifact@v4
         with:
-          name: frontend-dist
+          name: frontend-dist-${{ github.run_id }}
           path: frontend/dist/
-          retention-days: 7
+          retention-days: 1
 
-  build-wheel:
-    name: build wheel
+# ---------------------------------------------------------------------------
+# 4. test-e2e — Playwright against a pre-built SPA
+# ---------------------------------------------------------------------------
+  test-e2e:
+    name: test-e2e
     runs-on: ubuntu-latest
-    needs: [build-frontend]
-    permissions:
-      contents: write
+    needs: [test-frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install backend deps (includes e2e group)
+        run: uv sync --group dev --group e2e
+      - name: Download pre-built SPA
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-${{ github.run_id }}
+          path: frontend/dist/
+      - name: Copy bundle to static/
+        run: |
+          mkdir -p src/pd_ocr_labeler_spa/static
+          rm -rf src/pd_ocr_labeler_spa/static/*
+          cp -r frontend/dist/. src/pd_ocr_labeler_spa/static/
+      - name: Install Playwright browsers
+        run: uv run playwright install chromium --with-deps
+      - name: Run Playwright E2E tests
+        run: uv run --group e2e pytest tests/e2e -v
+
+# ---------------------------------------------------------------------------
+# 5. build-wheel — produce wheel, assert static/index.html is present
+# ---------------------------------------------------------------------------
+  build-wheel:
+    name: build-wheel
+    runs-on: ubuntu-latest
+    needs: [test-frontend]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # hatch-vcs needs full history for the version
       - uses: astral-sh/setup-uv@v4
         with:
-          # B-34: `python-version` is intentionally NOT set here.
-          # `astral-sh/setup-uv` only installs the `uv` binary; the
-          # `python-version` parameter pre-provisions a uv-managed
-          # Python (which is useful for `uv run` paths). This workflow
-          # only invokes `uv build`, which spawns a build-isolated env
-          # via PEP 517 and provisions its own Python — so a setup-uv
-          # `python-version` pin would download Python 3.13 only to
-          # have `uv build` ignore it. mise.toml stays the single
-          # source of truth for Python version.
-          # B-31: cache `~/.cache/uv` between runs.
+          # `python-version` intentionally omitted — `uv build` spawns a
+          # PEP-517 build-isolated env and provisions its own Python.
+          # UV_PYTHON env var (above) is the version pin.
           enable-cache: true
-      - uses: actions/download-artifact@v4
+      - name: Download pre-built SPA
+        uses: actions/download-artifact@v4
         with:
-          name: frontend-dist
+          name: frontend-dist-${{ github.run_id }}
           path: frontend/dist/
-      # The hatchling build hook (pyproject.toml force-include) copies
-      # frontend/dist/ into src/pd_ocr_labeler_spa/static/ inside the wheel.
-      # `--wheel` skips sdist so the build hook doesn't trip on a missing
-      # static/ directory inside an unpacked sdist. We also build the sdist
-      # explicitly below after confirming the wheel is healthy.
+      - name: Copy bundle to static/ (required by build hook)
+        run: |
+          mkdir -p src/pd_ocr_labeler_spa/static
+          rm -rf src/pd_ocr_labeler_spa/static/*
+          cp -r frontend/dist/. src/pd_ocr_labeler_spa/static/
       - name: Build wheel
         run: uv build --wheel
-      - name: Verify wheel contains SPA bundle
-        # Belt-and-braces: build_hooks/spa_check.py already gates
-        # this, but a regression there would silently ship a blank-
-        # page wheel. Catches it before the Release is published.
+      - name: Assert static/index.html is in wheel zip
+        # Belt-and-braces: build_hooks/spa_check.py already gates this,
+        # but a regression there would silently ship a blank-page wheel.
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -140,46 +195,83 @@ jobs:
           fi
           for whl in "${wheels[@]}"; do
             echo "checking $whl"
-            if ! python -m zipfile -l "$whl" | grep -q 'pd_ocr_labeler_spa/static/index\.html'; then
+            if ! python3 -m zipfile -l "$whl" | grep -q 'pd_ocr_labeler_spa/static/index\.html'; then
               echo "::error::$whl is missing pd_ocr_labeler_spa/static/index.html — frontend-build did not run"
-              python -m zipfile -l "$whl"
+              python3 -m zipfile -l "$whl"
               exit 1
             fi
+            echo "ok: $whl contains pd_ocr_labeler_spa/static/index.html"
           done
-      - name: Build sdist
-        run: uv build --sdist
       - uses: actions/upload-artifact@v4
         with:
-          name: dist
-          path: dist/
+          name: wheel-${{ github.run_id }}
+          path: dist/*.whl
           retention-days: 7
-      - name: Publish wheel + sdist to GitHub Release
-        # Creates the Release for the tag if missing, otherwise
-        # uploads the assets to the existing Release. install.sh
-        # resolves the wheel via the `releases/latest` endpoint and
-        # downloads the `*.whl` asset attached here.
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          files: |
-            dist/*.whl
-            dist/*.tar.gz
-          fail_on_unmatched_files: true
 
+# ---------------------------------------------------------------------------
+# 6. openapi-drift — regenerate types.ts + fail if it differs from committed
+# ---------------------------------------------------------------------------
+  openapi-drift:
+    name: openapi-drift
+    runs-on: ubuntu-latest
+    needs: [test-frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install backend deps
+        run: uv sync --group dev
+      - name: Install frontend deps
+        run: |
+          cd frontend
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock-only --include=dev
+          fi
+          npm ci --include=dev
+      - name: Download pre-built SPA (openapi-export needs static/ for editable install)
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-${{ github.run_id }}
+          path: frontend/dist/
+      - name: Copy bundle to static/
+        run: |
+          mkdir -p src/pd_ocr_labeler_spa/static
+          rm -rf src/pd_ocr_labeler_spa/static/*
+          cp -r frontend/dist/. src/pd_ocr_labeler_spa/static/
+      - name: Re-export OpenAPI schema and regenerate types.ts
+        run: make openapi-export
+      - name: Fail if types.ts or openapi.json differ from committed version
+        run: |
+          git diff --exit-code frontend/src/api/types.ts frontend/openapi.json || {
+            echo "::error::OpenAPI types are out of sync."
+            echo "Run 'make openapi-export' locally and commit the result."
+            git diff frontend/src/api/types.ts frontend/openapi.json
+            exit 1
+          }
+
+# ---------------------------------------------------------------------------
+# build-container — tag-triggered only; builds the Docker image (no push)
+# ---------------------------------------------------------------------------
   build-container:
     name: build managed-mode container
     runs-on: ubuntu-latest
-    needs: [build-frontend]
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [lint, test-backend, test-frontend, test-e2e, build-wheel, openapi-drift]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/download-artifact@v4
+      - name: Download pre-built SPA
+        uses: actions/download-artifact@v4
         with:
-          name: frontend-dist
+          name: frontend-dist-${{ github.run_id }}
           path: frontend/dist/
       - uses: docker/setup-buildx-action@v3
-      - name: Build image (no push — wire up your registry)
+      - name: Build Docker image (no push — wire up your registry)
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           docker build \
@@ -187,7 +279,48 @@ jobs:
             -t "pd-ocr-labeler-spa:${GITHUB_REF_NAME}" .
           docker images pd-ocr-labeler-spa
 
-# PyPI publishing is intentionally NOT wired here. If/when it lands it
-# must use OIDC trusted publishing (pypa/gh-action-pypi-publish with
-# `permissions: id-token: write`), never a PYPI_TOKEN secret. See
-# Q-A10 in OPEN_QUESTIONS.md.
+# ---------------------------------------------------------------------------
+# release — tag-triggered only; publishes wheel + sdist to GitHub Release
+# ---------------------------------------------------------------------------
+  release:
+    name: publish GitHub Release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [lint, test-backend, test-frontend, test-e2e, build-wheel, openapi-drift]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # hatch-vcs needs full history for the version
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - name: Download pre-built SPA
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-${{ github.run_id }}
+          path: frontend/dist/
+      - name: Copy bundle to static/
+        run: |
+          mkdir -p src/pd_ocr_labeler_spa/static
+          rm -rf src/pd_ocr_labeler_spa/static/*
+          cp -r frontend/dist/. src/pd_ocr_labeler_spa/static/
+      - name: Build wheel + sdist
+        run: |
+          uv build --wheel
+          uv build --sdist
+      - name: Publish wheel + sdist to GitHub Release
+        # Creates the Release for the tag if missing; uploads the assets.
+        # install.sh resolves the wheel via `/releases/latest` and downloads
+        # the *.whl asset attached here.
+        # PyPI publishing is intentionally NOT wired. If/when it lands it must
+        # use OIDC trusted publishing (pypa/gh-action-pypi-publish with
+        # `permissions: id-token: write`), never a PYPI_TOKEN secret.
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+          fail_on_unmatched_files: true
