@@ -29,6 +29,7 @@ from ..adapters.storage import IStorage
 from ..core.active_project import ActiveProject, ActiveProjectCarrier
 from ..core.app_state import AppState
 from ..core.jobs import JobEventBroker, JobRunner
+from ..core.notifications import NotificationQueue
 from ..core.ocr_config_state import OCRConfigCarrier
 from ..core.project_state import ProjectState
 from ..settings import Settings
@@ -148,6 +149,17 @@ def get_job_events(request: Request) -> JobEventBroker:
     return broker
 
 
+def get_notification_queue(request: Request) -> NotificationQueue:
+    """The ``NotificationQueue`` — in-process ring buffer + SSE fan-out.
+
+    Spec authority: ``specs/02-backend.md §5.11`` + ``specs/11-notifications.md``.
+    One ``NotificationQueue`` per ``build_app`` instance (no module-global state).
+    """
+    nq = _state_attr(request, "notification_queue")
+    assert isinstance(nq, NotificationQueue)
+    return nq
+
+
 def get_ocr_config_carrier(request: Request) -> OCRConfigCarrier:
     """The mutable ``OCRConfigCarrier`` — selected OCR detection + recognition
     model keys (M3 slice 8c-iv-a).
@@ -171,6 +183,7 @@ __all__ = [
     "get_auth",
     "get_job_events",
     "get_job_runner",
+    "get_notification_queue",
     "get_ocr_config_carrier",
     "get_ocr_engine",
     "get_project_state",

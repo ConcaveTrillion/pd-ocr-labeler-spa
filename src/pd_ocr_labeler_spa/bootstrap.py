@@ -46,6 +46,7 @@ from .api.jobs import install_jobs_router
 from .api.lines_paragraphs import install_lines_paragraphs_router
 from .api.middleware.error_handler import install_error_handlers
 from .api.middleware.request_id import RequestIdMiddleware
+from .api.notifications import install_notifications_router
 from .api.ocr_config import install_ocr_config_router
 from .api.pages import install_pages_router
 from .api.projects import install_projects_router
@@ -59,6 +60,7 @@ from .core.active_project import (
 from .core.app_state import build_app_state
 from .core.jobs import JobEventBroker, JobRunner
 from .core.logging_config import configure_logging
+from .core.notifications import NotificationQueue
 from .core.ocr_config_state import OCRConfigCarrier
 from .core.persistence.ocr_config import load_ocr_config
 from .core.persistence.session_state import load_session_state
@@ -303,6 +305,15 @@ def build_app(settings: Settings | None = None) -> FastAPI:
     app.state.job_runner = runner
     app.state.job_events = broker
 
+    # Spec §5.11 + §11-notifications.md: ``NotificationQueue`` holds the
+    # ring buffer of server-pushed notifications. One queue per
+    # ``build_app`` — no module-global state. The SSE route reads from it
+    # via ``get_notification_queue``; back-end code (autosave, OCR, export)
+    # injects it to queue events. ``app.state.notification_queue`` is the
+    # canonical slot per the ``_state_attr`` DI contract.
+    notification_queue = NotificationQueue()
+    app.state.notification_queue = notification_queue
+
     # Spec §2 step 10: install error handlers AFTER middleware (CORS +
     # RequestId) so a 500 still passes back through both on the way
     # out — the response keeps its CORS headers AND its X-Request-ID
@@ -334,6 +345,9 @@ def build_app(settings: Settings | None = None) -> FastAPI:
     # /project/{id} → /projects/{id} (and /project/{id}/page/{n}
     # → /projects/{id}/pages/pageno/{n}) as 301 Moved Permanently.
     _install_legacy_redirects(app)
+
+    # /api/notifications router — spec §5.11.
+    install_notifications_router(app)
 
     # /api/ocr-config router — M3 slice 8a. Read-only stock-fallback
     # skeleton composed from the iter-7 OCR config DTOs; spec §5.8
