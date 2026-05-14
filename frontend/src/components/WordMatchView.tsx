@@ -67,6 +67,8 @@ export function WordMatchView({
     return (
       <div
         data-testid="word-match-view"
+        role="region"
+        aria-label="Word matches"
         className="flex-1 flex items-center justify-center text-sm text-gray-400 p-4"
       >
         <span data-testid="word-match-empty">No lines to display.</span>
@@ -78,6 +80,8 @@ export function WordMatchView({
     <div
       ref={parentRef}
       data-testid="word-match-view"
+      role="region"
+      aria-label="Word matches"
       className="flex-1 overflow-auto"
       style={{ contain: "strict" }}
     >

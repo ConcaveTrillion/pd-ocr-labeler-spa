@@ -193,6 +193,7 @@ export function PageActions({
           disabled={isBusy}
           onClick={onRotateCcw}
           title="Rotate counter-clockwise (-90°)"
+          aria-label="Rotate counter-clockwise"
         >
           ↺
         </ActionButton>
@@ -201,6 +202,7 @@ export function PageActions({
           disabled={isBusy}
           onClick={onRotateCw}
           title="Rotate clockwise (+90°)"
+          aria-label="Rotate clockwise"
         >
           ↻
         </ActionButton>
@@ -246,6 +248,11 @@ export function PageActions({
           style={isRotated ? undefined : { display: "none" }}
           onClick={rotationSource === "auto" ? onRotateRevert : undefined}
           disabled={rotationSource !== "auto" || isBusy}
+          aria-label={
+            rotationSource === "auto"
+              ? `Auto-rotated ${rotationDegrees}° clockwise. Click to revert.`
+              : `Manually rotated ${rotationDegrees}° clockwise.`
+          }
           title={
             rotationSource === "auto"
               ? `Auto-rotated ${rotationDegrees}° clockwise. Click to revert.`
@@ -271,17 +278,28 @@ interface ActionButtonProps {
   disabled: boolean;
   onClick: (() => void) | undefined;
   title?: string;
+  /** For icon-only buttons: exposed as aria-label to screen readers. */
+  "aria-label"?: string;
   style?: React.CSSProperties;
   children: React.ReactNode;
 }
 
-function ActionButton({ testid, disabled, onClick, title, style, children }: ActionButtonProps) {
+function ActionButton({
+  testid,
+  disabled,
+  onClick,
+  title,
+  "aria-label": ariaLabel,
+  style,
+  children,
+}: ActionButtonProps) {
   return (
     <button
       data-testid={testid}
       disabled={disabled}
       onClick={onClick}
       title={title}
+      aria-label={ariaLabel}
       style={style}
       className="px-2 py-1 text-xs rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
     >

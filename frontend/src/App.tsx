@@ -51,6 +51,28 @@ function AppShell() {
   return (
     <div data-testid="app-shell" className="flex flex-col h-screen">
       <HeaderBar />
+      {/*
+       * Accessible live regions — spec #238.
+       * status-announcer: polite — announces bulk action completions
+       *   (e.g. "Validated 5 words") without interrupting the user.
+       * error-announcer: assertive — announces critical errors
+       *   (e.g. "OCR failed") immediately.
+       * Both are visually hidden; text is injected by bulk-action hooks.
+       */}
+      <div
+        id="status-announcer"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      />
+      <div
+        id="error-announcer"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+        className="sr-only"
+      />
       <main className="flex-1 overflow-auto">
         <Routes>
           <Route path={ROUTES.ROOT} element={<RootPage />} />

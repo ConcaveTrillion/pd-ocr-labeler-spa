@@ -108,7 +108,7 @@ export function WordCell({ word, onCommitGt }: WordCellProps) {
         </span>
         <div className="flex items-center gap-0.5">
           {word.is_validated && (
-            <span className="text-xs text-green-600" title="Validated">
+            <span className="text-xs text-green-600" title="Validated" aria-label="Validated">
               ✔
             </span>
           )}
