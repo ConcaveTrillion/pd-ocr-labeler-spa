@@ -1,24 +1,24 @@
-// PageImageCanvas.tsx — image viewport with drag box-select (#197)
+// PageImageCanvas.tsx — image viewport with four interaction modes (#197, #198)
 // Spec: docs/specs/2026-05-12-image-viewport-design.md
 //
 // Supports four interaction modes (via viewportStore):
-//   select  — drag box-select; POST /api/.../selection on mouseup (#197)
-//   rebox   — drag to set new bbox; POST .../rebox on mouseup (#198)
-//   add-word — drag to add new word; POST .../words/add on mouseup (#198)
-//   erase   — drag erase rect; POST .../erase-pixels on mouseup (#198)
+//   select   — drag box-select; fires onBoxSelect(rect, modifier) (#197)
+//   rebox    — drag to set new bbox; fires onRebox(rect) (#198)
+//   add-word — drag to add new word; fires onAddWord(rect) (#198)
+//   erase    — drag erase rect; fires onErasePixels(rect) (#198)
 //
-// DragRect preview: data-testid="ocr-drag-rect" (driver-contract §2).
-// Modifier keys on mousedown: plain = replace, Shift = remove, Ctrl = toggle.
+// DragRect preview: data-testid="ocr-drag-rect", CSS class "ocr-drag-rect".
+// Modifier keys on select mousedown: plain = replace, Shift = remove, Ctrl = toggle.
+// Rebox + erase modes reset to "select" on successful drag; add-word stays active.
 //
-// Konva Stage not wired in this stub — will be replaced by react-konva at M4
-// after the D-020 research spike. Current implementation uses DOM events on a
-// div for acceptance-test coverage.
+// Konva Stage not wired in this stub — replaced by react-konva at M4 (D-020).
+// Current implementation uses DOM events on a div for acceptance-test coverage.
 
 import { useEffect, useRef, useState } from "react";
 import { getStageDimensions, type EncodedDims } from "../lib/canvas-utils";
 import type { BBox } from "../lib/coords";
 import { setDragRect, clearSelection } from "../stores/selection-store";
-import { viewportStore, type ViewportMode } from "../stores/viewport-store";
+import { viewportStore, exitToSelectMode, type ViewportMode } from "../stores/viewport-store";
 
 export type SelectionModifier = "replace" | "remove" | "toggle";
 
@@ -30,33 +30,70 @@ interface DragState {
 interface PageImageCanvasProps {
   imageUrl: string;
   encoded: EncodedDims;
-  /** Project ID for constructing selection POST URL. */
+  /** Project ID for constructing POST URLs. */
   projectId?: string;
-  /** Page index (0-based) for constructing selection POST URL. */
+  /** Page index (0-based) for constructing POST URLs. */
   pageIndex?: number;
   /**
-   * Called when a drag-select completes (mouseup).
+   * Called when a drag-select completes in "select" mode.
    * Receives the drag rect in display pixels and the modifier.
-   * Parent is responsible for resolving which items fall within the rect
-   * and POSTing to the selection endpoint.
+   * Parent resolves which items fall within the rect and POSTs to the selection endpoint.
    */
   onBoxSelect?: (rect: BBox, modifier: SelectionModifier) => void;
+  /**
+   * Called when a rebox drag completes.
+   * Receives the new bbox in display pixels.
+   * Parent POSTs to .../words/{l}/{w}/rebox (with source-pixel conversion).
+   * Mode resets to "select" after callback.
+   */
+  onRebox?: (rect: BBox) => void;
+  /**
+   * Called when an add-word drag completes.
+   * Receives the new word bbox in display pixels.
+   * Parent POSTs to .../words/add with {bbox, text: ""}.
+   * Mode stays "add-word" for multi-add.
+   */
+  onAddWord?: (rect: BBox) => void;
+  /**
+   * Called when an erase-pixels drag completes.
+   * Receives the erase rect in display pixels.
+   * Parent POSTs to .../erase-pixels with {bbox, fill_value: 255}.
+   * Mode resets to "select" after callback.
+   */
+  onErasePixels?: (rect: BBox) => void;
 }
 
+/** Cursor style per mode. */
+const MODE_CURSORS: Record<ViewportMode, string> = {
+  select: "crosshair",
+  rebox: "cell",
+  "add-word": "copy",
+  erase: "not-allowed",
+};
+
+/** Drag-rect border color per mode. */
+const MODE_RECT_COLORS: Record<ViewportMode, string> = {
+  select: "#2563eb", // blue
+  rebox: "#16a34a", // green
+  "add-word": "#9333ea", // purple
+  erase: "#dc2626", // red
+};
+
 /**
- * Image viewport canvas.
+ * Image viewport canvas — supports four interaction modes.
  *
- * Tracks mouse events to implement drag box-select in "select" mode.
- * The DragRect preview is rendered as an absolutely-positioned div
- * (testid: `ocr-drag-rect`) so Vitest can verify it without Konva.
+ * Drag interaction is handled via DOM mouse events. The DragRect preview
+ * is an absolutely-positioned div so Vitest can verify interactions without Konva.
  *
- * At M4 the DOM-event implementation will be replaced with react-konva
- * once the D-020 research spike confirms Konva.
+ * Replaced by react-konva at M4 (D-020 research spike).
  */
 export default function PageImageCanvas({
   imageUrl: _imageUrl,
   encoded,
   onBoxSelect,
+  onRebox,
+  onAddWord,
+  onErasePixels,
 }: PageImageCanvasProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const dims = getStageDimensions(encoded);
@@ -89,64 +126,84 @@ export default function PageImageCanvas({
     return "replace";
   }
 
+  function computeRect(end: { x: number; y: number }): BBox {
+    if (!dragState) return { x: 0, y: 0, width: 0, height: 0 };
+    return {
+      x: Math.min(end.x, dragState.startX),
+      y: Math.min(end.y, dragState.startY),
+      width: Math.abs(end.x - dragState.startX),
+      height: Math.abs(end.y - dragState.startY),
+    };
+  }
+
+  function clearDrag() {
+    setDragState(null);
+    setLocalDragRect(null);
+    setDragRect(null);
+  }
+
   function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
-    if (mode !== "select") return;
     const pos = getRelativePos(e);
     setDragState({ startX: pos.x, startY: pos.y });
     setLocalDragRect(null);
-    // Prevent text selection during drag
-    e.preventDefault();
+    e.preventDefault(); // prevent text selection
   }
 
   function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    if (mode !== "select" || !dragState) return;
+    if (!dragState) return;
     const pos = getRelativePos(e);
-    const rect: BBox = {
-      x: Math.min(pos.x, dragState.startX),
-      y: Math.min(pos.y, dragState.startY),
-      width: Math.abs(pos.x - dragState.startX),
-      height: Math.abs(pos.y - dragState.startY),
-    };
+    const rect = computeRect(pos);
     setLocalDragRect(rect);
     setDragRect(rect);
   }
 
   function handleMouseUp(e: React.MouseEvent<HTMLDivElement>) {
-    if (mode !== "select" || !dragState) return;
+    if (!dragState) return;
     const pos = getRelativePos(e);
-    const rect: BBox = {
-      x: Math.min(pos.x, dragState.startX),
-      y: Math.min(pos.y, dragState.startY),
-      width: Math.abs(pos.x - dragState.startX),
-      height: Math.abs(pos.y - dragState.startY),
-    };
-    const modifier = resolveModifier(e);
+    const rect = computeRect(pos);
+    const isTrivial = rect.width <= 2 && rect.height <= 2;
+    clearDrag();
 
-    // Clear drag state
-    setDragState(null);
-    setLocalDragRect(null);
-    setDragRect(null);
+    if (isTrivial) return;
 
-    // Only fire if drag had non-trivial size (> 2px)
-    if (rect.width > 2 || rect.height > 2) {
-      onBoxSelect?.(rect, modifier);
+    switch (mode) {
+      case "select": {
+        const modifier = resolveModifier(e);
+        onBoxSelect?.(rect, modifier);
+        break;
+      }
+      case "rebox": {
+        onRebox?.(rect);
+        // Reset to select mode after rebox
+        exitToSelectMode();
+        break;
+      }
+      case "add-word": {
+        onAddWord?.(rect);
+        // Stay in add-word mode for multi-add (no reset)
+        break;
+      }
+      case "erase": {
+        onErasePixels?.(rect);
+        // Reset to select mode after erase
+        exitToSelectMode();
+        break;
+      }
     }
   }
 
   function handleMouseLeave() {
     if (dragState) {
-      setDragState(null);
-      setLocalDragRect(null);
-      setDragRect(null);
+      clearDrag();
     }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Escape") {
       clearSelection();
-      setDragState(null);
-      setLocalDragRect(null);
-      setDragRect(null);
+      clearDrag();
+      // Return to select mode on Escape
+      exitToSelectMode();
     }
   }
 
@@ -157,7 +214,7 @@ export default function PageImageCanvas({
       style={{
         width: dims.width,
         height: dims.height,
-        cursor: mode === "select" ? "crosshair" : "default",
+        cursor: MODE_CURSORS[mode],
       }}
       data-width={dims.width}
       data-height={dims.height}
@@ -182,7 +239,7 @@ export default function PageImageCanvas({
             top: dragRect.y,
             width: dragRect.width,
             height: dragRect.height,
-            border: "2px dashed #2563eb",
+            border: `2px dashed ${MODE_RECT_COLORS[mode]}`,
             backgroundColor: "transparent",
           }}
         />
