@@ -47,11 +47,18 @@ MISE_TOML = REPO_ROOT / "mise.toml"
 
 
 def _entrypoint_name() -> str:
-    """Read the canonical console-script name from pyproject.toml."""
+    """Read the canonical UI console-script name from pyproject.toml.
+
+    The repo ships multiple scripts (UI + headless export CLI); this helper
+    returns the UI script (``pd-ocr-labeler-ui``) which is what the installer
+    tells users to type after installation.
+    """
     data = tomllib.loads(PYPROJECT_TOML.read_text())
     scripts = data["project"]["scripts"]
-    assert len(scripts) == 1, f"expected exactly one [project.scripts] entry, got {list(scripts)}"
-    return next(iter(scripts.keys()))
+    assert "pd-ocr-labeler-ui" in scripts, (
+        f"Expected 'pd-ocr-labeler-ui' in [project.scripts], got {list(scripts)}"
+    )
+    return "pd-ocr-labeler-ui"
 
 
 def _python_major_minor_from_mise() -> str:

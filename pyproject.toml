@@ -37,6 +37,7 @@ modal = [
 # so end users can swap binaries without re-learning the command.
 # See specs/15-deployment-dev.md §2.
 pd-ocr-labeler-ui = "pd_ocr_labeler_spa.__main__:main"
+pd-ocr-labeler-spa-export = "pd_ocr_labeler_spa.core.jobs.handlers.export_cli:main"
 
 [project.urls]
 Homepage = "https://github.com/ConcaveTrillion/pd-ocr-labeler-spa"
@@ -100,6 +101,8 @@ ignore = [
 "tests/*" = ["E741"]
 # CLI scripts and fixture scripts — print() is the output mechanism
 "scripts/*.py" = ["T201"]
+# Headless export CLI console script — print() for user-facing output
+"src/pd_ocr_labeler_spa/core/jobs/handlers/export_cli.py" = ["T201"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
