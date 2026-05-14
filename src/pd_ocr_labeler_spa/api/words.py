@@ -21,11 +21,6 @@ from .pages import PagePayload
 router = APIRouter(prefix="/api/projects", tags=["words"])
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Wire shapes — spec §01-data-models.md §2 "Word routes"
-# ──────────────────────────────────────────────────────────────────────
-
-
 class UpdateWordGroundTruthRequest(BaseModel):
     """Spec §2 line 285."""
 
@@ -106,10 +101,6 @@ class ErasePixelsRequest(BaseModel):
     bbox: BBox
     fill_value: int = 255
 
-
-# ──────────────────────────────────────────────────────────────────────
-# Stub routes
-# ──────────────────────────────────────────────────────────────────────
 
 _NOT_IMPLEMENTED = JSONResponse(
     status_code=501,

@@ -20,11 +20,6 @@ from .pages import PagePayload
 router = APIRouter(prefix="/api/projects", tags=["refine"])
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Wire shapes — spec §01-data-models.md §2 "Refine routes"
-# ──────────────────────────────────────────────────────────────────────
-
-
 class RefineScopeRequest(BaseModel):
     """Body for ``POST .../refine`` — spec §2 lines 371-378."""
 
@@ -34,11 +29,6 @@ class RefineScopeRequest(BaseModel):
     paragraph_indices: list[int] = []
     line_indices: list[int] = []
     word_indices: list[tuple[int, int]] = []
-
-
-# ──────────────────────────────────────────────────────────────────────
-# Stub route
-# ──────────────────────────────────────────────────────────────────────
 
 
 @router.post("/{project_id}/pages/{page_index}/refine", response_model=PagePayload)

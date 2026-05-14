@@ -20,11 +20,6 @@ from .pages import PagePayload
 router = APIRouter(prefix="/api/projects", tags=["lines", "paragraphs"])
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Wire shapes — spec §01-data-models.md §2 "Line/paragraph routes"
-# ──────────────────────────────────────────────────────────────────────
-
-
 class CopyLineGtRequest(BaseModel):
     """Spec §2 line 337."""
 
@@ -75,10 +70,6 @@ class GroupSelectedWordsIntoNewParagraphRequest(BaseModel):
 
     word_indices: list[tuple[int, int]]
 
-
-# ──────────────────────────────────────────────────────────────────────
-# Stub routes
-# ──────────────────────────────────────────────────────────────────────
 
 _NOT_IMPLEMENTED = JSONResponse(
     status_code=501,
