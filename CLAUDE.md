@@ -49,8 +49,9 @@ output for debugging.
 
 M0 (repo scaffold) and M1 (settings/adapters/AppState) are both done. M2 (project navigation
 and page loading) is in progress.
-Next slices: issues #237 (viewport+matches+dialog hotkeys, blocked by #209 done; check #210–#212),
-issue #198 (Rebox+AddWord+Erase modes), issue #261 (text-norm OCRConfigModal UI).
+Next slices: issues #210 (dialog: interactive Konva image), #223 (persistence: sidecar files
+and AppState concurrency lock and pidfile), #222 (persistence: image cache layer), #226 (export
+core handler and DocTRExportOperations).
 
 Shipped (2026-05-14): Notifications stack #230–#233, data hooks #192 (useProject/usePage/
 useJobProgress), TextTabs shell #200, PageActions bar layout #214, page-action mutations
@@ -58,7 +59,11 @@ issues #215+#216, virtualised LineCard list #201, hotkeyMap+useHotkey+HotkeyHelp
 page-action hotkeys #217, line mutations #202, WordCell+GT-input #203,
 useGlobalHotkeys+ConfirmDialog #236, ImageTabsHeader+BBoxOverlay #196,
 WordEditDialog shell #209, ToolbarActionGrid #207, PageImageCanvas Select mode #197,
-text-norm helpers + PagePayload fields + ExportRequest field #260.
+text-norm helpers + PagePayload fields + ExportRequest field #260,
+viewport+matches+dialog hotkeys #237, Rebox+AddWord+Erase modes #198,
+ExportRequest page_index + export/styles endpoint #225, three-lane persistence
+model (LaneResolver) #221, OCRConfigModal normalize section + normalize/available
+endpoint #261.
 See `docs/ROADMAP.md` for per-slice details.
 
 ## Specs

@@ -381,6 +381,27 @@ ambiguous as an OPEN_QUESTIONS.md entry first.
   `page_text_gt: str | None`; `ExportRequest` gains `normalize_recognition_labels: bool = False`;
   openapi-export regenerated. Normalize delegates to `pd_book_tools.text.normalize`;
   falls back silently when module absent.
+- [x] **#237 (2026-05-14)** `useViewportHotkeys` + `useMatchesHotkeys` + `useDialogHotkeys` —
+  viewport (Shift+P/L/W/E/A), matches (J/K/V/U/D/R/Shift+R/M/O/G), dialog
+  (Shift+Enter/Esc/R/Shift+R/Delete) scope hotkey hooks. ArrowLeft/Right in dialog registered
+  but covered by E2E (#242) due to jsdom keyCode limitation.
+- [x] **#198 (2026-05-14)** `PageImageCanvas` extended to all four modes (select/rebox/add-word/erase):
+  mode-specific cursor + drag-rect color; `onRebox`/`onAddWord`/`onErasePixels` callbacks;
+  rebox+erase reset to select after drag; add-word stays active for multi-add. `viewport-store.ts`
+  with `enterReboxMode` / `exitToSelectMode` / `toggleAddWordMode` / `toggleEraseMode`.
+- [x] **#225 (2026-05-14)** Export: `ExportRequest` gains `page_index: int | None`;
+  `@model_validator` enforces `page_index` required when `scope=="current"` (→ 400);
+  `GET /api/projects/{id}/export/styles` registered (returns `[]` until labeled-lane reader wired).
+  openapi-export regenerated.
+- [x] **#221 (2026-05-14)** `core/persistence/lanes.py` — `LaneResolver` class: `load_page_from_disk`
+  (labeled → cached → None), `write_labeled` (atomic, creates dirs, guard raises
+  `SourceLaneReadOnlyError`), `write_cached` (atomic, swallows OSError); `LaneReadResult` dataclass.
+  15 unit tests covering all acceptance criteria.
+- [x] **#261 (2026-05-14)** `GET /api/normalize/available` backend probe endpoint;
+  `OCRConfigModal` frontend component with "Text normalization" section:
+  `normalize-gt-matching-checkbox`, `normalize-plaintext-checkbox`,
+  `normalize-profile-select` (greyed out, v1 ascii-only). Toggles disabled+message when
+  pd-book-tools normalize absent. 18 frontend tests + 4 backend tests.
 
 ## Iteration index (this repo)
 
