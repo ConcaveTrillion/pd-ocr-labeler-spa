@@ -338,6 +338,21 @@ ambiguous as an OPEN_QUESTIONS.md entry first.
 - [x] **#214 (2026-05-14)** `PageActions` bar — all action buttons with driver-contract
   testids, `hasEditedImage` gate on Reload OCR Edited, `PageSource` badge, rotate buttons
   hidden (M9.1), isBusy disables all.
+- [x] **#215+#216 (2026-05-14)** `useReloadOcr` / `useReloadOcrEdited` / `useSavePage` /
+  `useSaveProject` / `useLoadPage` / `useRematchGt` — all page-action TanStack mutations.
+- [x] **#201 (2026-05-14)** `WordMatchView` + `LineCard` — virtualised line-comparison list
+  with `@tanstack/react-virtual`; 5 status colors; count chips; Validate/Unvalidate button.
+- [x] **#235 (2026-05-14)** `hotkeyMap.ts` static keymap, `useHotkey` wrapper
+  (`react-hotkeys-hook`, `preventDefault:true`, `enableOnFormTags:false` defaults),
+  and `HotkeyHelpModal` (driven from keymap, `data-testid=hotkey-help-dialog`).
+- [x] **#217 (2026-05-14)** Page-action hotkeys wired into `PageActions` — `Mod+R` → Reload
+  OCR, `Mod+Shift+R` → Reload OCR Edited (guarded by `hasEditedImage`), `E` → Export;
+  all skip when `isBusy`.
+- [x] **#202 (2026-05-14)** `useValidateLine` / `useCopyLineGt` / `useDeleteLine` — line-level
+  TanStack mutations for LineCard header actions (validate-batch, copy-gt, delete-scope).
+- [x] **#203 (2026-05-14)** `WordCell` — 5-row per-word grid; controlled GT `<input>` with
+  blur-commit (fires `onCommitGt` only when changed); style/component tag chips; status icon.
+  `useUpdateWordGt` mutation hook for POST `.../words/{l}/{w}/gt`.
 
 ## Iteration index (this repo)
 

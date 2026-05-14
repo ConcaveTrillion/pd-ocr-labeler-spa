@@ -49,11 +49,14 @@ output for debugging.
 
 M0 (repo scaffold) and M1 (settings/adapters/AppState) are both done. M2 (project navigation
 and page loading) is in progress.
-Next slices: page-action hotkeys #217, word-matches LineCard header #202, WordCell #203.
+Next slices: issues #236 (global+page-nav hotkeys), #237 (viewport+matches+dialog
+hotkeys), #196 (ImageTabsHeader + BBoxOverlay viewport).
 
 Shipped (2026-05-14): Notifications stack #230–#233, data hooks #192 (useProject/usePage/
 useJobProgress), TextTabs shell #200, PageActions bar layout #214, page-action mutations
-issues 215 (Reload OCR) + 216 (Save/Load/Rematch GT), virtualised LineCard list issue 201.
+issues 215 (Reload OCR) + 216 (Save/Load/Rematch GT), virtualised LineCard list issue 201,
+hotkeyMap+useHotkey+HotkeyHelpModal #235, page-action hotkeys #217,
+line mutations (validate/copy-GT/delete) #202, WordCell+GT-input #203.
 See `docs/ROADMAP.md` for per-slice details.
 
 ## Specs
