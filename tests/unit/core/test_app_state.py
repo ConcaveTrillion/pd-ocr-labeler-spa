@@ -55,7 +55,7 @@ def test_app_state_is_frozen_dataclass() -> None:
     # — exercising the FrozenInstanceError below is the load-bearing
     # check. Here we just pin the field set so a future drift fails.
     field_names = {f.name for f in fields(AppState)}
-    assert field_names == {"settings", "storage", "auth", "ocr_engine"}
+    assert field_names == {"settings", "storage", "auth", "ocr_engine", "project_locks"}
 
 
 def test_app_state_assignment_raises(tmp_path: Path) -> None:

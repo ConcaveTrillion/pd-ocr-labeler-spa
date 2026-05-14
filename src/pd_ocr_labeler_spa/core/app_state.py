@@ -30,6 +30,7 @@ from ..adapters.ocr import IOCREngine, LocalDoctrOCR, ModalOCR, SharedContainerO
 from ..adapters.storage import FilesystemStorage, IStorage
 from ..settings import Settings
 from .exceptions import NotImplementedYet
+from .project_lock import ProjectLockManager
 
 
 @dataclass(frozen=True)
@@ -44,12 +45,18 @@ class AppState:
     Construct via ``build_app_state(settings)`` — direct instantiation
     is fine in tests but production wiring goes through the builder so
     backend selection lives in exactly one place.
+
+    ``project_locks``: mutable ``ProjectLockManager`` held by frozen
+    reference.  The dataclass reference is frozen (cannot be reassigned);
+    the manager dict inside is mutable — that asymmetry is intentional
+    (spec §Concurrency).
     """
 
     settings: Settings
     storage: IStorage
     auth: IAuth
     ocr_engine: IOCREngine
+    project_locks: ProjectLockManager
 
 
 def build_app_state(settings: Settings) -> AppState:
@@ -83,6 +90,7 @@ def build_app_state(settings: Settings) -> AppState:
         storage=storage,
         auth=auth,
         ocr_engine=ocr_engine,
+        project_locks=ProjectLockManager(),
     )
 
 
@@ -121,4 +129,4 @@ def _build_ocr_engine(settings: Settings) -> IOCREngine:
     raise ValueError(f"unknown ocr_engine: {engine!r}")
 
 
-__all__ = ["AppState", "build_app_state"]
+__all__ = ["AppState", "ProjectLockManager", "build_app_state"]

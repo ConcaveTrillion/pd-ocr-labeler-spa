@@ -63,6 +63,8 @@ from typing import Any
 
 from pd_ocr_labeler_spa.core.models import Project
 
+from .atomic import write_json_atomic
+
 logger = logging.getLogger(__name__)
 
 # Legacy filename pin — ``project_operations.py:162``.
@@ -91,6 +93,7 @@ __all__ = [
     "project_from_dict",
     "project_to_dict",
     "read_project_metadata",
+    "write_project_json",
 ]
 
 
@@ -241,6 +244,27 @@ def read_project_metadata(project_root: Path) -> dict[str, Any] | None:
         return None
 
     return data
+
+
+# ── write_project_json ───────────────────────────────────────────────────
+
+
+def write_project_json(project_root: Path, project: Project) -> None:
+    """Write ``project.json`` to ``project_root`` atomically.
+
+    Spec: ``specs/09-persistence.md §5`` — written on every Save Project.
+    Schema ``pd_ocr_labeler.project`` v1.0; byte-compatible with legacy
+    ``project_operations.py:162-175`` under D-003.
+
+    Creates ``project_root`` if it doesn't exist.
+    Always writes atomically (tmp + os.replace) so a crash mid-write
+    leaves either the old file or the new file — never a half-written one.
+
+    Issues: #223 acceptance — ``project.json`` written on Save Project.
+    """
+    project_root.mkdir(parents=True, exist_ok=True)
+    path = project_root / PROJECT_JSON_FILENAME
+    write_json_atomic(path, project_to_dict(project))
 
 
 # ── build_project_from_directory ─────────────────────────────────────────

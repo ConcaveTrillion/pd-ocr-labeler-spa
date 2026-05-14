@@ -66,6 +66,7 @@ from .core.notifications import NotificationQueue
 from .core.ocr_config_state import OCRConfigCarrier
 from .core.persistence.config_yaml import load_config
 from .core.persistence.ocr_config import load_ocr_config
+from .core.persistence.pidfile import check_and_write_pidfile, release_pidfile
 from .core.persistence.session_state import load_session_state
 from .core.project_state import ProjectState
 from .core.source_root_state import SourceRootCarrier
@@ -115,6 +116,11 @@ def _make_lifespan(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        # Issue #223 — pidfile check: warn if another live process holds
+        # the cache root; write our own PID regardless.  Advisory-only;
+        # does not prevent startup.
+        check_and_write_pidfile(settings.cache_root)
+
         # M3 slice 8c-iv-b: seed the OCRConfigCarrier from the
         # ``ocr_config.json`` sidecar (if present + valid). A missing
         # / corrupt sidecar returns ``None`` and the carrier keeps its
@@ -161,6 +167,8 @@ def _make_lifespan(
             runner_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await runner_task
+            # Issue #223 — release pidfile on clean shutdown.
+            release_pidfile(settings.cache_root)
 
     return lifespan
 
@@ -224,7 +232,7 @@ def build_app(settings: Settings | None = None) -> FastAPI:
     # the lifespan so the runner can be started in the lifespan task and
     # stashed on ``app.state`` for DI. Per-``build_app`` for test isolation.
     broker = JobEventBroker()
-    runner = JobRunner(broker)
+    runner = JobRunner(broker, context={"settings": settings})
     lifespan = _make_lifespan(settings, carrier, ocr_carrier, runner)
 
     app = FastAPI(title="pd-ocr-labeler-spa", lifespan=lifespan)

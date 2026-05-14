@@ -69,12 +69,16 @@ class JobRunner:
     ``stop()`` is called.
     """
 
-    def __init__(self, broker: JobEventBroker) -> None:
+    def __init__(self, broker: JobEventBroker, *, context: dict[str, Any] | None = None) -> None:
         self._broker = broker
         self._jobs: dict[str, Job] = {}
         self._queue: asyncio.Queue[Job] = asyncio.Queue()
         self._stop = asyncio.Event()
         self._running_tasks: set[asyncio.Task] = set()
+        # Optional context dict for handlers — e.g. ``{"settings": settings}``.
+        # Populated by ``build_app`` so handlers can access app-level config
+        # without a full DI graph (handlers run outside FastAPI request context).
+        self.context: dict[str, Any] = context or {}
 
     def get_job(self, job_id: str) -> Job | None:
         return self._jobs.get(job_id)
@@ -243,8 +247,13 @@ async def _handle_save_project(runner: JobRunner, job: Job) -> None:
 
 
 async def _handle_export(runner: JobRunner, job: Job) -> None:
-    """Stub export handler. Full DocTR export pipeline wired in M3+."""
-    await asyncio.sleep(0)
+    """Export handler — delegates to ``core/jobs/handlers/export.handle_export``.
+
+    Issue #226: full DocTR export pipeline (WordFilter, output layout, cancel).
+    """
+    from .handlers.export import handle_export  # lazy to avoid circular
+
+    await handle_export(runner, job)
 
 
 _HANDLERS: dict[str, Handler] = {
