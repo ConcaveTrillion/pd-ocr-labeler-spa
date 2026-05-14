@@ -32,8 +32,10 @@ def _have_make() -> bool:
 
 
 def _make_dry_run(target: str) -> subprocess.CompletedProcess[str]:
+    # Pass AI= to bypass the log-wrapper (AI ?= 1 is the Makefile default)
+    # so the rendered recipe appears on stdout rather than .ci-ai.log.
     return subprocess.run(
-        ["make", "-C", str(REPO_ROOT), "-n", target],
+        ["make", "-C", str(REPO_ROOT), "AI=", "-n", target],
         capture_output=True,
         text=True,
         timeout=30,
@@ -64,7 +66,7 @@ def test_docker_target_dry_runs_cleanly(target: str) -> None:
 def test_docker_targets_appear_in_help() -> None:
     """`make help` must list all three docker-* targets (each has `## …`)."""
     result = subprocess.run(
-        ["make", "-C", str(REPO_ROOT), "help"],
+        ["make", "-C", str(REPO_ROOT), "AI=", "help"],
         capture_output=True,
         text=True,
         timeout=20,
@@ -215,23 +217,32 @@ def test_docker_targets_invoke_docker_macro(target: str) -> None:
 
 def test_docker_targets_are_phony() -> None:
     text = MAKEFILE.read_text()
-    # Reuse the loose "first .PHONY block" parse from test_makefile.py.
+    # Collect ALL .PHONY declarations across the file (the Makefile has one
+    # inside the AI-wrapper ifdef block and a second, larger one in the else
+    # branch; both together define the full phony set).
+    declared: set[str] = set()
     phony_block: list[str] = []
     in_block = False
     for line in text.splitlines():
         if line.startswith(".PHONY:"):
             in_block = True
-            phony_block.append(line[len(".PHONY:") :])
+            phony_block = [line[len(".PHONY:") :]]
             continue
         if in_block:
             if line.endswith("\\") or line.startswith((" ", "\t")):
                 phony_block.append(line)
                 if not line.rstrip().endswith("\\"):
-                    break
+                    for chunk in phony_block:
+                        for tok in chunk.replace("\\", " ").split():
+                            declared.add(tok)
+                    phony_block = []
+                    in_block = False
             else:
-                break
-
-    declared: set[str] = set()
+                for chunk in phony_block:
+                    for tok in chunk.replace("\\", " ").split():
+                        declared.add(tok)
+                phony_block = []
+                in_block = False
     for chunk in phony_block:
         for tok in chunk.replace("\\", " ").split():
             declared.add(tok)

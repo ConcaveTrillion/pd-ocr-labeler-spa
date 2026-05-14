@@ -36,7 +36,7 @@ def test_makefile_help_target_runs() -> None:
     is the cheapest way to assert the file parses cleanly.
     """
     result = subprocess.run(
-        ["make", "-C", str(REPO_ROOT), "help"],
+        ["make", "-C", str(REPO_ROOT), "AI=", "help"],
         capture_output=True,
         text=True,
         timeout=20,
@@ -58,7 +58,7 @@ def test_makefile_dry_run_test_target() -> None:
     target the recipe depends on would surface here.
     """
     result = subprocess.run(
-        ["make", "-C", str(REPO_ROOT), "-n", "test"],
+        ["make", "-C", str(REPO_ROOT), "AI=", "-n", "test"],
         capture_output=True,
         text=True,
         timeout=20,
@@ -85,7 +85,7 @@ def test_makefile_run_target_dry_runs_and_invokes_ui() -> None:
     flipping `--reload` back on.
     """
     result = subprocess.run(
-        ["make", "-C", str(REPO_ROOT), "-n", "run"],
+        ["make", "-C", str(REPO_ROOT), "AI=", "-n", "run"],
         capture_output=True,
         text=True,
         timeout=20,
@@ -110,7 +110,7 @@ def test_makefile_run_target_dry_runs_and_invokes_ui() -> None:
 def test_makefile_help_lists_run_target() -> None:
     """`make help` should advertise the `run` target alongside `dev`."""
     result = subprocess.run(
-        ["make", "-C", str(REPO_ROOT), "help"],
+        ["make", "-C", str(REPO_ROOT), "AI=", "help"],
         capture_output=True,
         text=True,
         timeout=20,
@@ -131,23 +131,35 @@ def test_makefile_phony_targets_declared() -> None:
     accidental directories.
     """
     text = MAKEFILE.read_text()
-    # The first .PHONY line in the file (continuation lines start with whitespace).
-    phony_block = []
+    # Collect ALL .PHONY declarations across the file (the Makefile has one
+    # inside the AI-wrapper ifdef block and a second, larger one in the else
+    # branch; both together define the full phony set).
+    declared: set[str] = set()
+    phony_block: list[str] = []
     in_block = False
     for line in text.splitlines():
         if line.startswith(".PHONY:"):
             in_block = True
-            phony_block.append(line[len(".PHONY:") :])
+            phony_block = [line[len(".PHONY:") :]]
             continue
         if in_block:
             if line.endswith("\\") or line.startswith((" ", "\t")):
                 phony_block.append(line)
                 if not line.rstrip().endswith("\\"):
-                    break
+                    # End of this block — harvest tokens then reset for next block.
+                    for chunk in phony_block:
+                        for tok in chunk.replace("\\", " ").split():
+                            declared.add(tok)
+                    phony_block = []
+                    in_block = False
             else:
-                break
-
-    declared = set()
+                # Non-continuation, non-blank line ends the block.
+                for chunk in phony_block:
+                    for tok in chunk.replace("\\", " ").split():
+                        declared.add(tok)
+                phony_block = []
+                in_block = False
+    # Flush any trailing block (file ends while still in a block).
     for chunk in phony_block:
         for tok in chunk.replace("\\", " ").split():
             declared.add(tok)
@@ -176,7 +188,7 @@ def test_makefile_phony_targets_declared() -> None:
 def test_ci_calls_pre_commit_check() -> None:
     """`make ci` must invoke pre-commit-check so hooks run in CI."""
     result = subprocess.run(
-        ["make", "-C", str(REPO_ROOT), "-n", "ci"],
+        ["make", "-C", str(REPO_ROOT), "AI=", "-n", "ci"],
         capture_output=True,
         text=True,
         timeout=20,
@@ -191,7 +203,7 @@ def test_ci_calls_pre_commit_check() -> None:
 def test_ci_calls_openapi_export_before_frontend_build() -> None:
     """`make ci` must call openapi-export before frontend-build."""
     result = subprocess.run(
-        ["make", "-C", str(REPO_ROOT), "-n", "ci"],
+        ["make", "-C", str(REPO_ROOT), "AI=", "-n", "ci"],
         capture_output=True,
         text=True,
         timeout=20,

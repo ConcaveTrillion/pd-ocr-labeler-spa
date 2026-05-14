@@ -35,7 +35,7 @@ def _have_make() -> bool:
 def test_makefile_setup_invokes_uv_sync() -> None:
     """`make -n setup` must include a `uv sync` invocation."""
     result = subprocess.run(
-        ["make", "-C", str(REPO_ROOT), "-n", "setup"],
+        ["make", "-C", str(REPO_ROOT), "AI=", "-n", "setup"],
         capture_output=True,
         text=True,
         timeout=20,
@@ -48,7 +48,7 @@ def test_makefile_setup_invokes_uv_sync() -> None:
 def test_makefile_setup_invokes_pre_commit_install() -> None:
     """`make -n setup` must install pre-commit hooks."""
     result = subprocess.run(
-        ["make", "-C", str(REPO_ROOT), "-n", "setup"],
+        ["make", "-C", str(REPO_ROOT), "AI=", "-n", "setup"],
         capture_output=True,
         text=True,
         timeout=20,
@@ -68,7 +68,7 @@ def test_makefile_setup_invokes_pre_commit_install() -> None:
 def test_makefile_lint_includes_ruff() -> None:
     """`make -n lint` must invoke ruff."""
     result = subprocess.run(
-        ["make", "-C", str(REPO_ROOT), "-n", "lint"],
+        ["make", "-C", str(REPO_ROOT), "AI=", "-n", "lint"],
         capture_output=True,
         text=True,
         timeout=20,
@@ -81,7 +81,7 @@ def test_makefile_lint_includes_ruff() -> None:
 def test_makefile_lint_includes_eslint() -> None:
     """`make -n lint` must invoke eslint (via npm run lint or direct call)."""
     result = subprocess.run(
-        ["make", "-C", str(REPO_ROOT), "-n", "lint"],
+        ["make", "-C", str(REPO_ROOT), "AI=", "-n", "lint"],
         capture_output=True,
         text=True,
         timeout=20,
@@ -96,7 +96,7 @@ def test_makefile_lint_includes_eslint() -> None:
 def test_makefile_lint_includes_tsc_no_emit() -> None:
     """`make -n lint` must invoke tsc (typecheck / --noEmit)."""
     result = subprocess.run(
-        ["make", "-C", str(REPO_ROOT), "-n", "lint"],
+        ["make", "-C", str(REPO_ROOT), "AI=", "-n", "lint"],
         capture_output=True,
         text=True,
         timeout=20,
@@ -112,12 +112,47 @@ def test_makefile_lint_includes_tsc_no_emit() -> None:
 # ---------------------------------------------------------------------------
 
 
+def _all_phony_tokens(text: str) -> set[str]:
+    """Return all tokens declared in any .PHONY: block in *text*.
+
+    The Makefile has two .PHONY declarations: one inside the AI-wrapper
+    ``ifdef`` block (``$(_goals)``) and one in the ``else`` branch with
+    the real target list.  Collecting both ensures tests see the full set.
+    """
+    declared: set[str] = set()
+    phony_block: list[str] = []
+    in_block = False
+    for line in text.splitlines():
+        if line.startswith(".PHONY:"):
+            in_block = True
+            phony_block = [line[len(".PHONY:") :]]
+            continue
+        if in_block:
+            if line.endswith("\\") or line.startswith((" ", "\t")):
+                phony_block.append(line)
+                if not line.rstrip().endswith("\\"):
+                    for chunk in phony_block:
+                        for tok in chunk.replace("\\", " ").split():
+                            declared.add(tok)
+                    phony_block = []
+                    in_block = False
+            else:
+                for chunk in phony_block:
+                    for tok in chunk.replace("\\", " ").split():
+                        declared.add(tok)
+                phony_block = []
+                in_block = False
+    for chunk in phony_block:
+        for tok in chunk.replace("\\", " ").split():
+            declared.add(tok)
+    return declared
+
+
 def test_upgrade_deps_declared_phony() -> None:
     """upgrade-deps must be declared in .PHONY."""
     text = MAKEFILE.read_text()
     assert "upgrade-deps" in text, "upgrade-deps target missing from Makefile"
-    phony_section = text.split("\n\n")[0]
-    assert "upgrade-deps" in phony_section, "upgrade-deps missing from .PHONY block"
+    assert "upgrade-deps" in _all_phony_tokens(text), "upgrade-deps missing from .PHONY block"
 
 
 @pytest.mark.skipif(not _have_make(), reason="`make` not on PATH")
@@ -176,8 +211,7 @@ def test_upgrade_deps_local_declared_phony() -> None:
     """upgrade-deps-local must be declared in .PHONY."""
     text = MAKEFILE.read_text()
     assert "upgrade-deps-local" in text, "upgrade-deps-local target missing from Makefile"
-    phony_section = text.split("\n\n")[0]
-    assert "upgrade-deps-local" in phony_section, "upgrade-deps-local missing from .PHONY block"
+    assert "upgrade-deps-local" in _all_phony_tokens(text), "upgrade-deps-local missing from .PHONY block"
 
 
 def test_upgrade_deps_local_recipe_writes_pd_dev_local_marker() -> None:
