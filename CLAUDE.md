@@ -63,7 +63,10 @@ text-norm helpers + PagePayload fields + ExportRequest field #260,
 viewport+matches+dialog hotkeys #237, Rebox+AddWord+Erase modes #198,
 ExportRequest page_index + export/styles endpoint #225, three-lane persistence
 model (LaneResolver) #221, OCRConfigModal normalize section + normalize/available
-endpoint #261.
+endpoint #261, driver-contract audit #241, E2E conftest+helpers+tiny-fixture #247,
+driver-contract conformance E2E #242, rotation M9.1 #263 (PageRecord fields,
+POST /rotate, rotation-badge, rotate buttons wired).
+
 See `docs/ROADMAP.md` for per-slice details.
 
 ## Specs

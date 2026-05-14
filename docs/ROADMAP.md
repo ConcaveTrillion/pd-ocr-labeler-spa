@@ -402,6 +402,23 @@ ambiguous as an OPEN_QUESTIONS.md entry first.
   `normalize-gt-matching-checkbox`, `normalize-plaintext-checkbox`,
   `normalize-profile-select` (greyed out, v1 ascii-only). Toggles disabled+message when
   pd-book-tools normalize absent. 18 frontend tests + 4 backend tests.
+- [x] **#241 (2026-05-14)** Driver-contract audit: rename testids in LineCard
+  (`line-gt-to-ocr-button-{n}`, `line-ocr-to-gt-button-{n}`, `line-validate-button-{n}`,
+  `line-delete-button-{n}`), WordCell (`gt-text-input-{l}-{w}`, `ocr-text-label-{l}-{w}`,
+  `word-status-icon-{l}-{w}`, `word-tag-chip-{l}-{w}-{label}`, `edit-word-button-{l}-{w}`),
+  TextTabs (`match-filter-toggle`). Add hidden stubs (display:none, data-testid-stub=true) in
+  OCRConfigModal and ProjectPage for all unimplemented driver-contract elements.
+- [x] **#247 (2026-05-14)** E2E conftest + helpers + tiny-fixture + smoke canary:
+  `tests/e2e/conftest.py` (`LiveServer`, `_pick_free_port`, `_wait_until`, `_install_tiny_fixture`),
+  `tests/e2e/helpers.py` (`wait_for_app_ready`, `load_project`, `wait_for_page_loaded`, `click_word_edit`),
+  tiny-fixture (3 PNG pages, pages.json, pre-OCR'd envelopes), `tests/e2e/test_smoke.py` (5 tests).
+- [x] **#242 (2026-05-14)** Driver-contract conformance E2E test: `tests/e2e/test_driver_contract.py`
+  (6 tests: app shell renders, header testids, stub testids present/have-stub-attr,
+  project page route + URL invariant, text-tabs testids).
+- [x] **#263 (2026-05-14)** Rotation M9.1: `RotationSource` enum + `PageRecord.rotation_degrees` /
+  `rotation_source` fields. `POST /api/projects/{id}/pages/{idx}/rotate` (202+job; degrees -90|90|180).
+  `rotate_page` job handler stub. `rotation-badge` in PageActions (always in DOM, hidden when
+  degrees=0, gray=auto/blue=manual, auto-click fires revert). Rotate buttons wired. 10 backend tests.
 
 ## Iteration index (this repo)
 
