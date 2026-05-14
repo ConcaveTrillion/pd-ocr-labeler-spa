@@ -23,10 +23,6 @@ from fastapi.testclient import TestClient
 from pd_ocr_labeler_spa.bootstrap import build_app
 from pd_ocr_labeler_spa.settings import Settings
 
-# ──────────────────────────────────────────────────────────────────────
-# Fixtures
-# ──────────────────────────────────────────────────────────────────────
-
 
 def _make_settings(tmp_path: Path, **overrides: object) -> Settings:
     base: dict[str, object] = {
@@ -75,11 +71,6 @@ def bare_client(tmp_path: Path) -> Iterator[TestClient]:
         yield c
 
 
-# ──────────────────────────────────────────────────────────────────────
-# GET /api/projects/{pid}/pages/{idx}  # noqa: ERA001
-# ──────────────────────────────────────────────────────────────────────
-
-
 def test_get_page_returns_404_when_no_project_loaded(bare_client: TestClient) -> None:
     """No project loaded → 404 project_not_found."""
     resp = bare_client.get("/api/projects/book1/pages/0")
@@ -113,11 +104,6 @@ def test_get_page_returns_501_for_valid_index(
     assert resp.status_code == 501
 
 
-# ──────────────────────────────────────────────────────────────────────
-# POST /api/projects/{pid}/pages/{idx}/save  # noqa: ERA001
-# ──────────────────────────────────────────────────────────────────────
-
-
 def test_post_save_page_returns_404_when_no_project(bare_client: TestClient) -> None:
     resp = bare_client.post("/api/projects/book1/pages/0/save", json={})
     assert resp.status_code == 404
@@ -132,11 +118,6 @@ def test_post_save_page_returns_501_for_loaded_project(
     assert resp.status_code == 501
 
 
-# ──────────────────────────────────────────────────────────────────────
-# POST /api/projects/{pid}/pages/{idx}/load  # noqa: ERA001
-# ──────────────────────────────────────────────────────────────────────
-
-
 def test_post_load_page_returns_404_when_no_project(bare_client: TestClient) -> None:
     resp = bare_client.post("/api/projects/book1/pages/0/load", json={})
     assert resp.status_code == 404
@@ -148,11 +129,6 @@ def test_post_load_page_returns_501_for_loaded_project(
 ) -> None:
     resp = loaded_client.post("/api/projects/book1/pages/0/load", json={})
     assert resp.status_code == 501
-
-
-# ──────────────────────────────────────────────────────────────────────
-# POST /api/projects/{pid}/pages/{idx}/reload-ocr → 202 + SSE
-# ──────────────────────────────────────────────────────────────────────
 
 
 def test_post_reload_ocr_returns_404_when_no_project(bare_client: TestClient) -> None:
@@ -218,11 +194,6 @@ def test_reload_ocr_sse_reaches_terminal_complete(tmp_path: Path, projects_root:
         assert terminal_seen, "SSE stream never delivered a terminal event"
 
 
-# ──────────────────────────────────────────────────────────────────────
-# POST /api/projects/{pid}/save-all → 202 + job
-# ──────────────────────────────────────────────────────────────────────
-
-
 def test_post_save_all_returns_404_when_no_project(bare_client: TestClient) -> None:
     resp = bare_client.post("/api/projects/book1/save-all", json={})
     assert resp.status_code == 404
@@ -267,11 +238,6 @@ def test_save_all_sse_reaches_terminal_complete(tmp_path: Path, projects_root: P
         assert terminal_seen, "save-all SSE never delivered terminal event"
 
 
-# ──────────────────────────────────────────────────────────────────────
-# DELETE /api/projects/{pid}  # noqa: ERA001
-# ──────────────────────────────────────────────────────────────────────
-
-
 def test_delete_project_returns_404_when_not_loaded(bare_client: TestClient) -> None:
     resp = bare_client.delete("/api/projects/book1")
     assert resp.status_code == 404
@@ -306,20 +272,10 @@ def test_delete_project_returns_404_when_id_mismatches(
     assert resp.json()["error"] == "project_not_found"
 
 
-# ──────────────────────────────────────────────────────────────────────
-# POST /api/projects/source-root (stub)  # noqa: ERA001
-# ──────────────────────────────────────────────────────────────────────
-
-
 def test_post_source_root_returns_501(bare_client: TestClient) -> None:
     """source-root endpoint exists (deferred to M2-proper config milestone)."""
     resp = bare_client.post("/api/projects/source-root", json={"path": "/some/path"})
     assert resp.status_code == 501
-
-
-# ──────────────────────────────────────────────────────────────────────
-# Legacy-path redirects (acceptance bullet 3)
-# ──────────────────────────────────────────────────────────────────────
 
 
 def test_legacy_project_path_redirects_301(bare_client: TestClient) -> None:
@@ -333,11 +289,6 @@ def test_legacy_project_path_with_page_redirects(bare_client: TestClient) -> Non
     """GET /project/foo/page/3 → 301."""
     resp = bare_client.get("/project/foo/page/3", follow_redirects=False)
     assert resp.status_code == 301
-
-
-# ──────────────────────────────────────────────────────────────────────
-# Jobs API (smoke)
-# ──────────────────────────────────────────────────────────────────────
 
 
 def test_get_jobs_returns_list(bare_client: TestClient) -> None:
