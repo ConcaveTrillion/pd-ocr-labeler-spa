@@ -68,6 +68,11 @@ from pd_ocr_labeler_spa.core.persistence.paths import (
 
 logger = logging.getLogger(__name__)
 
+# Once-per-session sentinel for v2.2 write warning (issue #265).
+# Set to True after the first v2.2 envelope serialisation to suppress
+# duplicate warnings within the same process lifetime.
+_v22_warn_emitted: bool = False
+
 # Supported major version for UserPageEnvelope. Any envelope whose schema
 # version does NOT start with this major (e.g. "3.0", "1.0") is rejected
 # with IncompatibleEnvelopeError. Additive minor/patch bumps within the
@@ -79,6 +84,7 @@ _KNOWN_VERSIONS = ["2.1", "2.2"]
 
 USER_PAGE_SCHEMA_NAME = "pd_ocr_labeler.user_page"
 USER_PAGE_SCHEMA_VERSION = "2.1"
+USER_PAGE_SCHEMA_VERSION_ROTATION = "2.2"
 
 # Legacy default-value sentinels. Lifted to module scope so writers
 # producing an envelope from scratch can reuse them without re-typing
@@ -321,9 +327,11 @@ class UserPageSource:
     """``envelope["source"]`` block. Legacy ref: 225-266.
 
     v2.2 rotation fields (``rotation_degrees`` / ``rotation_source``)
-    are silently passed through the reader via ``.get()`` semantics —
-    they are NOT explicit dataclass fields at this slice. M9 wires
-    them when manual + auto rotation lands.
+    added by issue #265.  When non-default they are emitted in
+    ``to_dict()`` and the top-level schema version is bumped to ``"2.2"``
+    by ``envelope_to_dict``.  Default values (0 / "none") keep the
+    output identical to a v2.1 legacy file so the round-trip identity
+    invariant (D-003) is preserved for pages that have never been rotated.
     """
 
     project_id: str = ""
@@ -332,6 +340,9 @@ class UserPageSource:
     image_path: str = ""
     project_root: str | None = None
     image_fingerprint: SourceImageFingerprint | None = None
+    # v2.2 rotation fields (issue #265). Default values match an un-rotated page.
+    rotation_degrees: int = 0
+    rotation_source: str = "none"
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {
@@ -344,6 +355,12 @@ class UserPageSource:
             result["project_root"] = self.project_root
         if self.image_fingerprint:
             result["image_fingerprint"] = self.image_fingerprint.to_dict()
+        # Only emit rotation fields when non-default to preserve v2.1
+        # round-trip identity for pages that have never been rotated.
+        if self.rotation_degrees != 0:
+            result["rotation_degrees"] = self.rotation_degrees
+        if self.rotation_source != "none":
+            result["rotation_source"] = self.rotation_source
         return result
 
     @classmethod
@@ -359,6 +376,8 @@ class UserPageSource:
             image_path=str(data.get("image_path", "")),
             project_root=(str(data["project_root"]) if data.get("project_root") is not None else None),
             image_fingerprint=image_fingerprint,
+            rotation_degrees=int(data.get("rotation_degrees", 0)),
+            rotation_source=str(data.get("rotation_source", "none")),
         )
 
 
@@ -548,8 +567,37 @@ def envelope_to_dict(envelope: UserPageEnvelope) -> dict[str, Any]:
     invariant: legacy never writes ``"original_page": null``, so the
     SPA must not either, otherwise re-saved files diverge from
     legacy-saved files in the same project.
+
+    v2.2 promotion (issue #265): when ``source.rotation_degrees != 0``
+    or ``source.rotation_source != "none"``, the schema version is
+    promoted to ``"2.2"`` in the output dict and a WARN is emitted once
+    per session (guarded by ``_v22_warn_emitted``).  The promotion is
+    done on the dict level so the ``UserPageEnvelope`` dataclass itself
+    remains version-agnostic (the writer decides the version based on
+    content, just as the legacy labeler wrote v2.1 without an explicit
+    call to "set v2.1").
     """
-    return envelope.to_dict()
+    global _v22_warn_emitted
+
+    result = envelope.to_dict()
+
+    is_rotated = envelope.source.rotation_degrees != 0 or envelope.source.rotation_source != "none"
+    if is_rotated:
+        # Promote schema version to v2.2 in the output.
+        result["schema"] = dict(result.get("schema", {}))
+        result["schema"]["version"] = USER_PAGE_SCHEMA_VERSION_ROTATION
+        # WARN once per session (issue #265 acceptance bullet 4).
+        if not _v22_warn_emitted:
+            logger.warning(
+                "Writing envelope schema v2.2 (rotation_degrees=%d, rotation_source=%r). "
+                "Legacy pd-ocr-labeler tolerates extra source fields via .get() semantics "
+                "(Q-A1 option A confirmed). This warning is emitted once per session.",
+                envelope.source.rotation_degrees,
+                envelope.source.rotation_source,
+            )
+            _v22_warn_emitted = True
+
+    return result
 
 
 # ── path helpers (slice 8b-iv) ───────────────────────────────────────────
@@ -799,6 +847,7 @@ __all__ = [
     "USER_PAGE_SAVED_BY_SAVE_PAGE",
     "USER_PAGE_SCHEMA_NAME",
     "USER_PAGE_SCHEMA_VERSION",
+    "USER_PAGE_SCHEMA_VERSION_ROTATION",
     "USER_PAGE_SOURCE_LANE_CACHED",
     "USER_PAGE_SOURCE_LANE_LABELED",
     "OCRModelProvenance",

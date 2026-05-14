@@ -857,3 +857,182 @@ def test_build_envelope_in_public_api() -> None:
     from pd_ocr_labeler_spa.core.persistence import user_page_envelope as mod
 
     assert "build_envelope" in mod.__all__
+
+
+# ── issue #265: envelope v2.2 rotation fields + legacy compat ────────────
+
+
+# A v2.2 envelope with rotation fields present in ``source``.
+V22_ENVELOPE_WITH_ROTATION: dict[str, Any] = {
+    "schema": {"name": "pd_ocr_labeler.user_page", "version": "2.2"},
+    "provenance": {
+        "saved_at": "2026-05-14T10:00:00.000Z",
+        "saved_by": "Save Page",
+        "source_lane": "labeled",
+        "app": {"name": "pd_ocr_labeler_spa", "version": "0.1.0"},
+        "toolchain": {"python": "3.13.1", "pd_book_tools": "0.5.0"},
+        "ocr": {"engine": "doctr", "models": []},
+    },
+    "source": {
+        "project_id": "the_four_men",
+        "page_index": 0,
+        "page_number": 1,
+        "image_path": "001.png",
+        "rotation_degrees": 90,
+        "rotation_source": "auto",
+    },
+    "payload": {"page": {"index": 0}},
+}
+
+
+def test_legacy_labeler_tolerates_v22_rotation_fields() -> None:
+    """Q-A1 resolution (option A): legacy ``UserPageEnvelope.from_dict``
+    uses ``.get()`` throughout — extra fields like ``rotation_degrees``
+    and ``rotation_source`` are silently ignored.  The legacy labeler
+    must not crash when opening a v2.2 file written by the SPA.
+
+    The legacy model module (``user_page_persistence.py``) uses pure
+    stdlib dataclasses with ``.get()`` semantics — no Pydantic.  We
+    verify this property directly by calling ``from_dict`` with a v2.2
+    dict that contains ``rotation_degrees`` and ``rotation_source`` in
+    ``source``.  The assertion that no crash occurs is the proof that
+    option A (v2.2 envelope, not sidecar) is safe.
+
+    Legacy ref: ``pd-ocr-labeler/pd_ocr_labeler/models/user_page_persistence.py``.
+    """
+    import importlib.util
+    import sys
+    from pathlib import Path
+
+    legacy_model_path = (
+        Path(__file__).parents[5]
+        / "pd-ocr-labeler"
+        / "pd_ocr_labeler"
+        / "models"
+        / "user_page_persistence.py"
+    )
+    assert legacy_model_path.exists(), f"Legacy model file not found: {legacy_model_path}"
+    mod_name = "pd_ocr_labeler.models.user_page_persistence"
+    spec = importlib.util.spec_from_file_location(mod_name, legacy_model_path)
+    assert spec is not None and spec.loader is not None
+    legacy_mod = importlib.util.module_from_spec(spec)
+    sys.modules[mod_name] = legacy_mod
+    try:
+        spec.loader.exec_module(legacy_mod)  # type: ignore[union-attr]
+        legacy_envelope_cls = legacy_mod.UserPageEnvelope  # type: ignore[attr-defined]
+        # Must not raise even though v2.2 has extra fields unknown to legacy.
+        legacy_env = legacy_envelope_cls.from_dict(V22_ENVELOPE_WITH_ROTATION)
+        # Known fields parse correctly; extra rotation fields are silently ignored.
+        assert legacy_env.source.project_id == "the_four_men"
+        assert legacy_env.source.page_index == 0
+        assert legacy_env.schema.version == "2.2"
+    finally:
+        sys.modules.pop(mod_name, None)
+
+
+def test_rotation_fields_parse_in_spa_envelope() -> None:
+    """``UserPageSource`` reads ``rotation_degrees`` and
+    ``rotation_source`` from a v2.2 dict.  These are the explicit
+    fields added by this issue."""
+    env = parse_envelope(V22_ENVELOPE_WITH_ROTATION)
+    assert env.source.rotation_degrees == 90
+    assert env.source.rotation_source == "auto"
+
+
+def test_rotation_fields_default_to_none_defaults() -> None:
+    """v2.1 envelopes without rotation fields parse to defaults:
+    ``rotation_degrees=0``, ``rotation_source="none"``."""
+    data: dict[str, Any] = {
+        "schema": {"name": "pd_ocr_labeler.user_page", "version": "2.1"},
+        "source": {
+            "project_id": "p",
+            "page_index": 0,
+            "page_number": 1,
+            "image_path": "001.png",
+        },
+        "payload": {"page": {}},
+    }
+    env = parse_envelope(data)
+    assert env.source.rotation_degrees == 0
+    assert env.source.rotation_source == "none"
+
+
+def test_rotation_fields_round_trip() -> None:
+    """``rotation_degrees`` and ``rotation_source`` survive
+    parse → envelope_to_dict → re-parse (the save+reload cycle)."""
+    env = parse_envelope(V22_ENVELOPE_WITH_ROTATION)
+    out = envelope_to_dict(env)
+    env2 = parse_envelope(out)
+    assert env2.source.rotation_degrees == 90
+    assert env2.source.rotation_source == "auto"
+
+
+def test_v22_schema_version_emitted_when_rotation_nondefault() -> None:
+    """When ``rotation_degrees != 0`` the serialised schema version must
+    be ``"2.2"`` so legacy readers can detect the format bump."""
+    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import UserPageSource
+
+    env = UserPageEnvelope(
+        schema=UserPageSchema(version="2.2"),
+        provenance=UserPageProvenance(saved_at="2026-05-14T00:00:00Z"),
+        source=UserPageSource(
+            project_id="p",
+            page_index=0,
+            page_number=1,
+            image_path="001.png",
+            rotation_degrees=90,
+            rotation_source="auto",
+        ),
+        payload=UserPagePayload(page={}),
+    )
+    out = envelope_to_dict(env)
+    assert out["schema"]["version"] == "2.2"
+    assert out["source"]["rotation_degrees"] == 90
+    assert out["source"]["rotation_source"] == "auto"
+
+
+def test_rotation_fields_omitted_when_default() -> None:
+    """When ``rotation_degrees=0`` and ``rotation_source='none'``
+    (the defaults), the writer omits them from the ``source`` block
+    so that v2.1 readers and legacy parsers are unaffected."""
+    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import UserPageSource
+
+    env = UserPageEnvelope(
+        schema=UserPageSchema(version="2.1"),
+        provenance=UserPageProvenance(saved_at="2026-05-14T00:00:00Z"),
+        source=UserPageSource(
+            project_id="p",
+            page_index=0,
+            page_number=1,
+            image_path="001.png",
+        ),
+        payload=UserPagePayload(page={}),
+    )
+    out = envelope_to_dict(env)
+    assert "rotation_degrees" not in out["source"]
+    assert "rotation_source" not in out["source"]
+
+
+def test_warn_logged_once_on_first_v22_write(caplog: Any) -> None:
+    """A WARN-level log is emitted exactly once per session on the
+    first write of a v2.2 envelope.  Subsequent writes at the same
+    session level do NOT emit the warning again (once-per-session).
+
+    Spec: issue #265 acceptance bullet 4.
+    """
+    import logging
+
+    from pd_ocr_labeler_spa.core.persistence import user_page_envelope as mod
+
+    # Reset the per-session flag so this test is order-independent.
+    mod._v22_warn_emitted = False
+
+    with caplog.at_level(logging.WARNING, logger="pd_ocr_labeler_spa.core.persistence.user_page_envelope"):
+        env1 = parse_envelope(V22_ENVELOPE_WITH_ROTATION)
+        _ = envelope_to_dict(env1)
+        _ = envelope_to_dict(env1)  # second call — should NOT add another warning
+
+    warn_records = [r for r in caplog.records if r.levelno == logging.WARNING and "2.2" in r.message]
+    assert len(warn_records) == 1, (
+        f"Expected exactly 1 warning, got {len(warn_records)}: {[r.message for r in warn_records]}"
+    )
