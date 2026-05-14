@@ -58,7 +58,7 @@ end users can swap binaries without re-learning the command. The
 other two scripts get the `-spa-` suffix to avoid collision with
 legacy when both are installed.
 
-(Decision flag: if [Q1](../OPEN_QUESTIONS.md) resolves "no transition
+(Decision flag: if [Q1](../../OPEN_QUESTIONS.md) resolves "no transition
 period — hard cut", we drop the suffix and shadow the legacy.)
 
 ---
@@ -460,7 +460,7 @@ make release         Tag + push (manual; CI handles wheel/container)
 ## 15. Dev-local mode + safe `upgrade-deps` (deferred)
 
 **Status.** Deferred until the `Makefile` lands
-(see [`16-milestones.md`](16-milestones.md) M0). Captured here so the
+(see [`16-milestones.md`](../../specs/16-milestones.md) M0). Captured here so the
 requirement is not lost when the Makefile is authored. Workspace-wide
 standard agreed 2026-05-07; mirrored across all `pd-*` repos.
 
@@ -525,7 +525,7 @@ recipe above.
 
 ### 15.3 Spec for the implementation milestone
 
-When this lands (planned M0; see [`16-milestones.md`](16-milestones.md)),
+When this lands (planned M0; see [`16-milestones.md`](../../specs/16-milestones.md)),
 the Makefile must include:
 
 - `upgrade-deps` — canonical recipe, gated by the detection above.

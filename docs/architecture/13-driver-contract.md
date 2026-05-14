@@ -49,7 +49,7 @@ canonical URL the SPA emits to the browser bar is the `pageno` form
 | `/project/{id}/page/{n}` | `301` | `/projects/{id}/pages/pageno/{n}` |
 
 All legacy redirects emit `301 Moved Permanently` per
-[D-035](17-decisions.md) (resolves Q-A4). 308 was on the table but
+[D-035](../../specs/17-decisions.md) (resolves Q-A4). 308 was on the table but
 offers no benefit for the GET-only SPA routes here.
 
 ### 1.3 Edge cases
@@ -76,7 +76,7 @@ but legacy URLs continue to work indefinitely via the 301.
 
 Every entry below must exist in the SPA after a project is loaded.
 Any testid the legacy has that we want to retire requires
-[OPEN_QUESTIONS.md](../OPEN_QUESTIONS.md) approval before it's dropped.
+[OPEN_QUESTIONS.md](../../OPEN_QUESTIONS.md) approval before it's dropped.
 
 ### 2.1 Header bar / project load
 

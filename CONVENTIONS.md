@@ -138,11 +138,11 @@ contract; the file is its artifact.
 
 ---
 
-## Rule: data-testid values must match specs/13-driver-contract.md exactly
+## Rule: data-testid values must match docs/architecture/13-driver-contract.md exactly
 
 **The rule.** Every interactive element visible to the Playwright driver
 must carry the exact `data-testid` string listed in
-`specs/13-driver-contract.md`. Do not invent new testids without first
+`docs/architecture/13-driver-contract.md`. Do not invent new testids without first
 adding them to that spec; do not rename or remove existing ones without
 explicit approval (see spec §9 versioning).
 

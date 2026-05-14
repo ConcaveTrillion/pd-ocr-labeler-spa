@@ -142,7 +142,7 @@ Important: the **legacy** routes the first three styles
 (`italics`/`small_caps`/`blackletter`) through a legacy 5-bool API.
 The SPA backend collapses this into a single `apply_style` API; the
 SPA frontend doesn't need to know about the legacy split. ([Q14
-Reso](../OPEN_QUESTIONS.md))
+Reso](../../OPEN_QUESTIONS.md))
 
 ---
 
@@ -207,7 +207,7 @@ When focus is in the matches view, the toolbar listens for:
 - `U` — Unvalidate selected
 - `M` — Merge selected (when applicable)
 
-These are new ([D-022](17-decisions.md)). Full list in
+These are new ([D-022](../../specs/17-decisions.md)). Full list in
 [`12-hotkeys-a11y.md`](12-hotkeys-a11y.md).
 
 ---

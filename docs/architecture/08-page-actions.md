@@ -265,7 +265,7 @@ legacy depends on this distinction.
 | `Ctrl+G` | Rematch GT (with confirm — destructive) |
 | `Ctrl+E` | Open Export dialog |
 
-These are **new** ([Q10](../OPEN_QUESTIONS.md)).
+These are **new** ([Q10](../../OPEN_QUESTIONS.md)).
 
 `Ctrl` is the natural metakey on Linux/Windows; on macOS, the SPA
 uses `Cmd` automatically via `react-hotkeys-hook`'s `Mod+` syntax.

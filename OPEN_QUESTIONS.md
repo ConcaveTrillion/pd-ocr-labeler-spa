@@ -20,7 +20,7 @@ line links the resulting ADR and the entry moves to the archive.
 ### Q-A14 — M4 renderer: must Konva be validated by spike before M4 starts?
 > GitHub: ConcaveTrillion/pd-ocr-labeler-spa#55
 
-**Q.** Spec 04 (`specs/04-image-viewport.md`) is written for Konva, but explicitly
+**Q.** Spec 04 (`docs/architecture/04-image-viewport.md`) is written for Konva, but explicitly
 notes that a spike at M4 start may recommend raw canvas instead. Must the spike be
 completed and an ADR committed to `specs/17-decisions.md` *before* any M4 component
 code is written? And if the spike recommends raw canvas, how much of spec 04 needs

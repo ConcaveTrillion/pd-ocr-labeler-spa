@@ -7,7 +7,7 @@
 Every Pydantic, dataclass, and on-disk JSON schema. **Compatibility
 with the legacy `pd-ocr-labeler` is mandatory** for everything the
 labeler reads or writes from the user's data root, because the same
-data root is shared during transition ([D-003](17-decisions.md)).
+data root is shared during transition ([D-003](../../specs/17-decisions.md)).
 
 Conventions:
 
@@ -742,7 +742,7 @@ emits anything the legacy can't read.
 
 Same rules as legacy `persistence_paths_operations.py`. The directory
 *name* is intentionally `pd-ocr-labeler` (not `-spa`) — see
-[D-003](17-decisions.md). Override via `PDLABELER_DATA_ROOT`, etc.,
+[D-003](../../specs/17-decisions.md). Override via `PDLABELER_DATA_ROOT`, etc.,
 in [`02-backend.md`](02-backend.md).
 
 ---

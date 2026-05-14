@@ -38,7 +38,7 @@ densest piece of UI in the labeler and the most performance-sensitive.
 ```
 
 The Matches tab is the default. Plain textarea tabs replace legacy
-CodeMirror ([D-008](17-decisions.md)).
+CodeMirror ([D-008](../../specs/17-decisions.md)).
 
 ---
 

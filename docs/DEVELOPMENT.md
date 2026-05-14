@@ -174,7 +174,7 @@ of resolved work. The same was happening to `OPEN_QUESTIONS.md`. The
 
 ## Useful references
 
-- [`specs/00-overview.md`](../specs/00-overview.md) — goals, non-goals,
+- [`docs/architecture/00-overview.md`](architecture/00-overview.md) — goals, non-goals,
   tech stack, milestone contract.
 - [`specs/16-milestones.md`](../specs/16-milestones.md) — milestone
   acceptance gates.

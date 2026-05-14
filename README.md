@@ -50,10 +50,10 @@ A React SPA with a typed FastAPI backend gives:
 Almost nothing. The same `pd-ocr-labeler-ui` console script keeps
 working; the page tree under `/`, `/project/{id}`, and
 `/project/{id}/page/{n}` remains stable; every `data-testid` carries
-over (see [`specs/13-driver-contract.md`](specs/13-driver-contract.md)).
+over (see [`docs/architecture/13-driver-contract.md`](docs/architecture/13-driver-contract.md)).
 Saved-project files (`<project>_NNN.json`) are read and written in the
 same `pd_ocr_labeler.user_page` v2.1 envelope (see
-[`specs/01-data-models.md`](specs/01-data-models.md)).
+[`docs/architecture/01-data-models.md`](docs/architecture/01-data-models.md)).
 
 ## Repository layout (planned)
 
@@ -98,26 +98,41 @@ pd-ocr-labeler-spa/
 
 ## Spec index
 
+Specs are split into two trees as of 2026-05-14:
+
+- **`specs/`** — active design docs (living roadmap, ADR log, unimplemented work).
+- **`docs/architecture/`** — specs that describe **implemented** functionality.
+
+### Active specs (`specs/`)
+
 | Spec | Topic |
 |---|---|
-| [`00-overview.md`](specs/00-overview.md) | Goals, non-goals, tech stack, milestone contract |
-| [`01-data-models.md`](specs/01-data-models.md) | Pydantic + on-disk schemas |
-| [`02-backend.md`](specs/02-backend.md) | FastAPI router map, endpoint contract |
-| [`03-frontend.md`](specs/03-frontend.md) | React shell, routing, state, generated client |
-| [`04-image-viewport.md`](specs/04-image-viewport.md) | Konva canvas, overlays, drag modes |
-| [`05-word-matches.md`](specs/05-word-matches.md) | Right-pane line cards + per-word editing |
-| [`06-toolbar-actions.md`](specs/06-toolbar-actions.md) | Scope-action grid, style/component apply, add-word |
-| [`07-word-edit-dialog.md`](specs/07-word-edit-dialog.md) | Preview, nudge, crop, refine, erase |
-| [`08-page-actions.md`](specs/08-page-actions.md) | Reload OCR / Save / Load / Rematch GT |
-| [`09-persistence.md`](specs/09-persistence.md) | UserPageEnvelope, image cache, session state |
-| [`10-export.md`](specs/10-export.md) | DocTR export dialog + endpoint |
-| [`11-notifications.md`](specs/11-notifications.md) | Toast queue, busy overlays, SSE jobs |
-| [`12-hotkeys-a11y.md`](specs/12-hotkeys-a11y.md) | Keybinding catalogue + a11y rules |
-| [`13-driver-contract.md`](specs/13-driver-contract.md) | data-testid + URL invariants for `pd-ocr-labeler-driver` |
-| [`14-testing.md`](specs/14-testing.md) | pytest + Vitest + Playwright strategy |
-| [`15-deployment-dev.md`](specs/15-deployment-dev.md) | Build, devcontainer, install |
-| [`16-milestones.md`](specs/16-milestones.md) | M0…M9 milestone breakdown |
-| [`17-decisions.md`](specs/17-decisions.md) | ADRs / open decisions log |
+| [`16-milestones.md`](specs/16-milestones.md) | M0…M9 milestone breakdown (living) |
+| [`17-decisions.md`](specs/17-decisions.md) | ADRs / decisions log (append-only) |
+| [`20-glyph-annotations.md`](specs/20-glyph-annotations.md) | Glyph-level annotations (not yet implemented; blocked on `pd-book-tools` upstream) |
+
+### Architecture (implemented — `docs/architecture/`)
+
+| Spec | Topic |
+|---|---|
+| [`00-overview.md`](docs/architecture/00-overview.md) | Goals, non-goals, tech stack, milestone contract |
+| [`01-data-models.md`](docs/architecture/01-data-models.md) | Pydantic + on-disk schemas |
+| [`02-backend.md`](docs/architecture/02-backend.md) | FastAPI router map, endpoint contract |
+| [`03-frontend.md`](docs/architecture/03-frontend.md) | React shell, routing, state, generated client |
+| [`04-image-viewport.md`](docs/architecture/04-image-viewport.md) | Konva canvas, overlays, drag modes |
+| [`05-word-matches.md`](docs/architecture/05-word-matches.md) | Right-pane line cards + per-word editing |
+| [`06-toolbar-actions.md`](docs/architecture/06-toolbar-actions.md) | Scope-action grid, style/component apply, add-word |
+| [`07-word-edit-dialog.md`](docs/architecture/07-word-edit-dialog.md) | Preview, nudge, crop, refine, erase |
+| [`08-page-actions.md`](docs/architecture/08-page-actions.md) | Reload OCR / Save / Load / Rematch GT |
+| [`09-persistence.md`](docs/architecture/09-persistence.md) | UserPageEnvelope, image cache, session state |
+| [`10-export.md`](docs/architecture/10-export.md) | DocTR export dialog + endpoint |
+| [`11-notifications.md`](docs/architecture/11-notifications.md) | Toast queue, busy overlays, SSE jobs |
+| [`12-hotkeys-a11y.md`](docs/architecture/12-hotkeys-a11y.md) | Keybinding catalogue + a11y rules |
+| [`13-driver-contract.md`](docs/architecture/13-driver-contract.md) | data-testid + URL invariants for `pd-ocr-labeler-driver` |
+| [`14-testing.md`](docs/architecture/14-testing.md) | pytest + Vitest + Playwright strategy |
+| [`15-deployment-dev.md`](docs/architecture/15-deployment-dev.md) | Build, devcontainer, install |
+| [`18-text-normalization.md`](docs/architecture/18-text-normalization.md) | Long-S / ligature normalization |
+| [`19-auto-rotation.md`](docs/architecture/19-auto-rotation.md) | Manual + auto page rotation |
 
 ## Quick start (just run the labeler)
 
@@ -143,7 +158,7 @@ instead.
 
 1. Read [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md) — these are decisions
    the spec authors deferred to the human. Resolve before starting M1.
-2. Read [`specs/00-overview.md`](specs/00-overview.md) for the
+2. Read [`docs/architecture/00-overview.md`](docs/architecture/00-overview.md) for the
    overall shape.
 3. For implementation: pick the next milestone in
    [`specs/16-milestones.md`](specs/16-milestones.md). Each milestone

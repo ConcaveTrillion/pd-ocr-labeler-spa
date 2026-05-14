@@ -1,7 +1,7 @@
 # CLAUDE — pd-ocr-labeler-spa
 
 FastAPI + React/Vite/TS replacement for the NiceGUI `pd-ocr-labeler`. Spec-driven,
-milestone-by-milestone implementation (M0…M9). Architecture: `specs/00-overview.md`.
+milestone-by-milestone implementation (M0…M9). Architecture: `docs/architecture/00-overview.md`.
 
 ## Commands
 
@@ -34,7 +34,7 @@ output for debugging.
 - Never `python -m pytest`. Always `uv run pytest` or `make test`.
   Bare `python`/`python3`/`.venv/bin/python` miss the venv.
 - Backend: FastAPI + uvicorn. Frontend: React 19 + Vite + TS + TanStack Query + Tailwind + Konva.
-- `data-testid` contract governs Playwright driver integration — see `specs/13-driver-contract.md`.
+- `data-testid` contract governs Playwright driver integration — see `docs/architecture/13-driver-contract.md`.
 - Modeled structurally on `../pd-prep-for-pgdp/` — consult it for scaffolding patterns.
 - `pd-book-tools` pinned in `pyproject.toml`; do not reach into its internals.
 - Specs are the source of truth. Code that disagrees with a spec is wrong — change the spec first.
@@ -71,7 +71,9 @@ See `docs/ROADMAP.md` for per-slice details.
 
 ## Specs
 
-Full spec set: `specs/00-overview.md` through `specs/20-*.md`. Canonical source of truth.
+Active specs live in `specs/` (milestones, ADR log, glyph-annotations).
+Implemented specs are under `docs/architecture/` (`00-overview.md` through
+`19-auto-rotation.md`, minus 16/17/20). All are canonical source of truth.
 Milestone acceptance gates: `specs/16-milestones.md`.
 
 ## Sibling repos

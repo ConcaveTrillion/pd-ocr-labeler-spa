@@ -30,7 +30,7 @@ then jump to the per-area spec for whatever you're implementing.
    `uv tool install pd-ocr-labeler-spa` and get a single binary that
    serves both API and SPA. ([`15-deployment-dev.md`](15-deployment-dev.md))
 5. **Milestone-implementable by AI agents.** Each milestone in
-   [`16-milestones.md`](16-milestones.md) is bounded enough that a
+   [`16-milestones.md`](../../specs/16-milestones.md) is bounded enough that a
    single coding agent can pick it up, deliver it, and verify against
    the acceptance tests in this spec set.
 
@@ -39,33 +39,33 @@ then jump to the per-area spec for whatever you're implementing.
 > **Scope freeze (2026-05-07).** Per user directive, the network /
 > multi-user / managed-adapter axes below are **deferred to the far
 > future**. Active milestones (M1–M9) are local-mode only. See
-> [D-042](17-decisions.md#d-042--postgresmanaged-adapter-axes-deferred-to-far-future-2026-05-07)
-> for the explicit list and rationale; [`docs/ROADMAP.md`](../docs/ROADMAP.md)
+> [D-042](../../specs/17-decisions.md#d-042--postgresmanaged-adapter-axes-deferred-to-far-future-2026-05-07)
+> for the explicit list and rationale; [`docs/ROADMAP.md`](../ROADMAP.md)
 > carries the same callout for the implementation tracker.
 
 - **No multi-user collaboration.** One user, possibly multiple browser
   tabs against the same backend, sharing in-memory state.
-  ([D-023](17-decisions.md), [D-042](17-decisions.md))
+  ([D-023](../../specs/17-decisions.md), [D-042](../../specs/17-decisions.md))
 - **No database / Postgres / SQLAlchemy.** Persistence is filesystem-
   only via atomic-rename JSON sidecars + `config.yaml`. No
   `database/` adapter axis, no migrations, no ORM. The schema seam is
   "ready if we ever add one" but adding one is far-future work.
-  ([D-042](17-decisions.md))
+  ([D-042](../../specs/17-decisions.md))
 - **No public API contract.** The REST surface is intentionally
   unstable across SPA versions. Internal use only — the SPA frontend
   and the driver agent are the only known consumers.
 - **No NiceGUI / Quasar.** Drop the entire NiceGUI stack. UI = React,
-  styling = Tailwind + shadcn/ui ([D-004](17-decisions.md)).
+  styling = Tailwind + shadcn/ui ([D-004](../../specs/17-decisions.md)).
 - **No DocTR replacement in v1.** OCR continues through `pd-book-tools` →
   DocTR via `local_doctr`. The full `IOCREngine` adapter axis
   (`local_doctr | modal | shared_container`) is wired in v1 with the
-  latter two as `NotImplementedYet` stubs ([D-018](17-decisions.md)).
+  latter two as `NotImplementedYet` stubs ([D-018](../../specs/17-decisions.md)).
 - **No new persistence schema.** `UserPageEnvelope` schema
   `pd_ocr_labeler.user_page` v2.1 is preserved byte-for-byte
   ([`09-persistence.md`](09-persistence.md)).
 - **No new image formats / coordinate systems.** Bbox geometry,
   refine algorithms, coordinate transforms are delegated unchanged to
-  `pd-book-tools` ([D-026](17-decisions.md); refactor delegated).
+  `pd-book-tools` ([D-026](../../specs/17-decisions.md); refactor delegated).
 
 ## Tech stack
 
@@ -76,10 +76,10 @@ then jump to the per-area spec for whatever you're implementing.
 | Web framework | **FastAPI** | Same as pgdp-prep. Native async, OpenAPI export, Pydantic v2. |
 | Server | **uvicorn[standard]** | Same as pgdp-prep. |
 | Persistence | **Filesystem only** | Single-user; no DB needed for v1. Schema seam ready if we ever add one. |
-| Storage adapter | **`IStorage` Protocol** with `filesystem` impl + `s3` `NotImplementedYet` stub | Image cache served via the adapter, not raw StaticFiles. ([D-019](17-decisions.md)) |
-| Auth | **`IAuth` Protocol**, `none` impl only | Seam in place; no JWT for v1. ([D-005](17-decisions.md)) |
-| OCR | `IOCREngine` Protocol + `local_doctr` impl + `modal` / `shared_container` `NotImplementedYet` stubs | Wraps `pd_book_tools.ocr.document.Document.from_image_ocr_via_doctr`. ([D-018](17-decisions.md)) |
-| Long jobs | **In-process job runner**, SSE for progress | Mirrors pgdp-prep `core/job_runner.py` minus DB persistence (in-memory dict is enough since we have no batch path). ([D-006](17-decisions.md)) |
+| Storage adapter | **`IStorage` Protocol** with `filesystem` impl + `s3` `NotImplementedYet` stub | Image cache served via the adapter, not raw StaticFiles. ([D-019](../../specs/17-decisions.md)) |
+| Auth | **`IAuth` Protocol**, `none` impl only | Seam in place; no JWT for v1. ([D-005](../../specs/17-decisions.md)) |
+| OCR | `IOCREngine` Protocol + `local_doctr` impl + `modal` / `shared_container` `NotImplementedYet` stubs | Wraps `pd_book_tools.ocr.document.Document.from_image_ocr_via_doctr`. ([D-018](../../specs/17-decisions.md)) |
+| Long jobs | **In-process job runner**, SSE for progress | Mirrors pgdp-prep `core/job_runner.py` minus DB persistence (in-memory dict is enough since we have no batch path). ([D-006](../../specs/17-decisions.md)) |
 | Logging | stdlib JSON + `RequestIdMiddleware` | Verbatim port from pgdp-prep. |
 
 ### Frontend
@@ -92,12 +92,12 @@ then jump to the per-area spec for whatever you're implementing.
 | Routing | **`react-router-dom` v7** | Same as pgdp-prep. |
 | Server state | **`@tanstack/react-query` v5** | Same as pgdp-prep. |
 | Local state | `useState` + `useReducer`; **`zustand`** for cross-page UI prefs (filter toggle, layer visibility, panel split). | pgdp-prep declares zustand but doesn't use it; we will. |
-| Styling | **Tailwind 3.4** + **shadcn/ui** primitives (`@radix-ui` under the hood) | Closes the "spec mentions shadcn but code doesn't use it" gap from pgdp-prep. ([D-004](17-decisions.md)) |
+| Styling | **Tailwind 3.4** + **shadcn/ui** primitives (`@radix-ui` under the hood) | Closes the "spec mentions shadcn but code doesn't use it" gap from pgdp-prep. ([D-004](../../specs/17-decisions.md)) |
 | Forms | None — controlled inputs + `useMutation` | Match pgdp-prep. Validate via Pydantic on the server, surface `details` array per-field via the toast system. |
 | Toasts | **`sonner`** | One-liner; pgdp-prep ships nothing for this. Closes the gap. |
-| Hotkeys | **`react-hotkeys-hook`** | Closes the legacy gap; see [`12-hotkeys-a11y.md`](12-hotkeys-a11y.md). ([D-009](17-decisions.md), [D-022](17-decisions.md)) |
-| Image canvas | **raw `<canvas>` (default)** with research spike at M4 to confirm | Konva is the alternate option; final choice deferred per [D-020](17-decisions.md). |
-| Plain editors | **`<textarea readOnly>`** + monospace CSS | Drop CodeMirror; not earning its weight. ([D-008](17-decisions.md)) |
+| Hotkeys | **`react-hotkeys-hook`** | Closes the legacy gap; see [`12-hotkeys-a11y.md`](12-hotkeys-a11y.md). ([D-009](../../specs/17-decisions.md), [D-022](../../specs/17-decisions.md)) |
+| Image canvas | **raw `<canvas>` (default)** with research spike at M4 to confirm | Konva is the alternate option; final choice deferred per [D-020](../../specs/17-decisions.md). |
+| Plain editors | **`<textarea readOnly>`** + monospace CSS | Drop CodeMirror; not earning its weight. ([D-008](../../specs/17-decisions.md)) |
 | Virtualisation | **`@tanstack/react-virtual`** | For the line-card list on heavy pages. (Q7 → resolved as part of frontend stack) |
 | Testing (unit) | **Vitest** + **@testing-library/react** | Same as pgdp-prep. |
 | HTTP mocking | **msw** | Same as pgdp-prep. |
@@ -214,7 +214,7 @@ Per-tab isolation in the SPA is moved to the **frontend**:
   (same `PageState` on the server) but each has independent UI.
 
 `PageState` mutations on the server fan out via SSE so other tabs
-viewing the same project converge eventually. ([D-023](17-decisions.md))
+viewing the same project converge eventually. ([D-023](../../specs/17-decisions.md))
 
 ---
 
@@ -254,7 +254,7 @@ applies uniformly. Examples:
 
 ## Milestone contract for AI agents
 
-Every milestone in [`16-milestones.md`](16-milestones.md) follows this
+Every milestone in [`16-milestones.md`](../../specs/16-milestones.md) follows this
 format:
 
 ```
@@ -309,4 +309,4 @@ session. If a milestone is too big, split it.
 | Roadmap | `16-milestones.md` |
 
 If a question isn't answered by the linked spec, **stop and add it to
-[`OPEN_QUESTIONS.md`](../OPEN_QUESTIONS.md)** rather than guessing.
+[`OPEN_QUESTIONS.md`](../../OPEN_QUESTIONS.md)** rather than guessing.

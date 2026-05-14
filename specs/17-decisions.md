@@ -35,7 +35,7 @@ settings.
 - Pydantic `BaseSettings` instantiated at module load. Rejected: tests
   would need monkey-patching env vars.
 
-**Refs.** [`02-backend.md`](02-backend.md) §2.
+**Refs.** [`02-backend.md`](../docs/architecture/02-backend.md) §2.
 
 ---
 
@@ -65,7 +65,7 @@ Vite + TypeScript SPA. Keep the FastAPI server.
 - Svelte. Rejected: pgdp-prep is React, two stacks doubles review
   cost.
 
-**Refs.** [`00-overview.md`](00-overview.md) §Tech stack.
+**Refs.** [`00-overview.md`](../docs/architecture/00-overview.md) §Tech stack.
 
 ---
 
@@ -99,7 +99,7 @@ flipping between them preserves user data.
   creates two live copies that diverge; the pidfile approach is
   simpler and avoids the dual-copy problem.
 
-**Refs.** [`OPEN_QUESTIONS.md Q1`](../OPEN_QUESTIONS.md), [`09-persistence.md`](09-persistence.md).
+**Refs.** [`OPEN_QUESTIONS.md Q1`](../OPEN_QUESTIONS.md), [`09-persistence.md`](../docs/architecture/09-persistence.md).
 
 ---
 
@@ -130,7 +130,7 @@ flipping between them preserves user data.
 - Headless UI. Rejected: smaller component set than Radix; less
   ecosystem.
 
-**Refs.** [`OPEN_QUESTIONS.md Q12`](../OPEN_QUESTIONS.md), [`03-frontend.md`](03-frontend.md) §11.
+**Refs.** [`OPEN_QUESTIONS.md Q12`](../OPEN_QUESTIONS.md), [`03-frontend.md`](../docs/architecture/03-frontend.md) §11.
 
 ---
 
@@ -153,7 +153,7 @@ defer JWT/PKCE adapters indefinitely.
 - No `IAuth` seam at all. Rejected: the Protocol costs nothing now and
   avoids a large refactor if auth ever lands.
 
-**Refs.** [`OPEN_QUESTIONS.md Q2`](../OPEN_QUESTIONS.md), [`02-backend.md`](02-backend.md) §7.
+**Refs.** [`OPEN_QUESTIONS.md Q2`](../OPEN_QUESTIONS.md), [`02-backend.md`](../docs/architecture/02-backend.md) §7.
 
 ---
 
@@ -181,7 +181,7 @@ synchronous JSON over HTTP.
 - Pure async HTTP with `202 Accepted` + subsequent GET. Rejected:
   requires extra round-trips; SSE is cleaner for streaming progress.
 
-**Refs.** [`OPEN_QUESTIONS.md Q3`](../OPEN_QUESTIONS.md), [`02-backend.md`](02-backend.md) §11.
+**Refs.** [`OPEN_QUESTIONS.md Q3`](../OPEN_QUESTIONS.md), [`02-backend.md`](../docs/architecture/02-backend.md) §11.
 
 ---
 
@@ -219,7 +219,8 @@ else.
   performance concerns as DOM; Konva already in the dep tree via
   pgdp-prep.
 
-**Refs.** [`OPEN_QUESTIONS.md Q6`](../OPEN_QUESTIONS.md), [`04-image-viewport.md`](04-image-viewport.md) §7.
+**Refs.** [`OPEN_QUESTIONS.md Q6`](../OPEN_QUESTIONS.md),
+[`04-image-viewport.md`](../docs/architecture/04-image-viewport.md) §7.
 
 ---
 
@@ -244,7 +245,8 @@ with monospace CSS. Drop CodeMirror.
 - Use Monaco editor (VS Code engine). Rejected: even heavier bundle;
   designed for code editing, not plain OCR text display.
 
-**Refs.** [`OPEN_QUESTIONS.md Q8`](../OPEN_QUESTIONS.md), [`05-word-matches.md`](05-word-matches.md) §1.
+**Refs.** [`OPEN_QUESTIONS.md Q8`](../OPEN_QUESTIONS.md),
+[`05-word-matches.md`](../docs/architecture/05-word-matches.md) §1.
 
 ---
 
@@ -270,7 +272,8 @@ in v1. Use `react-hotkeys-hook`.
   `react-hotkeys-hook` handles scope/focus management and chord
   sequences; rolling bespoke hotkey logic is error-prone.
 
-**Refs.** [`OPEN_QUESTIONS.md Q10`](../OPEN_QUESTIONS.md), [`12-hotkeys-a11y.md`](12-hotkeys-a11y.md).
+**Refs.** [`OPEN_QUESTIONS.md Q10`](../OPEN_QUESTIONS.md),
+[`12-hotkeys-a11y.md`](../docs/architecture/12-hotkeys-a11y.md).
 
 ---
 
@@ -294,7 +297,8 @@ for SPA routes, byte-identical to legacy.
 - Use 0-based indices. Rejected: the legacy and human-visible bookmarks
   all use 1-based; changing would confuse users comparing URLs.
 
-**Refs.** [`OPEN_QUESTIONS.md Q19`](../OPEN_QUESTIONS.md), [`13-driver-contract.md`](13-driver-contract.md) §1.
+**Refs.** [`OPEN_QUESTIONS.md Q19`](../OPEN_QUESTIONS.md),
+[`13-driver-contract.md`](../docs/architecture/13-driver-contract.md) §1.
 
 *Note: superseded by D-030, which adopts pgdp-prep plural convention with legacy 301 redirects.*
 
@@ -327,7 +331,7 @@ SQLite jobs table. Server restart drops in-flight jobs.
 - Redis as a job store. Rejected: external process dependency for a
   desktop tool; overkill for the single-user, single-process shape.
 
-**Refs.** [`02-backend.md`](02-backend.md) §11, [`OPEN_QUESTIONS.md Q3`](../OPEN_QUESTIONS.md).
+**Refs.** [`02-backend.md`](../docs/architecture/02-backend.md) §11, [`OPEN_QUESTIONS.md Q3`](../OPEN_QUESTIONS.md).
 
 ---
 
@@ -359,7 +363,7 @@ second sees the first's result.
   serializes unrelated projects; per-project lock is the right
   granularity.
 
-**Refs.** [`02-backend.md`](02-backend.md) §12.
+**Refs.** [`02-backend.md`](../docs/architecture/02-backend.md) §12.
 
 ---
 
@@ -397,7 +401,7 @@ storage-adapter abstraction for the image cache (even though we have
 Note: D-013 was later superseded by D-019, which did add the storage
 adapter for the image cache.
 
-**Refs.** [`OPEN_QUESTIONS.md Q5`](../OPEN_QUESTIONS.md), [`02-backend.md`](02-backend.md) §10.
+**Refs.** [`OPEN_QUESTIONS.md Q5`](../OPEN_QUESTIONS.md), [`02-backend.md`](../docs/architecture/02-backend.md) §10.
 
 ---
 
@@ -426,7 +430,7 @@ testids; no testid is renamed.
   rename breaks the driver agent immediately; old testids are stable
   identifiers, not implementation details.
 
-**Refs.** [`13-driver-contract.md`](13-driver-contract.md).
+**Refs.** [`13-driver-contract.md`](../docs/architecture/13-driver-contract.md).
 
 ---
 
@@ -452,7 +456,7 @@ testids; no testid is renamed.
   wouldn't catch drift that exists in the committed `openapi.json`
   between CI runs.
 
-**Refs.** [`14-testing.md`](14-testing.md) §7.
+**Refs.** [`14-testing.md`](../docs/architecture/14-testing.md) §7.
 
 ---
 
@@ -480,7 +484,8 @@ side-channel is preserved on read AND write.
   round-tripping through the SPA would silently corrupt files that
   the legacy later re-opens.
 
-**Refs.** [`09-persistence.md`](09-persistence.md), [`01-data-models.md`](01-data-models.md) §3.
+**Refs.** [`09-persistence.md`](../docs/architecture/09-persistence.md),
+[`01-data-models.md`](../docs/architecture/01-data-models.md) §3.
 
 ---
 
@@ -513,7 +518,8 @@ toolbar-disabled states.
   round-trip before re-rendering). Rejected: drag selection would feel
   laggy; optimistic updates give immediate visual feedback.
 
-**Refs.** [`04-image-viewport.md`](04-image-viewport.md) §4.1, [`06-toolbar-actions.md`](06-toolbar-actions.md) §5.
+**Refs.** [`04-image-viewport.md`](../docs/architecture/04-image-viewport.md) §4.1,
+[`06-toolbar-actions.md`](../docs/architecture/06-toolbar-actions.md) §5.
 
 ---
 
@@ -551,7 +557,8 @@ the OCR adapter is concerned.
   "modal": ...`). Rejected: conditional branching in a monolithic class
   is harder to test than separate adapter impls behind a Protocol.
 
-**Refs.** [`OPEN_QUESTIONS.md Q4`](../OPEN_QUESTIONS.md), [`02-backend.md`](02-backend.md) §1, §7.
+**Refs.** [`OPEN_QUESTIONS.md Q4`](../OPEN_QUESTIONS.md),
+[`02-backend.md`](../docs/architecture/02-backend.md) §1, §7.
 
 ---
 
@@ -588,8 +595,8 @@ Supersedes D-013.
   shipping a stub is cheaper and keeps the adapter seam real.
 
 **Refs.** [`OPEN_QUESTIONS.md Q5`](../OPEN_QUESTIONS.md),
-[`02-backend.md`](02-backend.md) §10,
-[`09-persistence.md`](09-persistence.md) §4.
+[`02-backend.md`](../docs/architecture/02-backend.md) §10,
+[`09-persistence.md`](../docs/architecture/09-persistence.md) §4.
 
 ---
 
@@ -627,7 +634,7 @@ without measurable lag.
   worth confirming via measurement before discarding it.
 
 **Refs.** [`OPEN_QUESTIONS.md Q6`](../OPEN_QUESTIONS.md),
-[`04-image-viewport.md`](04-image-viewport.md),
+[`04-image-viewport.md`](../docs/architecture/04-image-viewport.md),
 [`16-milestones.md`](16-milestones.md) M4.
 
 ---
@@ -661,7 +668,7 @@ these to a per-user backend store when multi-user lands.
   filter toggle, zoom level, and splitter position are frequent
   adjustments; losing them on every reload is a usability regression.
 
-**Refs.** [`OPEN_QUESTIONS.md Q9`](../OPEN_QUESTIONS.md), [`03-frontend.md`](03-frontend.md) §6.
+**Refs.** [`OPEN_QUESTIONS.md Q9`](../OPEN_QUESTIONS.md), [`03-frontend.md`](../docs/architecture/03-frontend.md) §6.
 
 ---
 
@@ -694,7 +701,8 @@ or later).
   audit in the same milestone. Rejected: scoping is already aggressive
   for v1; a dedicated M9.5 milestone is the right boundary.
 
-**Refs.** [`OPEN_QUESTIONS.md Q10`](../OPEN_QUESTIONS.md), [`12-hotkeys-a11y.md`](12-hotkeys-a11y.md), [`16-milestones.md`](16-milestones.md).
+**Refs.** [`OPEN_QUESTIONS.md Q10`](../OPEN_QUESTIONS.md),
+[`12-hotkeys-a11y.md`](../docs/architecture/12-hotkeys-a11y.md), [`16-milestones.md`](16-milestones.md).
 
 ---
 
@@ -727,7 +735,7 @@ locking for multi-user phase.
   full-duplex WebSocket is heavier than needed; last-writer-wins via
   the asyncio.Lock is sufficient for single-user multi-tab.
 
-**Refs.** [`OPEN_QUESTIONS.md Q11`](../OPEN_QUESTIONS.md), [`02-backend.md`](02-backend.md) §12.
+**Refs.** [`OPEN_QUESTIONS.md Q11`](../OPEN_QUESTIONS.md), [`02-backend.md`](../docs/architecture/02-backend.md) §12.
 
 ---
 
@@ -778,7 +786,7 @@ in OCR output. Normalization is opt-in.
 
 **Implications.**
 
-- New spec [`18-text-normalization.md`](18-text-normalization.md)
+- New spec [`18-text-normalization.md`](../docs/architecture/18-text-normalization.md)
   documents the design.
 - Three peer-repo agents (pd-book-tools, pd-ocr-cli, pd-prep-for-pgdp)
   add roadmap entries — delegated 2026-05-06.
@@ -795,7 +803,8 @@ in OCR output. Normalization is opt-in.
   Rejected: destructive; labeled artefacts should preserve OCR fidelity
   so reviewers can see what the model actually produced.
 
-**Refs.** [`OPEN_QUESTIONS.md Q14`](../OPEN_QUESTIONS.md), [`18-text-normalization.md`](18-text-normalization.md).
+**Refs.** [`OPEN_QUESTIONS.md Q14`](../OPEN_QUESTIONS.md),
+[`18-text-normalization.md`](../docs/architecture/18-text-normalization.md).
 
 ---
 
@@ -834,7 +843,7 @@ item, delegated 2026-05-06. Same as D-007 + Q15 recommendation.
 **Decision.** Export endpoint queues a Job and reports progress via
 SSE — same shape as Reload OCR (page) and Refine Bboxes (page).
 The user noted: "don't we have a 'jobs' possibly available in our
-new spec?" — yes, see [`02-backend.md`](02-backend.md) §11.
+new spec?" — yes, see [`02-backend.md`](../docs/architecture/02-backend.md) §11.
 
 **Why.**
 
@@ -853,8 +862,8 @@ new spec?" — yes, see [`02-backend.md`](02-backend.md) §11.
   no benefit (D-011).
 
 **Refs.** [`OPEN_QUESTIONS.md Q16`](../OPEN_QUESTIONS.md),
-[`10-export.md`](10-export.md),
-[`02-backend.md`](02-backend.md) §11.
+[`10-export.md`](../docs/architecture/10-export.md),
+[`02-backend.md`](../docs/architecture/02-backend.md) §11.
 
 ---
 
@@ -884,7 +893,8 @@ that the same Make targets work; they're not required.
   Rejected: doubles the maintenance surface; `make setup` works
   equally well inside a container or outside.
 
-**Refs.** [`OPEN_QUESTIONS.md Q17`](../OPEN_QUESTIONS.md), [`15-deployment-dev.md`](15-deployment-dev.md) §11.
+**Refs.** [`OPEN_QUESTIONS.md Q17`](../OPEN_QUESTIONS.md),
+[`15-deployment-dev.md`](../docs/architecture/15-deployment-dev.md) §11.
 
 ---
 
@@ -908,7 +918,7 @@ name).
 
 **Implications.**
 
-- New spec [`19-auto-rotation.md`](19-auto-rotation.md).
+- New spec [`19-auto-rotation.md`](../docs/architecture/19-auto-rotation.md).
 - M9.x or M10 milestone (post-GA enhancement).
 - `PageRecord` gains a `rotation_degrees: int = 0` field; persisted
   in the envelope (via additive v2.2 schema bump? — see Q-A1 below).
@@ -927,7 +937,9 @@ name).
   GT-best-match is sufficient when ground truth is available and is
   cheaper to implement.
 
-**Refs.** [`OPEN_QUESTIONS.md Q18`](../OPEN_QUESTIONS.md), [`19-auto-rotation.md`](19-auto-rotation.md), [`08-page-actions.md`](08-page-actions.md).
+**Refs.** [`OPEN_QUESTIONS.md Q18`](../OPEN_QUESTIONS.md),
+[`19-auto-rotation.md`](../docs/architecture/19-auto-rotation.md),
+[`08-page-actions.md`](../docs/architecture/08-page-actions.md).
 
 ---
 
@@ -976,8 +988,8 @@ Default canonical URL emitted by the SPA: the `pageno/{n}` form (human-friendly)
   would silently 404; 301 redirects preserve them at no ongoing cost.
 
 **Refs.** [`OPEN_QUESTIONS.md Q19`](../OPEN_QUESTIONS.md),
-[`13-driver-contract.md`](13-driver-contract.md) §1,
-[`03-frontend.md`](03-frontend.md) §3.
+[`13-driver-contract.md`](../docs/architecture/13-driver-contract.md) §1,
+[`03-frontend.md`](../docs/architecture/03-frontend.md) §3.
 
 ---
 
@@ -1004,7 +1016,7 @@ suppresses the auto-open for headless/CI contexts.
 - Always auto-open with no opt-out. Rejected: breaks headless/CI
   runs; the driver agent needs `--no-browser`.
 
-**Refs.** [`OPEN_QUESTIONS.md Q20`](../OPEN_QUESTIONS.md), [`02-backend.md`](02-backend.md) §2.
+**Refs.** [`OPEN_QUESTIONS.md Q20`](../OPEN_QUESTIONS.md), [`02-backend.md`](../docs/architecture/02-backend.md) §2.
 
 ---
 
@@ -1041,8 +1053,8 @@ on next legacy save.
   cleaner option if legacy tolerates them.
 
 **Refs.** [`OPEN_QUESTIONS.md Q-A1`](../OPEN_QUESTIONS.md),
-[`01-data-models.md`](01-data-models.md) §3,
-[`19-auto-rotation.md`](19-auto-rotation.md) §Persistence.
+[`01-data-models.md`](../docs/architecture/01-data-models.md) §3,
+[`19-auto-rotation.md`](../docs/architecture/19-auto-rotation.md) §Persistence.
 
 ---
 
@@ -1071,7 +1083,8 @@ themselves, so per-page toggling is unnecessary churn.
   different projects may use different historical scripts; project
   scope is the right isolation boundary.
 
-**Refs.** [`OPEN_QUESTIONS.md Q-A2`](../OPEN_QUESTIONS.md), [`18-text-normalization.md`](18-text-normalization.md) §Implementation.
+**Refs.** [`OPEN_QUESTIONS.md Q-A2`](../OPEN_QUESTIONS.md),
+[`18-text-normalization.md`](../docs/architecture/18-text-normalization.md) §Implementation.
 
 ---
 
@@ -1103,7 +1116,9 @@ without having to find the badge.
   Rejected: users who glance at the header need persistent visual
   confirmation of rotation without hovering.
 
-**Refs.** [`OPEN_QUESTIONS.md Q-A3`](../OPEN_QUESTIONS.md), [`19-auto-rotation.md`](19-auto-rotation.md) §UI, [`13-driver-contract.md`](13-driver-contract.md).
+**Refs.** [`OPEN_QUESTIONS.md Q-A3`](../OPEN_QUESTIONS.md),
+[`19-auto-rotation.md`](../docs/architecture/19-auto-rotation.md) §UI,
+[`13-driver-contract.md`](../docs/architecture/13-driver-contract.md).
 
 ---
 
@@ -1132,7 +1147,8 @@ GET-only, so 308's method-preservation guarantee buys nothing here;
   deprecated; 302 would prevent browsers from updating cached
   bookmarks to the new canonical URL.
 
-**Refs.** [`OPEN_QUESTIONS.md Q-A4`](../OPEN_QUESTIONS.md), [`13-driver-contract.md`](13-driver-contract.md) §1.
+**Refs.** [`OPEN_QUESTIONS.md Q-A4`](../OPEN_QUESTIONS.md),
+[`13-driver-contract.md`](../docs/architecture/13-driver-contract.md) §1.
 
 ---
 
@@ -1169,7 +1185,8 @@ clauses are unblocked.
 - `.nvmrc` + nvm. Rejected: nvm is user-managed and not available in
   all CI environments; mise is already present as the workspace tool.
 
-**Refs.** [`OPEN_QUESTIONS.md Q-A8`](../OPEN_QUESTIONS.md), [`15-deployment-dev.md`](15-deployment-dev.md) §10–11.
+**Refs.** [`OPEN_QUESTIONS.md Q-A8`](../OPEN_QUESTIONS.md),
+[`15-deployment-dev.md`](../docs/architecture/15-deployment-dev.md) §10–11.
 
 ---
 
@@ -1240,7 +1257,8 @@ remains a future option but isn't being wired now.
   release workflow already automates GitHub Releases; removing it
   would regress the distribution story.
 
-**Refs.** [`OPEN_QUESTIONS.md Q-A10`](../OPEN_QUESTIONS.md), [`15-deployment-dev.md`](15-deployment-dev.md) §release-pipeline.
+**Refs.** [`OPEN_QUESTIONS.md Q-A10`](../OPEN_QUESTIONS.md),
+[`15-deployment-dev.md`](../docs/architecture/15-deployment-dev.md) §release-pipeline.
 
 ---
 
@@ -1257,8 +1275,8 @@ specifying `--log-level`) surfaces later, revisit with a concrete
 shape — but the default rule is one verbosity flag, matching legacy.
 
 **Refs.** [`OPEN_QUESTIONS.md Q-A13`](../OPEN_QUESTIONS.md),
-[`15-deployment-dev.md`](15-deployment-dev.md) §3,
-[`02-backend.md`](02-backend.md) §3.
+[`15-deployment-dev.md`](../docs/architecture/15-deployment-dev.md) §3,
+[`02-backend.md`](../docs/architecture/02-backend.md) §3.
 
 ---
 
@@ -1325,7 +1343,7 @@ both flag values rather than asserting the literal "internal secret"
 leak.
 
 **Refs.** [`OPEN_QUESTIONS.md Q-A11`](../OPEN_QUESTIONS.md),
-[`02-backend.md`](02-backend.md) §3 (Settings field list) and §8
+[`02-backend.md`](../docs/architecture/02-backend.md) §3 (Settings field list) and §8
 (error handling),
 [`docs/BUGS_FOUND.md` B-51](../docs/BUGS_FOUND.md).
 
@@ -1389,7 +1407,7 @@ key dropped) and `test_session_state_load_logs_warning_with_stable_substring`
 dropped-key-name in `extra=`).
 
 **Refs.** [`OPEN_QUESTIONS.md Q-A12`](../OPEN_QUESTIONS.md),
-[`09-persistence.md`](09-persistence.md) §6 (session_state.json) — to
+[`09-persistence.md`](../docs/architecture/09-persistence.md) §6 (session_state.json) — to
 be amended; §11 (UserPageEnvelope) — kept strict per documented
 asymmetry,
 [`docs/BUGS_FOUND.md` B-58](../docs/BUGS_FOUND.md).
@@ -1463,7 +1481,7 @@ prioritise:
 [`docs/ROADMAP.md` Scope freeze callout](../docs/ROADMAP.md);
 this file's prior entries D-005 (auth), D-018 (OCR engine axis),
 D-019 (S3 storage), D-021 (UI prefs), D-023 (multi-tab), D-040 (500
-body redaction); [`00-overview.md` Non-goals](00-overview.md).
+body redaction); [`00-overview.md` Non-goals](../docs/architecture/00-overview.md).
 
 ---
 

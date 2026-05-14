@@ -9,7 +9,7 @@ agent can deliver it in one session, with the listed acceptance tests
 passing.
 
 > **Required reading before starting any milestone:**
-> [`00-overview.md`](00-overview.md), [`OPEN_QUESTIONS.md`](../OPEN_QUESTIONS.md),
+> [`00-overview.md`](../docs/architecture/00-overview.md), [`OPEN_QUESTIONS.md`](../OPEN_QUESTIONS.md),
 > the per-area specs listed in the milestone.
 
 ---
@@ -72,10 +72,10 @@ pd-ocr-labeler-spa/
 
 **Specs that govern this milestone.**
 
-- [`00-overview.md`](00-overview.md) — tech stack, repo layout
-- [`02-backend.md`](02-backend.md) §1, §2, §3 — module layout, factory, settings
-- [`03-frontend.md`](03-frontend.md) §1, §2 — folder layout, tech choices
-- [`15-deployment-dev.md`](15-deployment-dev.md) — Makefile, CI, install
+- [`00-overview.md`](../docs/architecture/00-overview.md) — tech stack, repo layout
+- [`02-backend.md`](../docs/architecture/02-backend.md) §1, §2, §3 — module layout, factory, settings
+- [`03-frontend.md`](../docs/architecture/03-frontend.md) §1, §2 — folder layout, tech choices
+- [`15-deployment-dev.md`](../docs/architecture/15-deployment-dev.md) — Makefile, CI, install
 
 **Acceptance tests.**
 
@@ -92,7 +92,7 @@ pd-ocr-labeler-spa/
 - Pre-commit hooks installed and pass.
 - `Makefile` implements the dev-local-aware `upgrade-deps` /
   `upgrade-deps-local` pair per
-  [`15-deployment-dev.md`](15-deployment-dev.md) §15: `upgrade-deps`
+  [`15-deployment-dev.md`](../docs/architecture/15-deployment-dev.md) §15: `upgrade-deps`
   refuses-with-message in a dev-local venv (editable `pd-book-tools`
   detected, fallback `.venv/.pd-dev-local`, or `PD_DEV_LOCAL=1`),
   while `upgrade-deps-local` performs lock + sync + dev-local
@@ -140,11 +140,11 @@ No real domain endpoints yet. Frontend renders an empty header bar +
 
 **Specs.**
 
-- [`01-data-models.md`](01-data-models.md) §5, §6 — paths, OpenAPI
-- [`02-backend.md`](02-backend.md) §3, §6, §7, §8, §9 — settings,
+- [`01-data-models.md`](../docs/architecture/01-data-models.md) §5, §6 — paths, OpenAPI
+- [`02-backend.md`](../docs/architecture/02-backend.md) §3, §6, §7, §8, §9 — settings,
   deps, adapters, errors, logging
-- [`03-frontend.md`](03-frontend.md) §4, §5 — bootstrap, app shell
-- [`15-deployment-dev.md`](15-deployment-dev.md) — env vars
+- [`03-frontend.md`](../docs/architecture/03-frontend.md) §4, §5 — bootstrap, app shell
+- [`15-deployment-dev.md`](../docs/architecture/15-deployment-dev.md) — env vars
 
 **Acceptance tests.**
 
@@ -198,9 +198,9 @@ no overlays, no word matches yet.
 
 **Specs.**
 
-- [`08-page-actions.md`](08-page-actions.md)
-- [`13-driver-contract.md`](13-driver-contract.md) §URL, §load controls
-- [`12-hotkeys-a11y.md`](12-hotkeys-a11y.md) §source-folder dialog
+- [`08-page-actions.md`](../docs/architecture/08-page-actions.md)
+- [`13-driver-contract.md`](../docs/architecture/13-driver-contract.md) §URL, §load controls
+- [`12-hotkeys-a11y.md`](../docs/architecture/12-hotkeys-a11y.md) §source-folder dialog
 
 **Acceptance tests.**
 
@@ -215,7 +215,7 @@ no overlays, no word matches yet.
 - Frontend: `SourceFolderDialog.test.tsx` covers Home / Up / Open Typed /
   Use Current / Apply / Cancel / Enter on input.
 - Driver-contract: every `data-testid` from
-  [`13-driver-contract.md`](13-driver-contract.md) §load controls
+  [`13-driver-contract.md`](../docs/architecture/13-driver-contract.md) §load controls
   exists.
 
 **Pre-conditions.** M0, M1.
@@ -262,9 +262,9 @@ notifications.
 
 **Specs.**
 
-- [`08-page-actions.md`](08-page-actions.md) (Reload OCR section)
-- [`09-persistence.md`](09-persistence.md) — envelope, image cache
-- [`11-notifications.md`](11-notifications.md) — busy overlay, jobs
+- [`08-page-actions.md`](../docs/architecture/08-page-actions.md) (Reload OCR section)
+- [`09-persistence.md`](../docs/architecture/09-persistence.md) — envelope, image cache
+- [`11-notifications.md`](../docs/architecture/11-notifications.md) — busy overlay, jobs
 
 **Acceptance tests.**
 
@@ -314,8 +314,8 @@ work as in the legacy.
 
 **Specs.**
 
-- [`04-image-viewport.md`](04-image-viewport.md) — full
-- [`12-hotkeys-a11y.md`](12-hotkeys-a11y.md) — modifier keys
+- [`04-image-viewport.md`](../docs/architecture/04-image-viewport.md) — full
+- [`12-hotkeys-a11y.md`](../docs/architecture/12-hotkeys-a11y.md) — modifier keys
 
 **Acceptance tests.**
 
@@ -325,7 +325,7 @@ work as in the legacy.
   paragraphs/lines/words checkboxes toggle visibility, drag a box,
   selection persists across mode change.
 - Driver-contract: every `data-testid` from
-  [`13-driver-contract.md`](13-driver-contract.md) §image-tabs exists.
+  [`13-driver-contract.md`](../docs/architecture/13-driver-contract.md) §image-tabs exists.
 
 **Pre-conditions.** M3. **Renderer ADR required** — see Q-A14 in
 [`OPEN_QUESTIONS.md`](../OPEN_QUESTIONS.md) and the blockquote below.
@@ -363,9 +363,9 @@ works. Validation per-word and per-line works. No toolbar yet.
 
 **Specs.**
 
-- [`05-word-matches.md`](05-word-matches.md) — full
-- [`12-hotkeys-a11y.md`](12-hotkeys-a11y.md) — Enter/Tab on GT inputs
-- [`13-driver-contract.md`](13-driver-contract.md) §word cell testids
+- [`05-word-matches.md`](../docs/architecture/05-word-matches.md) — full
+- [`12-hotkeys-a11y.md`](../docs/architecture/12-hotkeys-a11y.md) — Enter/Tab on GT inputs
+- [`13-driver-contract.md`](../docs/architecture/13-driver-contract.md) §word cell testids
 
 **Acceptance tests.**
 
@@ -411,8 +411,8 @@ mode wired.
 
 **Specs.**
 
-- [`06-toolbar-actions.md`](06-toolbar-actions.md) — full
-- [`13-driver-contract.md`](13-driver-contract.md) §toolbar testids
+- [`06-toolbar-actions.md`](../docs/architecture/06-toolbar-actions.md) — full
+- [`13-driver-contract.md`](../docs/architecture/13-driver-contract.md) §toolbar testids
 
 **Acceptance tests.**
 
@@ -447,8 +447,8 @@ tag chips. Page-scope `Refine all bboxes` button works.
 
 **Specs.**
 
-- [`07-word-edit-dialog.md`](07-word-edit-dialog.md) — full
-- [`12-hotkeys-a11y.md`](12-hotkeys-a11y.md) — Enter on dialog GT,
+- [`07-word-edit-dialog.md`](../docs/architecture/07-word-edit-dialog.md) — full
+- [`12-hotkeys-a11y.md`](../docs/architecture/12-hotkeys-a11y.md) — Enter on dialog GT,
   Escape close
 
 **Acceptance tests.**
@@ -489,8 +489,8 @@ changes.
 
 **Specs.**
 
-- [`08-page-actions.md`](08-page-actions.md) — full
-- [`13-driver-contract.md`](13-driver-contract.md) — full
+- [`08-page-actions.md`](../docs/architecture/08-page-actions.md) — full
+- [`13-driver-contract.md`](../docs/architecture/13-driver-contract.md) — full
   conformance
 
 **Acceptance tests.**
@@ -531,8 +531,8 @@ Optional: declare GA + remove the legacy `pd-ocr-labeler` repo.
 
 **Specs.**
 
-- [`10-export.md`](10-export.md) — full
-- [`11-notifications.md`](11-notifications.md) — full
+- [`10-export.md`](../docs/architecture/10-export.md) — full
+- [`11-notifications.md`](../docs/architecture/11-notifications.md) — full
 
 **Acceptance tests.**
 
@@ -566,7 +566,7 @@ image. `rotation-badge` shows current rotation.
 - `tests/integration/test_rotate_endpoint.py`.
 - `tests/e2e/test_manual_rotate.py`.
 
-**Specs.** [`19-auto-rotation.md`](19-auto-rotation.md) §1.1, §4.
+**Specs.** [`19-auto-rotation.md`](../docs/architecture/19-auto-rotation.md) §1.1, §4.
 
 **Acceptance tests.**
 
@@ -629,7 +629,7 @@ keymap; document via the `?` help modal.
 - `tests/e2e/test_keyboard_only_full.py` — extends `test_keyboard_only`
   to cover the full app surface.
 
-**Specs.** [`12-hotkeys-a11y.md`](12-hotkeys-a11y.md), [D-022](17-decisions.md).
+**Specs.** [`12-hotkeys-a11y.md`](../docs/architecture/12-hotkeys-a11y.md), [D-022](17-decisions.md).
 
 **Pre-conditions.** M9.
 
@@ -649,7 +649,7 @@ ASCII-normalized via `pd_book_tools.text.normalize`.
 - `src/pd_ocr_labeler_spa/api/ocr_config.py` — new fields.
 - `frontend/src/components/OCRConfigModal.tsx` — new section.
 
-**Specs.** [`18-text-normalization.md`](18-text-normalization.md).
+**Specs.** [`18-text-normalization.md`](../docs/architecture/18-text-normalization.md).
 
 **Pre-conditions.** pd-book-tools `pd_book_tools.text.normalize`
 available (delegated 2026-05-06; not yet implemented).
@@ -708,12 +708,12 @@ only on those two upstream deliveries.
 - `tests/e2e/test_bulk_glyph_mark.py`.
 
 **Specs.** [`20-glyph-annotations.md`](20-glyph-annotations.md).
-Cross-refs [`01-data-models.md`](01-data-models.md) §3, §4 (envelope
-bump rules), [`05-word-matches.md`](05-word-matches.md) (`<WordCell>`
+Cross-refs [`01-data-models.md`](../docs/architecture/01-data-models.md) §3, §4 (envelope
+bump rules), [`05-word-matches.md`](../docs/architecture/05-word-matches.md) (`<WordCell>`
 host),
-[`07-word-edit-dialog.md`](07-word-edit-dialog.md) (Typography
+[`07-word-edit-dialog.md`](../docs/architecture/07-word-edit-dialog.md) (Typography
 section),
-[`13-driver-contract.md`](13-driver-contract.md) (testid catalogue
+[`13-driver-contract.md`](../docs/architecture/13-driver-contract.md) (testid catalogue
 additions).
 
 **Acceptance tests.**
@@ -760,7 +760,7 @@ These don't fit a single milestone; they accumulate across all of them:
   appear in the generated `frontend/src/api/types.ts`. CI gate added
   in M2.
 - **Driver-contract conformance.** A growing test asserts that every
-  `data-testid` listed in [`13-driver-contract.md`](13-driver-contract.md)
+  `data-testid` listed in [`13-driver-contract.md`](../docs/architecture/13-driver-contract.md)
   is present after a project is loaded. Updated each milestone that
   adds UI.
 - **Per-component specs.** Specs 04–11 are read in their owning

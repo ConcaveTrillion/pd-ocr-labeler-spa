@@ -244,7 +244,7 @@ event handlers). See [`12-hotkeys-a11y.md`](12-hotkeys-a11y.md).
 | `Shift+A` | Toggle Add Word mode |
 
 These are **new** — the legacy has no viewport hotkeys
-([D-022](17-decisions.md)).
+([D-022](../../specs/17-decisions.md)).
 
 ---
 

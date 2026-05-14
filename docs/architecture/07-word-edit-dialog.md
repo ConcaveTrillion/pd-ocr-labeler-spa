@@ -331,7 +331,7 @@ Component → Apply / Clear: POST
 | `Shift+M` | Apply current Component |
 | `Delete` | Delete word (with confirm) |
 
-These are new ([D-022](17-decisions.md)).
+These are new ([D-022](../../specs/17-decisions.md)).
 
 ---
 

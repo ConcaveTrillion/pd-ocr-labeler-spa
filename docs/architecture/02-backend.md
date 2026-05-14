@@ -103,7 +103,7 @@ Order:
 10. Install error handlers + every router.
 11. Install `/healthz` (BEFORE the SPA mount).
 12. If `mode != "api_only"`, install `/env.js`, `/image-cache` static
-    mount via the `IStorage` adapter ([D-019](17-decisions.md)), and SPA fallback.
+    mount via the `IStorage` adapter ([D-019](../../specs/17-decisions.md)), and SPA fallback.
 
 The factory is pure — same `Settings` always produces the same wired
 graph. Errors (e.g. unreadable data root) are loud `RuntimeError` at
@@ -431,7 +431,7 @@ async def get_page(
 
 `get_user` is consumed by every route; `auth.none_` returns the same
 anonymous `UserContext("local", "Local User")` for every call
-([D-005](17-decisions.md)).
+([D-005](../../specs/17-decisions.md)).
 
 ---
 

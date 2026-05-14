@@ -9,10 +9,10 @@ How the SPA handles old-typesetting glyphs (`ſ`, `ﬁ`, `ﬂ`, `ﬃ`, `ﬄ`,
 ground-truth conventions used by PGDP and DocTR training corpora.
 
 > Cross-refs:
-> ADR — [`17-decisions.md`](17-decisions.md) D-025 (this is the
+> ADR — [`17-decisions.md`](../../specs/17-decisions.md) D-025 (this is the
 > source of truth; this spec elaborates).
 > Implementation home — **pd-book-tools** (`pd_book_tools.text.normalize`)
-> Toggle scope decided by [D-033](17-decisions.md) (project-level,
+> Toggle scope decided by [D-033](../../specs/17-decisions.md) (project-level,
 > persisted in `OCRConfig`); resolves Q-A2.
 
 ---
@@ -207,7 +207,7 @@ config.yaml today.
 
 ## 10. Open issues
 
-- **Q-A2** (toggle scope). Listed in [`OPEN_QUESTIONS.md`](../OPEN_QUESTIONS.md).
+- **Q-A2** (toggle scope). Listed in [`OPEN_QUESTIONS.md`](../../OPEN_QUESTIONS.md).
   Spec author bet: project-level (in OCR config). User to confirm.
 - **Profile registry**. v1 ships `ascii` only. Future profiles
   (`gaelic`, `fraktur`, `greek`) need a clean registry pattern in

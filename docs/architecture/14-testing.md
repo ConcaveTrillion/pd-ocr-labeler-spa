@@ -374,7 +374,7 @@ The openapi-drift job is **required** — closes pgdp-prep gap.
 ## 8. Test-driven milestone discipline
 
 Each milestone's "acceptance tests" list (in
-[`16-milestones.md`](16-milestones.md)) is the minimum bar. Implementing
+[`16-milestones.md`](../../specs/16-milestones.md)) is the minimum bar. Implementing
 agents must:
 
 1. Write the named tests **first** (fail).

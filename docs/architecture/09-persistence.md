@@ -5,7 +5,7 @@
 > **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#22
 
 Every byte the SPA writes to disk. Schema-version-stable so the legacy
-labeler can interop ([D-003](17-decisions.md)). Crash-safe via the
+labeler can interop ([D-003](../../specs/17-decisions.md)). Crash-safe via the
 auto-save-to-cache lane ([`08-page-actions.md`](08-page-actions.md)).
 
 > Cross-refs:
@@ -321,7 +321,7 @@ Single-process backend. All writes serialise through the
 same page block on the lock; the second sees the first's result.
 
 The shared **data root** with the legacy is the racy boundary
-([D-003](17-decisions.md)). Recommended: don't run both binaries
+([D-003](../../specs/17-decisions.md)). Recommended: don't run both binaries
 simultaneously against the same root. M0 should print a warning at
 startup if it detects another process holding the cache root open
 (via a `pidfile` lockfile).
@@ -354,7 +354,7 @@ When we eventually bump v2.1 → v2.2 (additive only), the rule is:
   version check itself is gating: top-level `extra="forbid"` makes
   v2.1 readers refuse v2.2 because `schema.version` won't match.
 
-Document each bump in [`17-decisions.md`](17-decisions.md).
+Document each bump in [`17-decisions.md`](../../specs/17-decisions.md).
 
 ---
 

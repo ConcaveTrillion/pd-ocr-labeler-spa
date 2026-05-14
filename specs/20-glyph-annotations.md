@@ -13,7 +13,7 @@ it: GT stays "perfect" ASCII; annotations are a parallel structure.
 > ADR — [`17-decisions.md`](17-decisions.md) D-025 (text normalization;
 > the principle that "GT is canonical, OCR/typography is the
 > side-channel" — this spec is the side-channel half).
-> Sister spec — [`18-text-normalization.md`](18-text-normalization.md).
+> Sister spec — [`18-text-normalization.md`](../docs/architecture/18-text-normalization.md).
 > 18 covers _which glyphs map to which ASCII_; 20 covers _how
 > typographic features are preserved as data_ even after the glyph
 > itself is normalized away.
@@ -33,7 +33,7 @@ presentation-form ligatures (no `U+FB00`–`U+FB06`: `ﬀ`, `ﬁ`, `ﬂ`,
 `ﬃ`, `ﬄ`, `ﬅ`, `ﬆ`). GT NEVER contains `U+017F` (long-s `ſ`). The
 labeler enforces this on save: a GT field containing any forbidden
 codepoint is rejected with a `validation_error`
-([`02-backend.md`](02-backend.md) §error-envelope).
+([`02-backend.md`](../docs/architecture/02-backend.md) §error-envelope).
 
 **Typography is preserved out-of-band.** Each `WordMatch` may carry an
 optional `glyph_annotations` field that records the typographic
@@ -64,10 +64,10 @@ counts toward "reviewed".
 |---|---|---|
 | `GlyphAnnotations` data model + JSON shape | `pd_book_tools.ocr.glyph_annotations` | NEW — needs delegation to pd-book-tools |
 | Per-word predictions producer | pd-ocr-trainer (glyph-feature classifier) | NEW — needs delegation to pd-ocr-trainer |
-| Envelope schema bump (v2.1 → v2.2) | THIS SPEC + [`01-data-models.md`](01-data-models.md) §3, §4 | NEW |
+| Envelope schema bump (v2.1 → v2.2) | THIS SPEC + [`01-data-models.md`](../docs/architecture/01-data-models.md) §3, §4 | NEW |
 | `<GlyphAnnotationPanel>` + chip widget | THIS SPEC | NEW |
 | Per-page bulk-mark endpoints | THIS SPEC §4 | NEW |
-| testid additions for driver bulk-mark | THIS SPEC §6, [`13-driver-contract.md`](13-driver-contract.md) | NEW |
+| testid additions for driver bulk-mark | THIS SPEC §6, [`13-driver-contract.md`](../docs/architecture/13-driver-contract.md) | NEW |
 
 The SPA ships **no** glyph-feature classifier itself. It surfaces
 predictions from pd-ocr-trainer when present; otherwise the panel
@@ -112,7 +112,7 @@ class GlyphAnnotations(BaseModel):
 This keeps the model simple; if mixed-source granularity is needed
 later, we bump again.
 
-`WordMatch` ([`01-data-models.md`](01-data-models.md) §1) gains:
+`WordMatch` ([`01-data-models.md`](../docs/architecture/01-data-models.md) §1) gains:
 
 ```python
 class WordMatch(BaseModel):
@@ -134,7 +134,7 @@ staleness.
 **Bump rationale.** v2.1 has been wire-shared with the legacy labeler.
 The legacy labeler does not know about `glyph_annotations`. Bumping to
 v2.2 lets us add the field cleanly while §4 of
-[`01-data-models.md`](01-data-models.md) (versioning policy) covers
+[`01-data-models.md`](../docs/architecture/01-data-models.md) (versioning policy) covers
 back-compat: v2.2 is **additive** — readers of v2.1 must accept v2.2
 envelopes if they tolerate unknown nested fields.
 
@@ -171,7 +171,7 @@ Q-A1's fallback approach for rotation). Q-A5 below tracks this.
 
 Storage shape: a flat `dict[word_id, GlyphAnnotations]` keyed by the
 stable `word_id` already present on `WordMatch` (
-[`01-data-models.md`](01-data-models.md) §1). Words with no
+[`01-data-models.md`](../docs/architecture/01-data-models.md) §1). Words with no
 annotations are simply absent from the dict. **Absence ≠ empty
 GlyphAnnotations()**: an absent key means `glyph_annotations = None`
 on the rebuilt `WordMatch` ("not reviewed"). An empty
@@ -181,7 +181,7 @@ This three-state distinction is preserved across save/load.
 ### 4.2 Reader / writer rules
 
 `core/persistence/user_page_envelope.py`
-([`01-data-models.md`](01-data-models.md) §3.UserPageEnvelope):
+([`01-data-models.md`](../docs/architecture/01-data-models.md) §3.UserPageEnvelope):
 
 - On read of a v2.1 envelope: every `WordMatch.glyph_annotations` is
   `None` (legacy data has no opinion).
@@ -207,10 +207,10 @@ WARN once per session the first time it writes v2.2.
 Lives in `frontend/src/components/glyph/GlyphAnnotationPanel.tsx`.
 
 Opens **inside** the existing `<WordEditDialog>`
-([`07-word-edit-dialog.md`](07-word-edit-dialog.md)) as a new
+([`07-word-edit-dialog.md`](../docs/architecture/07-word-edit-dialog.md)) as a new
 collapsible section "Typography". Also accessible without opening the
 dialog: a small chip-row appears under each `<WordCell>` GT input
-([`05-word-matches.md`](05-word-matches.md)) when the word has
+([`05-word-matches.md`](../docs/architecture/05-word-matches.md)) when the word has
 annotations or predictions. Clicking the chip-row opens the panel as
 a popover anchored to the word.
 
@@ -266,7 +266,7 @@ Clicking any chip opens the panel. Used in two places:
 ### 5.3 Modified: `<WordCell>`
 
 `frontend/src/components/WordCell.tsx`
-([`05-word-matches.md`](05-word-matches.md)) gains:
+([`05-word-matches.md`](../docs/architecture/05-word-matches.md)) gains:
 
 - **Corner badge** `data-testid="word-glyph-badge-{line}-{word}"`:
   a 6×6px square in the cell's top-right, colored:
@@ -282,7 +282,7 @@ Clicking any chip opens the panel. Used in two places:
 
 ### 5.4 Modified: `<WordEditDialog>`
 
-[`07-word-edit-dialog.md`](07-word-edit-dialog.md): add a new
+[`07-word-edit-dialog.md`](../docs/architecture/07-word-edit-dialog.md): add a new
 "Typography" section between the existing tag-chips row and the
 preview-column row. Section is collapsed by default; auto-expands when
 the word has predictions awaiting review.
@@ -290,7 +290,7 @@ the word has predictions awaiting review.
 ### 5.5 New: `<BulkGlyphMarkDialog>` (page-scope)
 
 Triggered from `<ToolbarActionGrid>`
-([`06-toolbar-actions.md`](06-toolbar-actions.md)) — a new Page-scope
+([`06-toolbar-actions.md`](../docs/architecture/06-toolbar-actions.md)) — a new Page-scope
 button "Bulk-mark glyphs". Dialog presents a small recipe DSL:
 
 ```
@@ -335,7 +335,7 @@ without a code change.
 ## 6. Backend FastAPI endpoints
 
 All under `api/words.py` and `api/pages.py`. Wire shapes added to
-[`01-data-models.md`](01-data-models.md) §2.
+[`01-data-models.md`](../docs/architecture/01-data-models.md) §2.
 
 ### 6.1 Per-word
 
@@ -381,7 +381,7 @@ mark across many pages, it iterates per-page through the existing
 ### 6.3 Predictions ingest
 
 The classifier from pd-ocr-trainer is consumed via the existing OCR
-adapter pattern ([`02-backend.md`](02-backend.md) §adapters):
+adapter pattern ([`02-backend.md`](../docs/architecture/02-backend.md) §adapters):
 
 ```python
 # core/glyph/predictions.py (NEW)
@@ -401,7 +401,7 @@ persisted; restart re-runs the classifier.
 
 ## 7. `data-testid` additions
 
-To be added to [`13-driver-contract.md`](13-driver-contract.md) §2 in
+To be added to [`13-driver-contract.md`](../docs/architecture/13-driver-contract.md) §2 in
 a new subsection "2.x Glyph annotations":
 
 | testid | What it is |
@@ -512,7 +512,7 @@ exactly the same.
 - Playwright: `test_bulk_glyph_mark.py` — run CT recipe on a fixture
   page with 5 `ct` words, see preview count = 5, apply, see 5 chips.
 - Driver-contract: every testid listed in §7 asserted in the
-  conformance test (extends [`13-driver-contract.md`](13-driver-contract.md)).
+  conformance test (extends [`13-driver-contract.md`](../docs/architecture/13-driver-contract.md)).
 
 ---
 
@@ -526,7 +526,7 @@ exactly the same.
 - **Q-A7** (per-mark provenance). v1 puts `source` at the
   `GlyphAnnotations` level, not per-`LigatureMark`. Is this granular
   enough? Listed in [`OPEN_QUESTIONS.md`](../OPEN_QUESTIONS.md).
-- **Profile registry overlap** with [`18-text-normalization.md`](18-text-normalization.md).
+- **Profile registry overlap** with [`18-text-normalization.md`](../docs/architecture/18-text-normalization.md).
   Both specs reference future "fraktur"/"gaelic" profiles. The glyph
   classifier and the normalization map should share a profile name
   (so a "fraktur" project gets both fraktur normalization and a

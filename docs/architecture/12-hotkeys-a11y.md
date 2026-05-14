@@ -10,7 +10,7 @@ The complete keymap and accessibility contract.
 > Legacy hotkey audit —
 > `pd-ocr-labeler/docs/review-notes/2026-05-06-keyboard-shortcuts-coverage.md`
 > Implementation library — `react-hotkeys-hook`
-> [Q10](../OPEN_QUESTIONS.md) — adopting the wishlist for v1
+> [Q10](../../OPEN_QUESTIONS.md) — adopting the wishlist for v1
 
 ---
 

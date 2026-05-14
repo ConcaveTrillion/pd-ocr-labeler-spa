@@ -9,8 +9,8 @@ The SPA must detect, optionally auto-correct, and always allow manual
 correction.
 
 > Cross-refs:
-> ADR — [`17-decisions.md`](17-decisions.md) D-029 (source of truth)
-> Open sub-questions — [`OPEN_QUESTIONS.md`](../OPEN_QUESTIONS.md)
+> ADR — [`17-decisions.md`](../../specs/17-decisions.md) D-029 (source of truth)
+> Open sub-questions — [`OPEN_QUESTIONS.md`](../../OPEN_QUESTIONS.md)
 > Q-A1 (envelope schema bump), Q-A3 (indicator UI placement)
 > Page actions — [`08-page-actions.md`](08-page-actions.md)
 > Driver contract — [`13-driver-contract.md`](13-driver-contract.md)
@@ -236,7 +236,7 @@ Auto-rotation is a **post-GA enhancement**:
 - Auto-rotation pass (M9.2 or M10): heavier; depends on
   pd-book-tools `rotation` module being available.
 
-Add as a new milestone in [`16-milestones.md`](16-milestones.md):
+Add as a new milestone in [`16-milestones.md`](../../specs/16-milestones.md):
 
 > ### M9.1 — Manual rotation
 >
@@ -268,7 +268,7 @@ Add as a new milestone in [`16-milestones.md`](16-milestones.md):
 
 ## 9. Open issues
 
-- **Q-A1** (envelope schema bump). Listed in [`OPEN_QUESTIONS.md`](../OPEN_QUESTIONS.md).
+- **Q-A1** (envelope schema bump). Listed in [`OPEN_QUESTIONS.md`](../../OPEN_QUESTIONS.md).
 - **Q-A3** (indicator UI placement). Same.
 - **Performance.** Auto-rotating a 200-page book on first load is
   slow (~4× detection-only OCR per page = ~5 minutes). Show a
