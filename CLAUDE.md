@@ -23,6 +23,11 @@ milestone-by-milestone implementation (M0…M9). Architecture: `specs/00-overvie
 | `make ci` | setup + test + frontend-test + build |
 | `make docker-build` | builds the production Docker image |
 
+Append `AI=1` to any target for agent-friendly output — verbose output is
+captured to `.ci-ai.log`; stdout shows `✅ <target> passed` on success or
+filtered failure sections on error. Works for every target: `make ci AI=1`,
+`make test AI=1`, etc.
+
 ## Rules
 
 - Make targets first; fall back to `uv run …` (or `npm`, `vitest`) only when no target exists.
