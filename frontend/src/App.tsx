@@ -11,11 +11,13 @@
 
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "sonner";
 
 import HeaderBar from "./components/HeaderBar";
 import RootPage from "./pages/RootPage";
 import ProjectPage from "./pages/ProjectPage";
 import { ROUTES } from "./lib/routes";
+import { useNotificationStream } from "./hooks/useNotificationStream";
 
 // One QueryClient for the app.
 // staleTime: 30 000 ms — spec §Server state.
@@ -42,23 +44,34 @@ function ProjectPageIndexRedirect() {
   return <Navigate to={`/projects/${projectId}/pages/pageno/${pageNo}`} replace />;
 }
 
+/** Inner component so hooks (useNotificationStream) run inside providers. */
+function AppShell() {
+  useNotificationStream();
+
+  return (
+    <div data-testid="app-shell" className="flex flex-col h-screen">
+      <HeaderBar />
+      <main className="flex-1 overflow-auto">
+        <Routes>
+          <Route path={ROUTES.ROOT} element={<RootPage />} />
+          <Route path={ROUTES.PROJECT} element={<ProjectRootRedirect />} />
+          <Route path={ROUTES.PROJECT_PAGE_NO} element={<ProjectPage />} />
+          <Route path={ROUTES.PROJECT_PAGE_IDX} element={<ProjectPageIndexRedirect />} />
+          {/* Catch-all: redirect unknown routes to root */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <div data-testid="app-shell" className="flex flex-col h-screen">
-          <HeaderBar />
-          <main className="flex-1 overflow-auto">
-            <Routes>
-              <Route path={ROUTES.ROOT} element={<RootPage />} />
-              <Route path={ROUTES.PROJECT} element={<ProjectRootRedirect />} />
-              <Route path={ROUTES.PROJECT_PAGE_NO} element={<ProjectPage />} />
-              <Route path={ROUTES.PROJECT_PAGE_IDX} element={<ProjectPageIndexRedirect />} />
-              {/* Catch-all: redirect unknown routes to root */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
-        </div>
+        <AppShell />
+        {/* Single Toaster instance — all toasts routed through sonner */}
+        <Toaster richColors position="top-right" />
       </BrowserRouter>
     </QueryClientProvider>
   );
