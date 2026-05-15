@@ -8,6 +8,8 @@
  * have a deterministic baseline before component-level fonts override.
  */
 
+@import "./styles/tokens.css";
+
 /* shadcn bootstrap vars — replaced by tokens.css in Slice 1 */
 @layer base {
   :root {
