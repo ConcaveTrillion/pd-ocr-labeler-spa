@@ -171,6 +171,25 @@ def test_cli_overrides_layered_into_settings(monkeypatch: pytest.MonkeyPatch, tm
     def _capture_run(*args: Any, **kwargs: Any) -> None:
         captured["kwargs"] = kwargs
 
+    class _FakeSock:
+        def __enter__(self) -> _FakeSock:
+            return self
+
+        def __exit__(self, *_: Any) -> None:
+            pass
+
+        def setsockopt(self, *_: Any) -> None:
+            pass
+
+        def bind(self, addr: tuple[str, int]) -> None:
+            pass  # port always "free"
+
+        def getsockname(self) -> tuple[str, int]:
+            return ("127.0.0.1", 8123)
+
+    monkeypatch.setattr(main_mod._socket, "socket", lambda *_a, **_kw: _FakeSock())
+    monkeypatch.chdir(tmp_path)
+
     with (
         patch.object(main_mod, "uvicorn") as mock_uvicorn,
         patch.object(main_mod, "webbrowser") as _mock_wb,
@@ -185,7 +204,7 @@ def test_cli_overrides_layered_into_settings(monkeypatch: pytest.MonkeyPatch, tm
     assert captured["kwargs"]["port"] == 8123
 
 
-def test_cli_omitted_flag_does_not_override_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_omitted_flag_does_not_override_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Regression guard: a CLI flag with no value passed must NOT show up in
     the overrides dict (else it'd clobber env with the default sentinel).
 
@@ -203,6 +222,25 @@ def test_cli_omitted_flag_does_not_override_env(monkeypatch: pytest.MonkeyPatch)
     def _capture_run(*args: Any, **kwargs: Any) -> None:
         # Probe the Settings instance via the factory string passed to uvicorn.
         captured["kwargs"] = kwargs
+
+    class _FakeSock:
+        def __enter__(self) -> _FakeSock:
+            return self
+
+        def __exit__(self, *_: Any) -> None:
+            pass
+
+        def setsockopt(self, *_: Any) -> None:
+            pass
+
+        def bind(self, addr: tuple[str, int]) -> None:
+            pass  # port always "free"
+
+        def getsockname(self) -> tuple[str, int]:
+            return ("127.0.0.1", 8080)
+
+    monkeypatch.setattr(main_mod._socket, "socket", lambda *_a, **_kw: _FakeSock())
+    monkeypatch.chdir(tmp_path)
 
     with (
         patch.object(main_mod, "uvicorn") as mock_uvicorn,
@@ -244,6 +282,25 @@ def test_main_invokes_uvicorn_with_factory_and_correct_kwargs(
         captured["args"] = args
         captured["kwargs"] = kwargs
 
+    class _FakeSock:
+        def __enter__(self) -> _FakeSock:
+            return self
+
+        def __exit__(self, *_: Any) -> None:
+            pass
+
+        def setsockopt(self, *_: Any) -> None:
+            pass
+
+        def bind(self, addr: tuple[str, int]) -> None:
+            pass  # port always "free"
+
+        def getsockname(self) -> tuple[str, int]:
+            return ("127.0.0.1", 8765)
+
+    monkeypatch.setattr(main_mod._socket, "socket", lambda *_a, **_kw: _FakeSock())
+    monkeypatch.chdir(tmp_path)
+
     with (
         patch.object(main_mod, "uvicorn") as mock_uvicorn,
         patch.object(main_mod, "webbrowser"),
@@ -279,6 +336,25 @@ def test_main_does_not_open_browser_when_reload_true(monkeypatch: pytest.MonkeyP
         if var.startswith("PDLABELER_"):
             monkeypatch.delenv(var, raising=False)
 
+    class _FakeSock:
+        def __enter__(self) -> _FakeSock:
+            return self
+
+        def __exit__(self, *_: Any) -> None:
+            pass
+
+        def setsockopt(self, *_: Any) -> None:
+            pass
+
+        def bind(self, addr: tuple[str, int]) -> None:
+            pass  # port always "free"
+
+        def getsockname(self) -> tuple[str, int]:
+            return ("127.0.0.1", 8080)
+
+    monkeypatch.setattr(main_mod._socket, "socket", lambda *_a, **_kw: _FakeSock())
+    monkeypatch.chdir(tmp_path)
+
     with (
         patch.object(main_mod, "uvicorn"),
         patch.object(main_mod, "webbrowser") as mock_wb,
@@ -294,6 +370,25 @@ def test_main_does_not_open_browser_when_no_browser(monkeypatch: pytest.MonkeyPa
     for var in list(__import__("os").environ):
         if var.startswith("PDLABELER_"):
             monkeypatch.delenv(var, raising=False)
+
+    class _FakeSock:
+        def __enter__(self) -> _FakeSock:
+            return self
+
+        def __exit__(self, *_: Any) -> None:
+            pass
+
+        def setsockopt(self, *_: Any) -> None:
+            pass
+
+        def bind(self, addr: tuple[str, int]) -> None:
+            pass  # port always "free"
+
+        def getsockname(self) -> tuple[str, int]:
+            return ("127.0.0.1", 8080)
+
+    monkeypatch.setattr(main_mod._socket, "socket", lambda *_a, **_kw: _FakeSock())
+    monkeypatch.chdir(tmp_path)
 
     with (
         patch.object(main_mod, "uvicorn"),
@@ -648,6 +743,25 @@ def test_main_with_none_argv_reads_sys_argv(monkeypatch: pytest.MonkeyPatch, tmp
         if var.startswith("PDLABELER_"):
             monkeypatch.delenv(var, raising=False)
 
+    class _FakeSock:
+        def __enter__(self) -> _FakeSock:
+            return self
+
+        def __exit__(self, *_: Any) -> None:
+            pass
+
+        def setsockopt(self, *_: Any) -> None:
+            pass
+
+        def bind(self, addr: tuple[str, int]) -> None:
+            pass  # port always "free"
+
+        def getsockname(self) -> tuple[str, int]:
+            return ("127.0.0.1", 8080)
+
+    monkeypatch.setattr(main_mod._socket, "socket", lambda *_a, **_kw: _FakeSock())
+    monkeypatch.chdir(tmp_path)
+
     monkeypatch.setattr(sys, "argv", ["pd-ocr-labeler-ui", "--no-browser", "--data-root", str(tmp_path)])
     with patch.object(main_mod, "uvicorn"), patch.object(main_mod, "webbrowser"):
         rc = main(None)
@@ -907,9 +1021,7 @@ def test_default_port_free_no_scan(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
     assert captured["kwargs"]["port"] == 8080
 
 
-def test_auto_port_scan_when_default_busy(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_auto_port_scan_when_default_busy(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """When 8080–8081 are busy, uvicorn starts on the first free port (8082).
 
     .pdlabeler-port is written with the actual port.

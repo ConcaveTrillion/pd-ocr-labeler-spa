@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import os as _os
 import socket as _socket
 import sys
 import threading
@@ -303,8 +304,6 @@ def main(argv: list[str] | None = None) -> int:
     # Issue #323: port resolution happens BEFORE Settings is built so that
     # the resolved port flows into Settings (not the default 8080).
     # Determine whether the user explicitly set a port via CLI or env.
-    import os as _os
-
     _env_port_str = _os.environ.get("PDLABELER_PORT")
     _explicit_port = args.port is not None or _env_port_str is not None
     if args.port is not None:
