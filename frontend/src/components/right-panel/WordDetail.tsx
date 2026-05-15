@@ -26,6 +26,7 @@ import { StructureSection } from "./sections/StructureSection";
 import { CharRangesSection } from "./sections/CharRangesSection";
 import { CharFixerSection } from "./sections/CharFixerSection";
 import { WordHeader } from "./WordHeader";
+import { WordImagePreview } from "./WordImagePreview";
 import { selectionStore, walkSibling } from "../../stores/selection-store";
 import { useRefineAvailable } from "../../hooks/useRefineAvailable";
 import type { components } from "../../api/types";
@@ -110,6 +111,9 @@ export function WordDetail({ page, projectId, pageIndex }: WordDetailProps) {
         onPrev={() => walkSibling("prev", page)}
         onNext={() => walkSibling("next", page)}
       />
+
+      {/* P2.b: Word image preview + confidence bars */}
+      <WordImagePreview word={word} />
 
       <Accordion
         data-testid="word-detail-accordion"
