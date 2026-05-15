@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import io
 import logging
 from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from ..core import text_normalize
@@ -823,6 +824,61 @@ def update_selection(
     return JSONResponse(status_code=200, content=payload.model_dump(mode="json"))
 
 
+@router.get("/{page_index}/image")
+def get_page_image(
+    project_id: str,
+    page_index: int,
+    w: int | None = None,
+    project_state: ProjectState = Depends(get_project_state),
+) -> Response:
+    """``GET /api/projects/{id}/pages/{idx}/image`` — serve the page image.
+
+    Spec §3: the ``image_url`` returned by ``GET .../pages/{idx}``
+    points here.  When ``?w=N`` is given the image is resized to width
+    ``N`` (height scaled proportionally) before JPEG encoding.  Caches
+    for one hour via ``Cache-Control: public, max-age=3600``.
+
+    Error paths:
+    - 404 ``project_not_found`` / ``page_not_found`` (via
+      ``_check_project_and_page``).
+    - 404 ``image_not_found`` on PIL open failure (missing file, corrupt
+      bytes).
+    """
+    err = _check_project_and_page(project_id, page_index, project_state)
+    if err is not None:
+        return err  # type: ignore[return-value]
+
+    project = project_state.loaded_project
+    assert project is not None  # _check_project_and_page guarantees
+
+    image_path = project.image_paths[page_index]
+
+    try:
+        from PIL import Image  # lazy — PIL ships with pd-book-tools deps.
+
+        img = Image.open(image_path).convert("RGB")
+
+        if w is not None and img.width != w:
+            new_h = max(1, int(img.height * w / img.width))
+            img = img.resize((w, new_h))
+
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=85)
+        content = buf.getvalue()
+    except Exception as exc:
+        log.debug("get_page_image: failed to open %s: %s", image_path, exc)
+        return JSONResponse(  # type: ignore[return-value]
+            status_code=404,
+            content={"error": "image_not_found", "detail": str(exc)},
+        )
+
+    return Response(
+        content=content,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
+
+
 def install_pages_router(app) -> None:  # type: ignore[no-untyped-def]
     """Register the pages router. Called from ``bootstrap.build_app``."""
     app.include_router(router)
@@ -843,6 +899,7 @@ __all__ = [
     "_build_image_url",
     "_page_payload",
     "_render_plaintext",
+    "get_page_image",
     "install_pages_router",
     "router",
 ]

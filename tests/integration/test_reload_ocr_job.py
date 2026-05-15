@@ -32,8 +32,11 @@ from fastapi.testclient import TestClient
 
 from pd_ocr_labeler_spa.bootstrap import build_app
 from pd_ocr_labeler_spa.core.jobs import JobEventBroker
+from pd_ocr_labeler_spa.core.jobs.handlers.reload_ocr import _get_page_loader
 from pd_ocr_labeler_spa.core.notifications import NotificationKind
+from pd_ocr_labeler_spa.core.ocr.predictor import PredictorCache
 from pd_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
+from pd_ocr_labeler_spa.core.project_state import ProjectState
 from pd_ocr_labeler_spa.settings import Settings
 
 
@@ -215,3 +218,78 @@ def test_reload_ocr_failure_emits_error_and_ocr_failed_notification(
         assert ocr_failed, (
             f"expected an OCR-failed notification; got {[(n.kind, n.message) for n in notifications]}"
         )
+
+
+# ── Task A: production wiring path ────────────────────────────────────
+
+
+def test_reload_ocr_with_production_context_wiring(tmp_path: Path, projects_root: Path) -> None:
+    """When predictor_cache / ocr_config_carrier / settings are wired on
+    runner.context (production bootstrap path), the handler still completes
+    successfully when a page_loader is also injected directly.
+
+    This verifies that the production wiring of the three new context keys
+    does not break the existing path — both can coexist. The fake
+    page_loader is still used for isolation (no real DocTR in tests).
+    """
+    settings = _make_settings(tmp_path, source_projects_root=projects_root)
+    app = build_app(settings)
+    loader = _FakePageLoader()
+    recorded: list[dict[str, Any]] = []
+
+    with TestClient(app) as c:
+        runner = c.app.state.job_runner  # type: ignore[attr-defined]
+        # Verify production keys are already wired by build_app.
+        assert "predictor_cache" in runner.context, (
+            "predictor_cache must be wired in runner.context by build_app"
+        )
+        assert "ocr_config_carrier" in runner.context, (
+            "ocr_config_carrier must be wired in runner.context by build_app"
+        )
+        assert "settings" in runner.context, "settings must be wired in runner.context by build_app"
+
+        # Direct page_loader injection still wins for isolation.
+        runner.context["page_loader"] = loader
+        _wrap_broker_publish(c.app.state.job_events, recorded)  # type: ignore[attr-defined]
+
+        resp = c.post(
+            "/api/projects/load",
+            json={"project_root": str(projects_root / "book1")},
+        )
+        assert resp.status_code == 200, resp.text
+
+        ocr_resp = c.post("/api/projects/book1/pages/0/reload-ocr", json={})
+        assert ocr_resp.status_code == 202
+
+        _wait_for_terminal(recorded)
+        assert recorded[-1].get("type") == "complete", recorded[-1]
+        assert loader.calls == [0]
+
+
+def test_get_page_loader_raises_when_project_not_loaded() -> None:
+    """_get_page_loader raises RuntimeError when project_state.loaded_project is None.
+
+    This validates the guard added by the Task A wiring — when the
+    production context provides predictor_cache / ocr_config_carrier /
+    settings but the project hasn't been loaded yet, the handler should
+    fail fast with a clear message rather than a confusing AttributeError.
+    """
+    from unittest.mock import MagicMock
+
+    from pd_ocr_labeler_spa.core.ocr_config_state import OCRConfigCarrier
+
+    runner = MagicMock()
+    project_state = ProjectState()  # loaded_project is None
+    settings = MagicMock()
+    predictor_cache = PredictorCache()
+    ocr_carrier = OCRConfigCarrier()
+
+    runner.context = {
+        "predictor_cache": predictor_cache,
+        "ocr_config_carrier": ocr_carrier,
+        "settings": settings,
+        # no "page_loader" key
+    }
+
+    with pytest.raises(RuntimeError, match="reload_ocr: no project loaded"):
+        _get_page_loader(runner, project_state, settings)

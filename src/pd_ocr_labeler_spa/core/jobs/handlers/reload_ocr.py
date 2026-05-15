@@ -54,7 +54,9 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING, Any
 
+from ....settings import Settings
 from ...notifications import NotificationKind, NotificationQueue
+from ...ocr.predictor import PredictorCache
 from ...page_state import PageLoader, PageLoadOutcome
 from ...project_state import PageState, ProjectState
 
@@ -86,21 +88,50 @@ def _get_required_context(runner: JobRunner) -> tuple[ProjectState, Notification
     return project_state, notification_queue
 
 
-def _get_page_loader(runner: JobRunner) -> PageLoader:
-    """Pull the ``PageLoader`` off ``runner.context``; raise if absent.
+def _get_page_loader(
+    runner: JobRunner,
+    project_state: ProjectState,
+    settings: Settings,
+) -> PageLoader:
+    """Return the active ``PageLoader``, building one on-demand if needed.
 
-    M3 wiring (issue tracked separately) will populate this from
-    ``LocalDoctrPageLoader(project=..., predictor_cache=...)`` once
-    DocTR is in scope. Tests inject a stub loader directly onto
-    ``runner.context["page_loader"]``.
+    Priority:
+    1. If ``runner.context["page_loader"]`` is already set (test injection
+       or explicit route-layer wiring), use it directly — this preserves
+       the existing isolation pattern.
+    2. Otherwise, build a ``LocalDoctrPageLoader`` from the production
+       context keys ``predictor_cache`` / ``ocr_config_carrier``.
+       Raises ``RuntimeError`` when the project hasn't been loaded yet.
+
+    The function signature accepts ``project_state`` and ``settings``
+    explicitly so callers don't have to pull them a second time off
+    ``runner.context`` after ``_get_required_context`` already did so.
     """
+    # Fast path: explicit injection (tests + future route-layer wiring).
     loader = runner.context.get("page_loader")
-    if loader is None:
-        raise RuntimeError(
-            "reload_ocr: runner.context['page_loader'] is not wired; "
-            "the route layer must inject a PageLoader before submission"
-        )
-    return loader  # type: ignore[no-any-return]
+    if loader is not None:
+        return loader  # type: ignore[return-value]
+
+    # Production path: build LocalDoctrPageLoader on-demand.
+    if project_state.loaded_project is None:
+        raise RuntimeError("reload_ocr: no project loaded")
+
+    from ....adapters.ocr.local_doctr import LocalDoctrPageLoader
+
+    ctx: dict[str, Any] = runner.context
+    predictor_cache: PredictorCache = ctx["predictor_cache"]
+    ocr_carrier = ctx["ocr_config_carrier"]
+    detection_key, recognition_key, hf_revision = ocr_carrier.snapshot()
+
+    return LocalDoctrPageLoader(
+        project=project_state.loaded_project,
+        predictor_cache=predictor_cache,
+        detection_key=detection_key,
+        recognition_key=recognition_key,
+        hf_revision=hf_revision,
+        data_root=settings.data_root,
+        cache_root=settings.cache_root,
+    )
 
 
 async def handle_reload_ocr(runner: JobRunner, job: Job) -> None:
@@ -115,6 +146,7 @@ async def handle_reload_ocr(runner: JobRunner, job: Job) -> None:
     project_id: str = job.project_id or str(payload.get("project_id", ""))
 
     project_state, notification_queue = _get_required_context(runner)
+    settings: Settings = runner.context.get("settings")  # type: ignore[assignment]
 
     log.info(
         "reload_ocr: project=%s page=%d job=%s",
@@ -127,7 +159,7 @@ async def handle_reload_ocr(runner: JobRunner, job: Job) -> None:
     current, message = _PROGRESS_STAGES[0]
     await runner.update_progress(job.job_id, current=current, total=_PROGRESS_TOTAL, message=message)
 
-    loader = _get_page_loader(runner)
+    loader = _get_page_loader(runner, project_state, settings)
 
     # Stage 2 — 0.1 / "Running OCR".
     current, message = _PROGRESS_STAGES[1]

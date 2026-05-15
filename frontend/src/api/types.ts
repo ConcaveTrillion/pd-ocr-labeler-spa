@@ -499,6 +499,37 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/pages/{page_index}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Page Image
+         * @description ``GET /api/projects/{id}/pages/{idx}/image`` — serve the page image.
+         *
+         *     Spec §3: the ``image_url`` returned by ``GET .../pages/{idx}``
+         *     points here.  When ``?w=N`` is given the image is resized to width
+         *     ``N`` (height scaled proportionally) before JPEG encoding.  Caches
+         *     for one hour via ``Cache-Control: public, max-age=3600``.
+         *
+         *     Error paths:
+         *     - 404 ``project_not_found`` / ``page_not_found`` (via
+         *       ``_check_project_and_page``).
+         *     - 404 ``image_not_found`` on PIL open failure (missing file, corrupt
+         *       bytes).
+         */
+        get: operations["get_page_image_api_projects__project_id__pages__page_index__image_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs": {
         parameters: {
             query?: never;
@@ -3367,6 +3398,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PagePayload"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_page_image_api_projects__project_id__pages__page_index__image_get: {
+        parameters: {
+            query?: {
+                w?: number | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+                page_index: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

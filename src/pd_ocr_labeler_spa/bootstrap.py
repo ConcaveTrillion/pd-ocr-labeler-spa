@@ -63,6 +63,7 @@ from .core.app_state import build_app_state
 from .core.jobs import JobEventBroker, JobRunner
 from .core.logging_config import configure_logging
 from .core.notifications import NotificationQueue
+from .core.ocr.predictor import PredictorCache
 from .core.ocr_config_state import OCRConfigCarrier
 from .core.persistence.config_yaml import load_config
 from .core.persistence.ocr_config import load_ocr_config
@@ -353,6 +354,14 @@ def build_app(settings: Settings | None = None) -> FastAPI:
     # mutable dict so post-hoc population is safe.
     runner.context["project_state"] = app.state.project_state
     runner.context["notification_queue"] = notification_queue
+    # Spec-23-B1 production wiring: the reload_ocr handler builds a
+    # LocalDoctrPageLoader on-demand from these three context keys when
+    # no explicit ``page_loader`` has been injected (test/route-layer
+    # path). ``ocr_carrier`` is the same instance captured by the
+    # lifespan closure so snapshot() reads current user selection.
+    runner.context["predictor_cache"] = PredictorCache()
+    runner.context["ocr_config_carrier"] = ocr_carrier
+    runner.context["settings"] = settings
 
     # Spec §2 step 10: install error handlers AFTER middleware (CORS +
     # RequestId) so a 500 still passes back through both on the way
