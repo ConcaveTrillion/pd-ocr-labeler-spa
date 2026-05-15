@@ -1,7 +1,24 @@
 // WordDetail.test.tsx — Tests for Slice 16 word detail accordion scaffold.
 // Spec: docs/specs/2026-05-15-hifi-redesign-plan.md Slice 16.
+//
+// WordDetail → CharFixerSection (P4.b) → CharFixerCanvas → react-konva, and
+// WordDetail → ReboxSection (P4.a) → ReboxCanvas → react-konva. react-konva's
+// node entry imports the native `canvas` module which isn't available under
+// jsdom, so we mock react-konva + PageImage with passthrough divs before any
+// other import resolves.
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+vi.mock("react-konva", () => ({
+  Stage: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="konva-stage-mock">{children}</div>
+  ),
+  Layer: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  Rect: () => null,
+  Image: () => null,
+}));
+vi.mock("../PageImage", () => ({ PageImage: () => null }));
+
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WordDetail } from "./WordDetail";

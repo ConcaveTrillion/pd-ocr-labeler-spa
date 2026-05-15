@@ -54,6 +54,17 @@ function getSelectionSnapshot() {
 
 // ─── helpers ──────────────────────────────────────────────────────────────
 
+/**
+ * Compute the "N ranges" hint string for the Char Fixer AccordionTrigger
+ * (P4.b, spec slice). Falls back to a static descriptor when the word has
+ * no OCR text (so there's nothing to slice).
+ */
+function charFixerHint(ocrText: string | undefined): string {
+  const n = Array.from(ocrText ?? "").length;
+  if (n === 0) return "edit · fix · unicode";
+  return `${n} range${n === 1 ? "" : "s"}`;
+}
+
 function resolveWord(
   page: PagePayload,
   lineId: number,
@@ -190,7 +201,7 @@ export function WordDetail({ page, projectId, pageIndex }: WordDetailProps) {
             Rebox
           </Accordion.Trigger>
           <Accordion.Content>
-            <ReboxSection hasPrev={wordIdx > 0} hasNext={hasNextWord} />
+            <ReboxSection word={word} projectId={projectId} pageIndex={pageIndex} />
           </Accordion.Content>
         </Accordion.Item>
 
@@ -224,9 +235,9 @@ export function WordDetail({ page, projectId, pageIndex }: WordDetailProps) {
           </Accordion.Content>
         </Accordion.Item>
 
-        {/* 6 — Char Fixer (Slice 20) */}
+        {/* 6 — Char Fixer (Slice 20 / P4.b: dynamic "N ranges" hint per spec) */}
         <Accordion.Item value="char-fixer">
-          <Accordion.Trigger hint="edit · fix · unicode" keycap="F">
+          <Accordion.Trigger hint={charFixerHint(word.ocr_text)} keycap="F">
             Char Fixer
           </Accordion.Trigger>
           <Accordion.Content>

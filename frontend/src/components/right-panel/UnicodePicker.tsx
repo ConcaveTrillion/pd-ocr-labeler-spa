@@ -1,146 +1,528 @@
-// UnicodePicker.tsx — Searchable glyph picker for the Char Fixer.
-// Spec: docs/specs/2026-05-15-hifi-redesign-plan.md Slice 20.
+// UnicodePicker.tsx — Redesigned glyph picker for the OCR/GT compare row (P4.c, Gap 40).
+// Spec: docs/plans/hifi-gaps-plan.md P4.c
 //
-// Renders a searchable list of common glyphs grouped in Accordion
-// sub-sections (em-dash, curly quotes, fractions, ligatures, etc.).
-// Clicking a glyph invokes ``onInsert`` with the glyph character — the
-// parent ``CharFixerSection`` routes the insertion to its
-// last-focused char input.
+// Three zones stacked vertically:
+//   1. Sets row   — horizontal scrollable pill tabs (Latin / Greek / Punctuation / Symbols /
+//                   Math / Currency / Other). Clicking filters the code-point grid.
+//   2. Card grid  — code-point cards: large serif glyph + U+XXXX label. Click inserts.
+//   3. Slash input — text input that accepts \emdash, \alpha, U+2019, etc.
+//
+// The ``onInsert`` prop is unchanged from the original Slice 20 interface so
+// OcrGtCompareRow (P2.c) continues to work without modification.
 //
 // data-testids:
-//   unicode-picker             — outer container
-//   unicode-picker-search      — search input
-//   unicode-glyph-{id}         — clickable glyph button
+//   unicode-picker                             — outer container
+//   unicode-set-{latin|greek|punctuation|symbols|math|currency|other}
+//                                              — set pill buttons
+//   unicode-char-{U+XXXX}                      — code-point card button
+//   unicode-slash-input                        — slash-command text input
 
-import { useState, useMemo } from "react";
-import { Accordion } from "../ui/accordion";
-import { Input } from "../ui/Input";
+import { useState, useMemo, useRef } from "react";
 
-interface Glyph {
-  id: string;
+// ---------------------------------------------------------------------------
+// Character set definitions
+// ---------------------------------------------------------------------------
+
+interface CharEntry {
   char: string;
-  name: string;
-  aliases?: string[];
+  cp: string; // "U+XXXX"
 }
 
-interface GlyphGroup {
-  id: string;
+type SetId = "latin" | "greek" | "punctuation" | "symbols" | "math" | "currency" | "other";
+
+interface CharSet {
+  id: SetId;
   label: string;
-  glyphs: Glyph[];
+  chars: CharEntry[];
 }
 
-const GROUPS: GlyphGroup[] = [
+function toCP(codePoint: number): string {
+  return `U+${codePoint.toString(16).toUpperCase().padStart(4, "0")}`;
+}
+
+function entry(char: string): CharEntry {
+  return { char, cp: toCP(char.codePointAt(0) ?? 0) };
+}
+
+const CHAR_SETS: CharSet[] = [
   {
-    id: "em-dash",
-    label: "Em-dash & punctuation",
-    glyphs: [
-      { id: "em-dash", char: "—", name: "em-dash" },
-      { id: "en-dash", char: "–", name: "en-dash" },
-      { id: "hellip", char: "…", name: "ellipsis" },
-      { id: "minus", char: "−", name: "minus sign" },
+    id: "latin",
+    label: "Latin",
+    chars: [
+      // Extended Latin (common accented/ligature chars in scanned books)
+      entry("À"),
+      entry("Á"),
+      entry("Â"),
+      entry("Ã"),
+      entry("Ä"),
+      entry("Å"),
+      entry("Æ"),
+      entry("Ç"),
+      entry("È"),
+      entry("É"),
+      entry("Ê"),
+      entry("Ë"),
+      entry("Ì"),
+      entry("Í"),
+      entry("Î"),
+      entry("Ï"),
+      entry("Ð"),
+      entry("Ñ"),
+      entry("Ò"),
+      entry("Ó"),
+      entry("Ô"),
+      entry("Õ"),
+      entry("Ö"),
+      entry("Ø"),
+      entry("Ù"),
+      entry("Ú"),
+      entry("Û"),
+      entry("Ü"),
+      entry("Ý"),
+      entry("Þ"),
+      entry("ß"),
+      entry("à"),
+      entry("á"),
+      entry("â"),
+      entry("ã"),
+      entry("ä"),
+      entry("å"),
+      entry("æ"),
+      entry("ç"),
+      entry("è"),
+      entry("é"),
+      entry("ê"),
+      entry("ë"),
+      entry("ì"),
+      entry("í"),
+      entry("î"),
+      entry("ï"),
+      entry("ð"),
+      entry("ñ"),
+      entry("ò"),
+      entry("ó"),
+      entry("ô"),
+      entry("õ"),
+      entry("ö"),
+      entry("ø"),
+      entry("ù"),
+      entry("ú"),
+      entry("û"),
+      entry("ü"),
+      entry("ý"),
+      entry("þ"),
+      entry("ÿ"),
+      // Ligatures
+      entry("ﬁ"),
+      entry("ﬂ"),
+      entry("œ"),
+      entry("Œ"),
     ],
   },
   {
-    id: "curly-quotes",
-    label: "Curly quotes",
-    glyphs: [
-      { id: "ldquo", char: "“", name: "left double quote" },
-      { id: "rdquo", char: "”", name: "right double quote" },
-      { id: "lsquo", char: "‘", name: "left single quote" },
-      { id: "rsquo", char: "’", name: "right single quote" },
+    id: "greek",
+    label: "Greek",
+    chars: [
+      entry("α"),
+      entry("β"),
+      entry("γ"),
+      entry("δ"),
+      entry("ε"),
+      entry("ζ"),
+      entry("η"),
+      entry("θ"),
+      entry("ι"),
+      entry("κ"),
+      entry("λ"),
+      entry("μ"),
+      entry("ν"),
+      entry("ξ"),
+      entry("ο"),
+      entry("π"),
+      entry("ρ"),
+      entry("σ"),
+      entry("τ"),
+      entry("υ"),
+      entry("φ"),
+      entry("χ"),
+      entry("ψ"),
+      entry("ω"),
+      entry("Α"),
+      entry("Β"),
+      entry("Γ"),
+      entry("Δ"),
+      entry("Ε"),
+      entry("Ζ"),
+      entry("Η"),
+      entry("Θ"),
+      entry("Ι"),
+      entry("Κ"),
+      entry("Λ"),
+      entry("Μ"),
+      entry("Ν"),
+      entry("Ξ"),
+      entry("Ο"),
+      entry("Π"),
+      entry("Ρ"),
+      entry("Σ"),
+      entry("Τ"),
+      entry("Υ"),
+      entry("Φ"),
+      entry("Χ"),
+      entry("Ψ"),
+      entry("Ω"),
     ],
   },
   {
-    id: "fractions",
-    label: "Fractions",
-    glyphs: [
-      { id: "frac12", char: "½", name: "one half" },
-      { id: "frac14", char: "¼", name: "one quarter" },
-      { id: "frac34", char: "¾", name: "three quarters" },
-      { id: "frac13", char: "⅓", name: "one third" },
-      { id: "frac23", char: "⅔", name: "two thirds" },
+    id: "punctuation",
+    label: "Punctuation",
+    chars: [
+      entry("—"),
+      entry("–"),
+      entry("…"),
+      entry("·"),
+      entry("“"),
+      entry("”"),
+      entry("‘"),
+      entry("’"),
+      entry("«"),
+      entry("»"),
+      entry("‹"),
+      entry("›"),
+      entry("¡"),
+      entry("¿"),
+      entry("‽"),
+      entry("‒"),
+      entry("−"),
+      entry("¶"),
+      entry("§"),
+      entry("*"),
+      entry("†"),
+      entry("‡"),
     ],
   },
   {
-    id: "ligatures",
-    label: "Ligatures",
-    glyphs: [
-      { id: "fi", char: "ﬁ", name: "ligature fi" },
-      { id: "fl", char: "ﬂ", name: "ligature fl" },
-      { id: "ae", char: "æ", name: "ligature ae" },
-      { id: "oe", char: "œ", name: "ligature oe" },
+    id: "symbols",
+    label: "Symbols",
+    chars: [
+      entry("©"),
+      entry("®"),
+      entry("™"),
+      entry("°"),
+      entry("′"),
+      entry("″"),
+      entry("№"),
+      entry("℃"),
+      entry("℉"),
+      entry("‰"),
+      entry("‱"),
+      entry("←"),
+      entry("→"),
+      entry("↑"),
+      entry("↓"),
+      entry("↔"),
+      entry("↕"),
+      entry("★"),
+      entry("☆"),
+      entry("♦"),
+      entry("♠"),
+      entry("♣"),
+      entry("♥"),
+      entry("✓"),
+      entry("✗"),
+      entry("✕"),
+    ],
+  },
+  {
+    id: "math",
+    label: "Math",
+    chars: [
+      entry("±"),
+      entry("×"),
+      entry("÷"),
+      entry("="),
+      entry("≠"),
+      entry("≤"),
+      entry("≥"),
+      entry("≈"),
+      entry("≡"),
+      entry("∝"),
+      entry("∞"),
+      entry("∑"),
+      entry("∏"),
+      entry("∂"),
+      entry("∫"),
+      entry("√"),
+      entry("∈"),
+      entry("∉"),
+      entry("∅"),
+      entry("∧"),
+      entry("∨"),
+      entry("¬"),
+      entry("½"),
+      entry("¼"),
+      entry("¾"),
+      entry("⅓"),
+      entry("⅔"),
+    ],
+  },
+  {
+    id: "currency",
+    label: "Currency",
+    chars: [
+      entry("€"),
+      entry("£"),
+      entry("¥"),
+      entry("¢"),
+      entry("₹"),
+      entry("₽"),
+      entry("₩"),
+      entry("₿"),
+      entry("$"),
+      entry("¤"),
+    ],
+  },
+  {
+    id: "other",
+    label: "…",
+    chars: [
+      // Miscellaneous often needed in book OCR
+      entry("ª"),
+      entry("º"),
+      entry("µ"),
+      entry("×"),
+      entry("·"),
+      entry("―"),
+      entry("⁃"),
+      entry("⁰"),
+      entry("¹"),
+      entry("²"),
+      entry("³"),
+      entry("⁴"),
+      entry("⁵"),
+      entry("⁶"),
+      entry("⁷"),
+      entry("⁸"),
+      entry("⁹"),
+      entry("₀"),
+      entry("₁"),
+      entry("₂"),
+      entry("₃"),
+      entry("₄"),
+      entry("₅"),
+      entry("₆"),
+      entry("₇"),
+      entry("₈"),
+      entry("₉"),
     ],
   },
 ];
 
-function matchesSearch(g: Glyph, query: string): boolean {
-  if (!query) return true;
-  const q = query.toLowerCase();
-  if (g.id.toLowerCase().includes(q)) return true;
-  if (g.name.toLowerCase().includes(q)) return true;
-  if (g.aliases?.some((a) => a.toLowerCase().includes(q))) return true;
-  return false;
+// ---------------------------------------------------------------------------
+// Slash-command name map
+// ---------------------------------------------------------------------------
+
+/** Maps slash-command names (without leading \) and U+XXXX strings to a character. */
+const SLASH_MAP: Record<string, string> = {
+  // Dashes & punctuation
+  emdash: "—",
+  "em-dash": "—",
+  endash: "–",
+  "en-dash": "–",
+  ellipsis: "…",
+  hellip: "…",
+  ldquo: "“",
+  rdquo: "”",
+  lsquo: "‘",
+  rsquo: "’",
+  laquo: "«",
+  raquo: "»",
+  lsaquo: "‹",
+  rsaquo: "›",
+  // Greek lowercase
+  alpha: "α",
+  beta: "β",
+  gamma: "γ",
+  delta: "δ",
+  epsilon: "ε",
+  zeta: "ζ",
+  eta: "η",
+  theta: "θ",
+  iota: "ι",
+  kappa: "κ",
+  lambda: "λ",
+  mu: "μ",
+  nu: "ν",
+  xi: "ξ",
+  omicron: "ο",
+  pi: "π",
+  rho: "ρ",
+  sigma: "σ",
+  tau: "τ",
+  upsilon: "υ",
+  phi: "φ",
+  chi: "χ",
+  psi: "ψ",
+  omega: "ω",
+  // Greek uppercase
+  Alpha: "Α",
+  Beta: "Β",
+  Gamma: "Γ",
+  Delta: "Δ",
+  Epsilon: "Ε",
+  Theta: "Θ",
+  Lambda: "Λ",
+  Mu: "Μ",
+  Pi: "Π",
+  Sigma: "Σ",
+  Phi: "Φ",
+  Psi: "Ψ",
+  Omega: "Ω",
+  // Math / symbols
+  pm: "±",
+  plus: "+",
+  minus: "−",
+  times: "×",
+  div: "÷",
+  ne: "≠",
+  neq: "≠",
+  le: "≤",
+  ge: "≥",
+  approx: "≈",
+  infty: "∞",
+  infinity: "∞",
+  sqrt: "√",
+  sum: "∑",
+  prod: "∏",
+  // Currency
+  euro: "€",
+  pound: "£",
+  yen: "¥",
+  cent: "¢",
+  // Misc
+  copy: "©",
+  reg: "®",
+  trade: "™",
+  deg: "°",
+  para: "¶",
+  sect: "§",
+  dagger: "†",
+  ddagger: "‡",
+  frac12: "½",
+  frac14: "¼",
+  frac34: "¾",
+  frac13: "⅓",
+  frac23: "⅔",
+};
+
+/** Parse a slash command or U+XXXX string and return the resolved character, or null. */
+function resolveSlashCommand(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  // U+XXXX form
+  const uMatch = trimmed.match(/^[Uu]\+([0-9A-Fa-f]{1,6})$/);
+  if (uMatch) {
+    const cp = parseInt(uMatch[1], 16);
+    if (!isNaN(cp) && cp >= 0 && cp <= 0x10ffff) {
+      return String.fromCodePoint(cp);
+    }
+    return null;
+  }
+
+  // \name or name
+  const name = trimmed.startsWith("\\") ? trimmed.slice(1) : trimmed;
+  return SLASH_MAP[name] ?? null;
 }
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export interface UnicodePickerProps {
   onInsert: (glyph: string) => void;
 }
 
 export function UnicodePicker({ onInsert }: UnicodePickerProps) {
-  const [query, setQuery] = useState("");
-  const [openGroups, setOpenGroups] = useState<string[]>([]);
+  const [activeSet, setActiveSet] = useState<SetId>("punctuation");
+  const [slashValue, setSlashValue] = useState("");
+  const slashRef = useRef<HTMLInputElement>(null);
 
-  const filtered = useMemo(() => {
-    return GROUPS.map((g) => ({
-      ...g,
-      glyphs: g.glyphs.filter((gl) => matchesSearch(gl, query)),
-    })).filter((g) => g.glyphs.length > 0);
-  }, [query]);
+  const currentChars = useMemo(
+    () => CHAR_SETS.find((s) => s.id === activeSet)?.chars ?? [],
+    [activeSet],
+  );
 
-  // When the user types a search query, auto-expand all matching groups
-  // so the filtered glyph buttons are immediately visible.
-  const effectiveOpen = query ? filtered.map((g) => g.id) : openGroups;
+  function handleSlashKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const resolved = resolveSlashCommand(slashValue);
+      if (resolved) {
+        onInsert(resolved);
+        setSlashValue("");
+      }
+    }
+  }
 
   return (
     <div
       data-testid="unicode-picker"
-      className="flex flex-col gap-2 rounded border border-border-2 bg-sunk p-2"
+      className="flex flex-col gap-1.5 rounded border border-border-2 bg-sunk p-2"
     >
-      <Input
-        data-testid="unicode-picker-search"
-        size="sm"
-        placeholder="Search glyphs…"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
-      <Accordion
-        type="multiple"
-        value={effectiveOpen}
-        onValueChange={query ? undefined : setOpenGroups}
-        className="flex flex-col gap-1"
-      >
-        {filtered.map((group) => (
-          <Accordion.Item key={group.id} value={group.id}>
-            <Accordion.Trigger>{group.label}</Accordion.Trigger>
-            <Accordion.Content>
-              <div className="grid grid-cols-6 gap-1 pt-1">
-                {group.glyphs.map((g) => (
-                  <button
-                    key={g.id}
-                    type="button"
-                    data-testid={`unicode-glyph-${g.id}`}
-                    title={g.name}
-                    onClick={() => onInsert(g.char)}
-                    className="h-8 rounded border border-border-2 bg-raised text-ink-1 text-sm font-mono hover:bg-accent/10 hover:border-accent"
-                  >
-                    {g.char}
-                  </button>
-                ))}
-              </div>
-            </Accordion.Content>
-          </Accordion.Item>
+      {/* Sets row — horizontal scrollable pills */}
+      <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+        {CHAR_SETS.map((set) => (
+          <button
+            key={set.id}
+            type="button"
+            data-testid={`unicode-set-${set.id}`}
+            onClick={() => setActiveSet(set.id)}
+            className={[
+              "shrink-0 h-6 px-2.5 rounded-full border text-[10px] font-semibold transition-colors whitespace-nowrap",
+              activeSet === set.id
+                ? "bg-accent/15 border-accent text-accent"
+                : "bg-raised border-border-2 text-ink-3 hover:text-ink-1 hover:border-border-1",
+            ].join(" ")}
+          >
+            {set.label}
+          </button>
         ))}
-      </Accordion>
+      </div>
+
+      {/* Code-point card grid */}
+      <div
+        className="grid gap-1 overflow-y-auto"
+        style={{
+          gridTemplateColumns: "repeat(auto-fill, minmax(44px, 1fr))",
+          maxHeight: "160px",
+        }}
+      >
+        {currentChars.map(({ char, cp }) => (
+          <button
+            key={cp}
+            type="button"
+            data-testid={`unicode-char-${cp}`}
+            title={cp}
+            onClick={() => onInsert(char)}
+            className="flex flex-col items-center justify-center gap-0.5 h-12 rounded border border-border-2 bg-raised text-ink-1 hover:bg-accent/10 hover:border-accent transition-colors"
+          >
+            <span className="font-serif text-base leading-none">{char}</span>
+            <span className="text-[8px] font-mono text-ink-4 leading-none">{cp}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Slash-command input */}
+      <input
+        ref={slashRef}
+        type="text"
+        data-testid="unicode-slash-input"
+        placeholder="\emdash, \alpha, U+2019…"
+        value={slashValue}
+        onChange={(e) => setSlashValue(e.target.value)}
+        onKeyDown={handleSlashKeyDown}
+        className="h-7 w-full rounded border border-border-2 bg-raised px-2 text-[11px] font-mono text-ink-1 placeholder:text-ink-4 focus:outline-none focus:border-accent transition-colors"
+      />
     </div>
   );
 }

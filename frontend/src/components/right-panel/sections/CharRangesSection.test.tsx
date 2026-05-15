@@ -1,5 +1,6 @@
-// CharRangesSection.test.tsx — Tests for Slice 19 char-range editor.
+// CharRangesSection.test.tsx — Tests for Slice 19 char-range editor + P4.a hi-fi additions.
 // Spec: docs/specs/2026-05-15-hifi-redesign-plan.md Slice 19.
+// P4.a (Gap 38): per-char glyph editor rows, overlap markers, STYLE/COMPONENT kind switcher.
 
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -70,6 +71,8 @@ function renderSection(word = makeWord()) {
   };
 }
 
+// ---- Slice 19 baseline tests (unchanged) ------------------------------------
+
 describe("CharRangesSection (Slice 19)", () => {
   it("renders outer container with data-testid=char-ranges-section", () => {
     renderSection();
@@ -91,11 +94,9 @@ describe("CharRangesSection (Slice 19)", () => {
     renderSection(makeWord("Hello"));
 
     await user.click(screen.getByTestId("char-cell-1"));
-    // Once start is selected, cell-1 should be highlighted as selected
     expect(screen.getByTestId("char-cell-1")).toHaveAttribute("data-range-anchor", "true");
 
     await user.click(screen.getByTestId("char-cell-3"));
-    // A pending range readout should show 1..3
     expect(screen.getByTestId("char-ranges-pending")).toHaveTextContent("1");
     expect(screen.getByTestId("char-ranges-pending")).toHaveTextContent("3");
   });
@@ -112,11 +113,10 @@ describe("CharRangesSection (Slice 19)", () => {
     expect(addBtn).toBeEnabled();
   });
 
-  it("style chips cycle off→on→mixed→off via tristate", async () => {
+  it("style chips cycle off->on->mixed->off via tristate", async () => {
     const user = userEvent.setup();
     renderSection(makeWord("Hello"));
 
-    // Reveal style chips by selecting a range
     await user.click(screen.getByTestId("char-cell-0"));
     await user.click(screen.getByTestId("char-cell-2"));
 
@@ -132,13 +132,10 @@ describe("CharRangesSection (Slice 19)", () => {
 
     await user.click(screen.getByTestId("char-cell-1"));
     await user.click(screen.getByTestId("char-cell-3"));
-
-    // Enable italic for this range
     await user.click(screen.getByTestId("char-ranges-chip-italic"));
-
     await user.click(screen.getByTestId("char-ranges-add-button"));
 
-    // Row appears
+    // Compat row appears (sr-only hidden div)
     expect(screen.getByTestId("char-ranges-row-0")).toBeInTheDocument();
     expect(screen.getByTestId("char-ranges-row-0")).toHaveTextContent("1");
     expect(screen.getByTestId("char-ranges-row-0")).toHaveTextContent("3");
@@ -178,7 +175,6 @@ describe("CharRangesSection (Slice 19)", () => {
 
     await waitFor(() => expect(handler).toHaveBeenCalled());
 
-    // The body should carry the full (start, end, styles[]) shape.
     expect(capturedBody).toMatchObject({
       ranges: [{ start: 0, end: 2, styles: ["italic"] }],
     });
@@ -195,18 +191,161 @@ describe("CharRangesSection (Slice 19)", () => {
     const user = userEvent.setup();
     renderSection(makeWord("Hello"));
 
-    // Add a range
     await user.click(screen.getByTestId("char-cell-0"));
     await user.click(screen.getByTestId("char-cell-2"));
     await user.click(screen.getByTestId("char-ranges-chip-bold"));
     await user.click(screen.getByTestId("char-ranges-add-button"));
     await waitFor(() => expect(handler).toHaveBeenCalledTimes(1));
 
-    // Delete it
     await user.click(screen.getByTestId("char-ranges-delete-0"));
     await waitFor(() => expect(handler).toHaveBeenCalledTimes(2));
 
-    // Second POST should carry an empty ranges list.
     expect(lastBody).toMatchObject({ ranges: [] });
+  });
+});
+
+// ---- P4.a additions (Gap 38) ------------------------------------------------
+
+describe("CharRangesSection P4.a -- per-char glyph editor + overlap + kind switcher", () => {
+  it("renders char-range-add button at the bottom", () => {
+    renderSection(makeWord("Hello"));
+    expect(screen.getByTestId("char-range-add")).toBeInTheDocument();
+    expect(screen.getByTestId("char-range-add")).toHaveTextContent("+ Add range");
+  });
+
+  it("char-range-add button appends a blank range card", async () => {
+    const user = userEvent.setup();
+    renderSection(makeWord("Hello"));
+
+    expect(screen.queryByTestId("char-range-0")).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("char-range-add"));
+    expect(screen.getByTestId("char-range-0")).toBeInTheDocument();
+  });
+
+  it("range card has glyph preview with correct testid", async () => {
+    const user = userEvent.setup();
+    renderSection(makeWord("Hello"));
+
+    await user.click(screen.getByTestId("char-cell-1"));
+    await user.click(screen.getByTestId("char-cell-3"));
+    await user.click(screen.getByTestId("char-ranges-add-button"));
+
+    // Glyph card should show chars 1..3 of "Hello" = "ell"
+    const glyphCard = screen.getByTestId("char-range-0-glyph");
+    expect(glyphCard).toBeInTheDocument();
+    expect(glyphCard).toHaveTextContent("ell");
+  });
+
+  it("range card delete button with new testid removes the card", async () => {
+    const user = userEvent.setup();
+    renderSection(makeWord("Hello"));
+
+    await user.click(screen.getByTestId("char-range-add"));
+    expect(screen.getByTestId("char-range-0")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("char-range-0-delete"));
+    expect(screen.queryByTestId("char-range-0")).not.toBeInTheDocument();
+  });
+
+  it("kind switcher renders STYLE and COMPONENT buttons with correct testids", async () => {
+    const user = userEvent.setup();
+    renderSection(makeWord("Hello"));
+
+    await user.click(screen.getByTestId("char-range-add"));
+
+    expect(screen.getByTestId("char-range-0-kind-style")).toBeInTheDocument();
+    expect(screen.getByTestId("char-range-0-kind-component")).toBeInTheDocument();
+  });
+
+  it("clicking COMPONENT kind button switches chip palette to component chips", async () => {
+    const user = userEvent.setup();
+    renderSection(makeWord("Hello"));
+
+    await user.click(screen.getByTestId("char-range-add"));
+
+    // Initially in STYLE mode -- style chips visible
+    expect(screen.getByTestId("char-range-0-style-chip-bold")).toBeInTheDocument();
+    expect(screen.queryByTestId("char-range-0-component-chip-drop-cap")).not.toBeInTheDocument();
+
+    // Switch to COMPONENT mode
+    await user.click(screen.getByTestId("char-range-0-kind-component"));
+
+    // Component chips visible; style chips gone
+    expect(screen.getByTestId("char-range-0-component-chip-drop-cap")).toBeInTheDocument();
+    expect(screen.queryByTestId("char-range-0-style-chip-bold")).not.toBeInTheDocument();
+  });
+
+  it("overlap warning appears when two ranges share character positions", async () => {
+    const user = userEvent.setup();
+    renderSection(makeWord("Hello"));
+
+    // Add first range: 0..2
+    await user.click(screen.getByTestId("char-cell-0"));
+    await user.click(screen.getByTestId("char-cell-2"));
+    await user.click(screen.getByTestId("char-ranges-add-button"));
+
+    // No overlap yet
+    expect(screen.queryByTestId("char-range-0-overlap-warning")).not.toBeInTheDocument();
+
+    // Add second range: 1..3 (overlaps with 0..2)
+    await user.click(screen.getByTestId("char-cell-1"));
+    await user.click(screen.getByTestId("char-cell-3"));
+    await user.click(screen.getByTestId("char-ranges-add-button"));
+
+    // Both cards show overlap warning
+    expect(screen.getByTestId("char-range-0-overlap-warning")).toBeInTheDocument();
+    expect(screen.getByTestId("char-range-1-overlap-warning")).toBeInTheDocument();
+  });
+
+  it("no overlap warning when ranges are adjacent but not overlapping", async () => {
+    const user = userEvent.setup();
+    renderSection(makeWord("Hello"));
+
+    // First range: 0..1
+    await user.click(screen.getByTestId("char-cell-0"));
+    await user.click(screen.getByTestId("char-cell-1"));
+    await user.click(screen.getByTestId("char-ranges-add-button"));
+
+    // Second range: 2..3 (non-overlapping)
+    await user.click(screen.getByTestId("char-cell-2"));
+    await user.click(screen.getByTestId("char-cell-3"));
+    await user.click(screen.getByTestId("char-ranges-add-button"));
+
+    expect(screen.queryByTestId("char-range-0-overlap-warning")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("char-range-1-overlap-warning")).not.toBeInTheDocument();
+  });
+
+  it("multiple range cards render with correct indices", async () => {
+    const user = userEvent.setup();
+    renderSection(makeWord("Hello"));
+
+    await user.click(screen.getByTestId("char-range-add"));
+    await user.click(screen.getByTestId("char-range-add"));
+    await user.click(screen.getByTestId("char-range-add"));
+
+    expect(screen.getByTestId("char-range-0")).toBeInTheDocument();
+    expect(screen.getByTestId("char-range-1")).toBeInTheDocument();
+    expect(screen.getByTestId("char-range-2")).toBeInTheDocument();
+    expect(screen.queryByTestId("char-range-3")).not.toBeInTheDocument();
+  });
+
+  it("char-range-add persists to backend via /char-ranges", async () => {
+    let capturedBody: unknown = null;
+    const handler = vi.fn(async (info: { request: Request }) => {
+      capturedBody = await info.request.json();
+      return HttpResponse.json(makePageResponse("Hello"));
+    });
+    server.use(http.post("/api/projects/p1/pages/0/words/0/0/char-ranges", handler));
+
+    const user = userEvent.setup();
+    renderSection(makeWord("Hello"));
+
+    await user.click(screen.getByTestId("char-range-add"));
+    await waitFor(() => expect(handler).toHaveBeenCalled());
+
+    // Should post a range covering the full word (0..4 for "Hello")
+    expect(capturedBody).toMatchObject({
+      ranges: [{ start: 0, end: 4, styles: [] }],
+    });
   });
 });
