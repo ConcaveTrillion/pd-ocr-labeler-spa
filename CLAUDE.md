@@ -47,25 +47,13 @@ output for debugging.
 
 ## Current milestone
 
-M0 (repo scaffold) and M1 (settings/adapters/AppState) are both done. M2 (project navigation
-and page loading) is in progress.
-Next slices: issues #210 (dialog: interactive Konva image), #223 (persistence: sidecar files
-and AppState concurrency lock and pidfile), #222 (persistence: image cache layer), #226 (export
-core handler and DocTRExportOperations).
+M0–M10, M9.1, M9.2 are all ✅ done. See `docs/ROADMAP.md` for full per-milestone detail.
 
-Shipped (2026-05-14): Notifications stack #230–#233, data hooks #192 (useProject/usePage/
-useJobProgress), TextTabs shell #200, PageActions bar layout #214, page-action mutations
-issues #215+#216, virtualised LineCard list #201, hotkeyMap+useHotkey+HotkeyHelpModal #235,
-page-action hotkeys #217, line mutations #202, WordCell+GT-input #203,
-useGlobalHotkeys+ConfirmDialog #236, ImageTabsHeader+BBoxOverlay #196,
-WordEditDialog shell #209, ToolbarActionGrid #207, PageImageCanvas Select mode #197,
-text-norm helpers + PagePayload fields + ExportRequest field #260,
-viewport+matches+dialog hotkeys #237, Rebox+AddWord+Erase modes #198,
-ExportRequest page_index + export/styles endpoint #225, three-lane persistence
-model (LaneResolver) #221, OCRConfigModal normalize section + normalize/available
-endpoint #261, driver-contract audit #241, E2E conftest+helpers+tiny-fixture #247,
-driver-contract conformance E2E #242, rotation M9.1 #263 (PageRecord fields,
-POST /rotate, rotation-badge, rotate buttons wired).
+**Open work:**
+
+- Hi-fi follow-ons (FO-1–FO-9): tracked in `docs/hifi-followons.md`; active items have GH issues
+- M9.5 keyboard audit (#286, `status:backlog`): full keyboard-only editing pass
+- M11 glyph annotations (#267–#270, `status:blocked`): needs design decision before implementation
 
 See `docs/ROADMAP.md` for per-slice details.
 
