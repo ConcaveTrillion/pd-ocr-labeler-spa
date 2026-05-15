@@ -28,9 +28,10 @@ import { CharFixerSection } from "./sections/CharFixerSection";
 import { WordHeader } from "./WordHeader";
 import { WordImagePreview } from "./WordImagePreview";
 import { OcrGtCompareRow } from "./OcrGtCompareRow";
+import { StylePalette } from "./StylePalette";
 import { selectionStore, walkSibling } from "../../stores/selection-store";
 import { useRefineAvailable } from "../../hooks/useRefineAvailable";
-import { useUpdateWordGroundTruth } from "../../hooks/useWordMutations";
+import { useUpdateWordGroundTruth, useApplyStyle } from "../../hooks/useWordMutations";
 import type { components } from "../../api/types";
 
 type PagePayload = components["schemas"]["PagePayload"];
@@ -70,6 +71,7 @@ export function WordDetail({ page, projectId, pageIndex }: WordDetailProps) {
   const { data: refineProbe } = useRefineAvailable();
   const refineAvailable = refineProbe?.available ?? false;
   const updateGt = useUpdateWordGroundTruth(projectId, pageIndex);
+  const applyStyle = useApplyStyle(projectId, pageIndex);
 
   const state = useSyncExternalStore(
     subscribeSelection,
@@ -129,6 +131,20 @@ export function WordDetail({ page, projectId, pageIndex }: WordDetailProps) {
             text,
           })
         }
+      />
+
+      {/* P2.d: STYLE chip palette — whole-word styling */}
+      <StylePalette
+        activeStyles={word.text_style_labels ?? []}
+        onStyleChange={(styleKey, next) => {
+          if (next === "mixed") return; // skip mixed state for whole-word
+          applyStyle.mutate({
+            lineIndex: lineIdx,
+            wordIndex: wordIdx,
+            style: styleKey,
+            scope: "whole",
+          });
+        }}
       />
 
       <Accordion
