@@ -9,7 +9,6 @@
   },
   "tailwind": {
     "config": "./tailwind.config.js",
-    "css": "./src/index.css",
-    "baseColor": "slate"
+    "css": "./src/index.css"
   }
 }
