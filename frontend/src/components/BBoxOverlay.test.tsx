@@ -1,21 +1,48 @@
-// BBoxOverlay.test.tsx — Konva-rect rendering + sidecar test (#298)
+// BBoxOverlay.test.tsx — Konva-rect rendering + sidecar test (#298, #328)
 //
 // Spec: specs/21-konva-renderer.md §6 (overlay rendering), §12 (testids)
-// Issues: #196 (LAYER_COLORS, original RGBA constants) and #298 (spec-21-A3)
+// Issues: #196 (LAYER_COLORS, original RGBA constants), #298 (spec-21-A3),
+//         #328 (FO-4: migrate to useLayerColors CSS vars)
 //
 // Acceptance for #298:
 //   - Given N items, the wrapping Stage contains N <Rect> nodes (located via
 //     the react-konva mock that materialises each <Rect> as a probe div).
 //   - Each Rect carries fill/stroke/strokeWidth/listening/perfectDrawEnabled
-//     props from LAYER_COLORS[layer]; `selected` items use SELECTION_STROKE_WIDTH.
+//     props derived from useLayerColors(); `selected` items use SELECTION_STROKE_WIDTH.
 //   - Sidecar `<div data-testid="bbox-overlay-${layer}" data-layer data-item-count>`
 //     is rendered alongside (dev/test only — production-mode gating is checked
 //     separately via import.meta.env.MODE).
+//
+// Acceptance for #328 (FO-4):
+//   - BBoxOverlay reads colors from useLayerColors() (mocked here) rather than
+//     hardcoded LAYER_COLORS constants.
+//   - LAYER_COLORS constants are still exported for legend/UI callers (#196 coverage kept).
 //
 // LAYER_COLORS RGBA constants (#196) — retained from prior coverage.
 
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
+
+// ── Mock useLayerColors (FO-4, #328) ─────────────────────────────────────────
+//
+// Provide known hex values so the derived fill/stroke values are deterministic
+// in jsdom (which has no CSS engine for custom properties).
+
+const MOCK_LAYER_COLORS = {
+  block: "#a89074",
+  para: "#00ff00", // distinctive green → easy to assert on derived rgba
+  line: "#ff00ff", // distinctive magenta
+  word: "#0000ff", // distinctive blue
+};
+
+vi.mock("../hooks/useLayerColors", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../hooks/useLayerColors")>();
+  return {
+    ...original,
+    // Override only the hook; keep hexToLayerColorSpec, hexToRgba, etc. real.
+    useLayerColors: () => MOCK_LAYER_COLORS,
+  };
+});
 
 // Counter incremented every time the react-konva Rect mock renders. The memo
 // test renders BBoxOverlay twice with the same `items` reference and asserts
@@ -79,6 +106,7 @@ vi.mock("react-konva", () => ({
 
 import { Layer, Stage } from "react-konva";
 import { BBoxOverlay, LAYER_COLORS, SELECTION_STROKE_WIDTH, type BBoxItem } from "./BBoxOverlay";
+import { hexToRgba, LAYER_FILL_ALPHA, LAYER_STROKE_ALPHA } from "../hooks/useLayerColors";
 
 function mkItems(n: number, selected = false): BBoxItem[] {
   return Array.from({ length: n }, (_, i) => ({
@@ -88,7 +116,14 @@ function mkItems(n: number, selected = false): BBoxItem[] {
   }));
 }
 
-describe("BBoxOverlay RGBA colors (#196)", () => {
+// ─── Exported LAYER_COLORS constants (#196) ───────────────────────────────────
+//
+// The static LAYER_COLORS export remains on BBoxOverlay for legend/UI callers.
+// These exact RGBA values are legacy-parity constants; they are no longer used
+// internally by BBoxOverlay (which reads from useLayerColors() instead) but
+// must remain exported and correct.
+
+describe("BBoxOverlay RGBA colors (#196) — exported constants", () => {
   it("paragraphs fill matches spec: rgba(34,197,94,0.20)", () => {
     expect(LAYER_COLORS.paragraphs.fill).toBe("rgba(34,197,94,0.20)");
   });
@@ -119,6 +154,93 @@ describe("BBoxOverlay RGBA colors (#196)", () => {
 
   it("drag-rect fill is none/transparent", () => {
     expect(LAYER_COLORS["drag-rect"].fill).toBe("transparent");
+  });
+});
+
+// ─── Theme-aware colors (FO-4, #328) ─────────────────────────────────────────
+//
+// BBoxOverlay now calls useLayerColors() (mocked above) and derives colors
+// via hexToLayerColorSpec(). These tests assert the mock values flow through.
+
+describe("BBoxOverlay theme-aware colors (FO-4, #328)", () => {
+  it("words Rect fill is derived from mocked --layer-word CSS var", () => {
+    const { getAllByTestId } = render(
+      <Stage>
+        <Layer>
+          <BBoxOverlay layer="words" items={mkItems(1)} />
+        </Layer>
+      </Stage>,
+    );
+    const rect = getAllByTestId("konva-rect")[0];
+    // Mock word color is "#0000ff" → rgba(0,0,255,0.20)
+    const expectedFill = hexToRgba(MOCK_LAYER_COLORS.word, LAYER_FILL_ALPHA);
+    expect(rect.getAttribute("data-fill")).toBe(expectedFill);
+  });
+
+  it("words Rect stroke is derived from mocked --layer-word CSS var", () => {
+    const { getAllByTestId } = render(
+      <Stage>
+        <Layer>
+          <BBoxOverlay layer="words" items={mkItems(1)} />
+        </Layer>
+      </Stage>,
+    );
+    const rect = getAllByTestId("konva-rect")[0];
+    // Mock word color is "#0000ff" → rgba(0,0,255,0.65)
+    const expectedStroke = hexToRgba(MOCK_LAYER_COLORS.word, LAYER_STROKE_ALPHA);
+    expect(rect.getAttribute("data-stroke")).toBe(expectedStroke);
+  });
+
+  it("lines Rect fill is derived from mocked --layer-line CSS var", () => {
+    const { getAllByTestId } = render(
+      <Stage>
+        <Layer>
+          <BBoxOverlay layer="lines" items={mkItems(1)} />
+        </Layer>
+      </Stage>,
+    );
+    const rect = getAllByTestId("konva-rect")[0];
+    const expectedFill = hexToRgba(MOCK_LAYER_COLORS.line, LAYER_FILL_ALPHA);
+    expect(rect.getAttribute("data-fill")).toBe(expectedFill);
+  });
+
+  it("paragraphs Rect fill is derived from mocked --layer-para CSS var", () => {
+    const { getAllByTestId } = render(
+      <Stage>
+        <Layer>
+          <BBoxOverlay layer="paragraphs" items={mkItems(1)} />
+        </Layer>
+      </Stage>,
+    );
+    const rect = getAllByTestId("konva-rect")[0];
+    const expectedFill = hexToRgba(MOCK_LAYER_COLORS.para, LAYER_FILL_ALPHA);
+    expect(rect.getAttribute("data-fill")).toBe(expectedFill);
+  });
+
+  it("drag-rect uses hardcoded transparent fill (no CSS token)", () => {
+    const { getAllByTestId } = render(
+      <Stage>
+        <Layer>
+          <BBoxOverlay layer="drag-rect" items={mkItems(1)} />
+        </Layer>
+      </Stage>,
+    );
+    const rect = getAllByTestId("konva-rect")[0];
+    expect(rect.getAttribute("data-fill")).toBe("transparent");
+    expect(rect.getAttribute("data-stroke")).toBe("#2563eb");
+  });
+
+  it("selection-words uses hardcoded selection fill (no CSS token)", () => {
+    const { getAllByTestId } = render(
+      <Stage>
+        <Layer>
+          <BBoxOverlay layer="selection-words" items={mkItems(1)} />
+        </Layer>
+      </Stage>,
+    );
+    const rect = getAllByTestId("konva-rect")[0];
+    expect(rect.getAttribute("data-fill")).toBe("rgba(37,99,235,0.20)");
+    expect(rect.getAttribute("data-stroke")).toBe("#1d4ed8");
   });
 });
 
@@ -156,7 +278,7 @@ describe("BBoxOverlay Konva-rect rendering (#298, spec §6)", () => {
     expect(queryAllByTestId("konva-rect")).toHaveLength(7);
   });
 
-  it("Rect fill/stroke/strokeWidth follow LAYER_COLORS[layer]", () => {
+  it("Rect fill/stroke/strokeWidth are non-empty for lines layer", () => {
     const { getAllByTestId } = render(
       <Stage>
         <Layer>
@@ -165,9 +287,9 @@ describe("BBoxOverlay Konva-rect rendering (#298, spec §6)", () => {
       </Stage>,
     );
     const rect = getAllByTestId("konva-rect")[0];
-    expect(rect.getAttribute("data-fill")).toBe(LAYER_COLORS.lines.fill);
-    expect(rect.getAttribute("data-stroke")).toBe(LAYER_COLORS.lines.stroke);
-    expect(rect.getAttribute("data-stroke-width")).toBe(String(LAYER_COLORS.lines.strokeWidth));
+    expect(rect.getAttribute("data-fill")).toBeTruthy();
+    expect(rect.getAttribute("data-stroke")).toBeTruthy();
+    expect(rect.getAttribute("data-stroke-width")).toBe("1");
   });
 
   it("Rect propagates bbox geometry (x/y/width/height)", () => {
@@ -201,7 +323,7 @@ describe("BBoxOverlay Konva-rect rendering (#298, spec §6)", () => {
     );
     const rects = getAllByTestId("konva-rect");
     expect(rects[0].getAttribute("data-stroke-width")).toBe(String(SELECTION_STROKE_WIDTH));
-    expect(rects[1].getAttribute("data-stroke-width")).toBe(String(LAYER_COLORS.words.strokeWidth));
+    expect(rects[1].getAttribute("data-stroke-width")).toBe("1");
   });
 
   it("Rect has listening=false and perfectDrawEnabled=false (perf pinning)", () => {
