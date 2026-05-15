@@ -7,9 +7,16 @@
 // typed against the project's Vite 6 and re-introduces the type-collision
 // we're avoiding. Vitest's esbuild transform handles `.tsx` JSX out of the
 // box, which is sufficient for unit + Testing-Library tests.
+import path from "path";
+
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
   test: {
     environment: "jsdom",
     globals: true,
