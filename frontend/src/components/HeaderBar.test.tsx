@@ -275,6 +275,76 @@ describe("HeaderBar: dialog triggers (spec 22 §6)", () => {
   });
 });
 
+// --- #326: breadcrumb mode on project routes ------------------------------------
+
+describe("HeaderBar: #326 — project breadcrumb on project routes", () => {
+  it("shows project-breadcrumb when project data is loaded", async () => {
+    server.use(
+      http.get("/api/projects", () =>
+        HttpResponse.json({
+          projects: [],
+          selected: null,
+          projects_root: "",
+          config_source: "default",
+        }),
+      ),
+      http.get("/api/projects/proj-1", () =>
+        HttpResponse.json({
+          project_id: "proj-1",
+          project_root: "/data/proj-1",
+          image_paths: [],
+          ground_truth_map: {},
+          version: "1.0",
+          source_lib: "doctr-pd-labeled",
+          total_pages: 5,
+          saved_pages: 2,
+          current_page_index: 0,
+          include_images: true,
+          copied_images: false,
+        }),
+      ),
+    );
+
+    renderHeaderBar({ route: "/projects/proj-1/pages/pageno/1" });
+
+    // Breadcrumb appears once project query resolves.
+    await waitFor(() => {
+      expect(screen.getByTestId("project-breadcrumb")).toBeInTheDocument();
+    });
+
+    // Shows the last segment of project_root as the label.
+    expect(screen.getByTestId("project-breadcrumb")).toHaveTextContent("proj-1");
+
+    // change-project-button is present.
+    expect(screen.getByTestId("change-project-button")).toBeInTheDocument();
+
+    // Driver-contract testids remain in the DOM (sr-only hidden).
+    expect(screen.getByTestId("project-select")).toBeInTheDocument();
+    expect(screen.getByTestId("load-project-button")).toBeInTheDocument();
+  });
+
+  it("does not show breadcrumb on root route (no project)", async () => {
+    server.use(
+      http.get("/api/projects", () =>
+        HttpResponse.json({
+          projects: [],
+          selected: null,
+          projects_root: "",
+          config_source: "default",
+        }),
+      ),
+    );
+
+    renderHeaderBar({ route: "/" });
+
+    await screen.findByTestId("header-bar");
+
+    expect(screen.queryByTestId("project-breadcrumb")).not.toBeInTheDocument();
+    // Select should be visible on root route.
+    expect(screen.getByTestId("project-select")).toBeInTheDocument();
+  });
+});
+
 // --- IS-2: navSlot + actionsSlot props ----------------------------------------
 
 describe("HeaderBar: IS-2 — navSlot and actionsSlot (integration slots)", () => {

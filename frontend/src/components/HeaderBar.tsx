@@ -26,9 +26,20 @@ import {
   DropdownMenuSeparator,
 } from "./ui/dropdown-menu";
 
-// ─── disabled-state hook ─────────────────────────────────────────────────────
+// ─── project-route hook ──────────────────────────────────────────────────────
 
-function useIsControlsDisabled(): boolean {
+interface ProjectRouteInfo {
+  /** True when no project is loaded or the project query is pending/errored. */
+  controlsDisabled: boolean;
+  /**
+   * Human-readable project name (last path segment of project_root) when a
+   * project is loaded; undefined otherwise. Drives breadcrumb mode in
+   * ProjectLoadControls.
+   */
+  projectName: string | undefined;
+}
+
+function useProjectRouteInfo(): ProjectRouteInfo {
   // Match either page-no or page-idx variants and the project root.
   const matchPageNo = useMatch("/projects/:projectId/pages/pageno/:pageNo");
   const matchPageIdx = useMatch("/projects/:projectId/pages/index/:idx0");
@@ -40,10 +51,14 @@ function useIsControlsDisabled(): boolean {
 
   const { data, isLoading, isError } = useProject(projectId);
 
-  if (!projectId) return true;
-  if (isLoading || isError) return true;
-  if (!data) return true;
-  return false;
+  if (!projectId || isLoading || isError || !data) {
+    return { controlsDisabled: true, projectName: undefined };
+  }
+
+  // Derive display label: last path segment of project_root, or project_id.
+  const label = data.project_root.split("/").filter(Boolean).pop() ?? projectId;
+
+  return { controlsDisabled: false, projectName: label };
 }
 
 // ─── ThemeChips ──────────────────────────────────────────────────────────────
@@ -153,7 +168,7 @@ export interface HeaderBarProps {
 }
 
 export default function HeaderBar({ navSlot, actionsSlot }: HeaderBarProps = {}) {
-  const isControlsDisabled = useIsControlsDisabled();
+  const { controlsDisabled: isControlsDisabled, projectName } = useProjectRouteInfo();
 
   return (
     <header
@@ -179,7 +194,7 @@ export default function HeaderBar({ navSlot, actionsSlot }: HeaderBarProps = {})
 
       {/* Center: load controls + dialog triggers */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
-        <ProjectLoadControls />
+        <ProjectLoadControls projectName={projectName} />
 
         {/* Center-right: actions slot (project route only) */}
         {actionsSlot}
