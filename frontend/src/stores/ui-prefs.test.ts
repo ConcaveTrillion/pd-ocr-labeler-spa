@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useUiPrefs, clampSplitterRatio } from "./ui-prefs";
+import { useUiPrefs, clampSplitterRatio, nextMatchFilter } from "./ui-prefs";
 
 describe("ui-prefs store", () => {
   beforeEach(() => {
@@ -12,6 +12,7 @@ describe("ui-prefs store", () => {
       },
       splitterRatio: 0.5,
       selectionMode: "paragraph",
+      matchFilter: "unvalidated",
     });
   });
 
@@ -26,6 +27,48 @@ describe("ui-prefs store", () => {
       });
       expect(store.splitterRatio).toBe(0.5);
       expect(store.selectionMode).toBe("paragraph");
+      expect(store.matchFilter).toBe("unvalidated");
+    });
+  });
+
+  describe("matchFilter updates (spec 22 §8)", () => {
+    it("setMatchFilter writes the value", () => {
+      useUiPrefs.setMatchFilter("mismatched");
+      expect(useUiPrefs.getState().matchFilter).toBe("mismatched");
+    });
+
+    it("cycleMatchFilter advances unvalidated → mismatched", () => {
+      useUiPrefs.setMatchFilter("unvalidated");
+      useUiPrefs.cycleMatchFilter();
+      expect(useUiPrefs.getState().matchFilter).toBe("mismatched");
+    });
+
+    it("cycleMatchFilter advances mismatched → all", () => {
+      useUiPrefs.setMatchFilter("mismatched");
+      useUiPrefs.cycleMatchFilter();
+      expect(useUiPrefs.getState().matchFilter).toBe("all");
+    });
+
+    it("cycleMatchFilter advances all → unvalidated (wraps)", () => {
+      useUiPrefs.setMatchFilter("all");
+      useUiPrefs.cycleMatchFilter();
+      expect(useUiPrefs.getState().matchFilter).toBe("unvalidated");
+    });
+
+    it("three cycle calls return to the starting state", () => {
+      useUiPrefs.setMatchFilter("unvalidated");
+      useUiPrefs.cycleMatchFilter();
+      useUiPrefs.cycleMatchFilter();
+      useUiPrefs.cycleMatchFilter();
+      expect(useUiPrefs.getState().matchFilter).toBe("unvalidated");
+    });
+  });
+
+  describe("nextMatchFilter helper", () => {
+    it("advances unvalidated → mismatched → all → unvalidated", () => {
+      expect(nextMatchFilter("unvalidated")).toBe("mismatched");
+      expect(nextMatchFilter("mismatched")).toBe("all");
+      expect(nextMatchFilter("all")).toBe("unvalidated");
     });
   });
 

@@ -14,10 +14,11 @@ import React from "react";
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { components } from "../api/types";
-import { WordMatchView } from "./WordMatchView";
+import { WordMatchView, lineMatchesFilter } from "./WordMatchView";
 import { LineCard } from "./LineCard";
 
 type LineMatch = components["schemas"]["LineMatch"];
+type WordMatch = components["schemas"]["WordMatch"];
 type MatchStatus = components["schemas"]["MatchStatus"];
 
 // ─── helpers ─────────────────────────────────────────────────────────────
@@ -44,6 +45,20 @@ function makeLines(n: number): LineMatch[] {
   return Array.from({ length: n }, (_, i) =>
     makeLineMatch({ line_index: i, ocr_line_text: `line ${i}` }),
   );
+}
+
+function makeWordMatch(overrides: Partial<WordMatch> = {}): WordMatch {
+  return {
+    line_index: 0,
+    word_index: 0,
+    ocr_text: "foo",
+    ground_truth_text: "foo",
+    match_status: "exact",
+    normalized_match: true,
+    is_validated: false,
+    bbox: { x: 0, y: 0, width: 0, height: 0 },
+    ...overrides,
+  } as WordMatch;
 }
 
 // ─── WordMatchView ────────────────────────────────────────────────────────
@@ -140,5 +155,125 @@ describe("LineCard", () => {
     const line = makeLineMatch({ line_index: 42 });
     render(<LineCard line={line} />);
     expect(screen.getByTestId("line-card-42")).toBeInTheDocument();
+  });
+});
+
+// ─── lineMatchesFilter ────────────────────────────────────────────────────
+//
+// Spec: specs/22-page-surface-wireup.md §8 (FilterToggle plumbing).
+// Parity: pd-ocr-labeler/pd_ocr_labeler/views/projects/pages/
+// word_match_renderer.py:_filter_lines_for_display.
+
+describe("lineMatchesFilter", () => {
+  it("filter='all' keeps every line regardless of state", () => {
+    const validated = makeLineMatch({ is_fully_validated: true });
+    const unvalidated = makeLineMatch({ is_fully_validated: false });
+    expect(lineMatchesFilter(validated, "all")).toBe(true);
+    expect(lineMatchesFilter(unvalidated, "all")).toBe(true);
+  });
+
+  it("filter='unvalidated' excludes is_fully_validated=true", () => {
+    const validated = makeLineMatch({ is_fully_validated: true });
+    expect(lineMatchesFilter(validated, "unvalidated")).toBe(false);
+  });
+
+  it("filter='unvalidated' keeps is_fully_validated=false", () => {
+    const unvalidated = makeLineMatch({ is_fully_validated: false });
+    expect(lineMatchesFilter(unvalidated, "unvalidated")).toBe(true);
+  });
+
+  it("filter='mismatched' keeps lines with at least one non-exact word", () => {
+    const line = makeLineMatch({
+      word_matches: [
+        makeWordMatch({ match_status: "exact" }),
+        makeWordMatch({ match_status: "mismatch" }),
+      ],
+    });
+    expect(lineMatchesFilter(line, "mismatched")).toBe(true);
+  });
+
+  it("filter='mismatched' excludes lines where every word_match is exact", () => {
+    const line = makeLineMatch({
+      word_matches: [
+        makeWordMatch({ match_status: "exact" }),
+        makeWordMatch({ match_status: "exact" }),
+      ],
+    });
+    expect(lineMatchesFilter(line, "mismatched")).toBe(false);
+  });
+
+  it("filter='mismatched' excludes lines with no word_matches at all", () => {
+    // Legacy `any(...)` over an empty list returns False → line is hidden.
+    const line = makeLineMatch({ word_matches: [] });
+    expect(lineMatchesFilter(line, "mismatched")).toBe(false);
+  });
+});
+
+// ─── WordMatchView filter prop ────────────────────────────────────────────
+
+describe("WordMatchView filter prop", () => {
+  it("filter='all' (default) renders empty state when lines=[]", () => {
+    render(<WordMatchView lines={[]} />);
+    expect(screen.getByTestId("word-match-empty")).toBeInTheDocument();
+  });
+
+  it("filter='unvalidated' shows empty state when every line is validated", () => {
+    const lines = [
+      makeLineMatch({ line_index: 0, is_fully_validated: true }),
+      makeLineMatch({ line_index: 1, is_fully_validated: true }),
+    ];
+    render(<WordMatchView lines={lines} filter="unvalidated" />);
+    expect(screen.getByTestId("word-match-empty")).toBeInTheDocument();
+  });
+
+  it("filter='unvalidated' resizes spacer to the count of unvalidated lines", () => {
+    // 3 unvalidated + 2 validated → after filter only 3 remain → spacer height 240px.
+    const lines = [
+      makeLineMatch({ line_index: 0, is_fully_validated: false }),
+      makeLineMatch({ line_index: 1, is_fully_validated: true }),
+      makeLineMatch({ line_index: 2, is_fully_validated: false }),
+      makeLineMatch({ line_index: 3, is_fully_validated: true }),
+      makeLineMatch({ line_index: 4, is_fully_validated: false }),
+    ];
+    const { container } = render(<WordMatchView lines={lines} filter="unvalidated" />);
+    const spacer = container.querySelector<HTMLElement>("[data-testid='word-match-view'] > div");
+    expect(spacer).not.toBeNull();
+    // 3 unvalidated lines * 80px estimate = 240px.
+    expect(spacer!.style.height).toBe("240px");
+  });
+
+  it("filter='mismatched' resizes spacer to the count of lines containing any non-exact word", () => {
+    const lines = [
+      // Mismatched: keep
+      makeLineMatch({
+        line_index: 0,
+        word_matches: [makeWordMatch({ match_status: "mismatch" })],
+      }),
+      // All-exact: drop
+      makeLineMatch({
+        line_index: 1,
+        word_matches: [makeWordMatch({ match_status: "exact" })],
+      }),
+      // Mismatched: keep
+      makeLineMatch({
+        line_index: 2,
+        word_matches: [makeWordMatch({ match_status: "fuzzy" })],
+      }),
+    ];
+    const { container } = render(<WordMatchView lines={lines} filter="mismatched" />);
+    const spacer = container.querySelector<HTMLElement>("[data-testid='word-match-view'] > div");
+    expect(spacer).not.toBeNull();
+    // 2 mismatched lines * 80px estimate = 160px.
+    expect(spacer!.style.height).toBe("160px");
+  });
+
+  it("filter='all' renders spacer sized for every line", () => {
+    const lines = [
+      makeLineMatch({ line_index: 0, is_fully_validated: true }),
+      makeLineMatch({ line_index: 1, is_fully_validated: false }),
+    ];
+    const { container } = render(<WordMatchView lines={lines} filter="all" />);
+    const spacer = container.querySelector<HTMLElement>("[data-testid='word-match-view'] > div");
+    expect(spacer!.style.height).toBe("160px");
   });
 });
