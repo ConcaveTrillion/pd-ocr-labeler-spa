@@ -250,6 +250,24 @@ every iteration.
   `pd-ocr-labeler-ui --no-browser --port 8080` answers `/healthz`,
   `make openapi-export` regenerates `frontend/src/api/types.ts`.
 
+## Hi-fi completion (P1–P5)
+
+The 2026-05-15 hi-fi audit surfaced 61 visual-fidelity gaps between the
+shipped Slices 0–27 surface and the original hi-fi design. Closing them
+is the cut-over gate for retiring the legacy NiceGUI labeler.
+
+Plan: [`docs/plans/hifi-gaps-plan.md`](plans/hifi-gaps-plan.md) — 29
+slices across 5 phases, filed as GH issues #336–#364
+(`label:hifi:P1..P5`).
+
+| Phase | Scope | Slice issues |
+|---|---|---|
+| P1 | Header + Rail rebuild | #336–#341 |
+| P2 | Word Editor identity + OCR/GT + style palette | #342–#348 |
+| P3 | Word Editor geometry (BBox / Rebox-Konva / Erase / Structure) | #349–#352 |
+| P4 | Char editing + Unicode | #353–#355 |
+| P5 | Drawer + canvas + line/block + root + polish bundle | #356–#364 |
+
 ## Open design items (post-M0)
 
 Cross-cutting design items that don't belong to a single milestone. Each

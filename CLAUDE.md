@@ -58,13 +58,17 @@ end-to-end."
 
 **Open work:**
 
-- M9.5 keyboard audit (#286, `status:backlog`): dedicated keyboard-only
-  end-to-end session walk; hotkeys themselves all shipped (#235–#238).
+- **Hi-fi completion (P1–P5)** — primary active workstream. 29 slices
+  filed as #336–#364 (`label:hifi:P1..P5`); plan lives at
+  `docs/plans/hifi-gaps-plan.md`. Closes the 61 visual-fidelity gaps
+  between Slices 0–27 (shipped) and the original hi-fi design; this is
+  the cut-over gate for retiring the legacy NiceGUI labeler.
+- M9.5 keyboard audit (#286, `status:backlog`): browser walk TODOs
+  pending CT; hotkeys + audit doc already shipped.
 - M11 glyph annotations (#267–#270, `status:blocked`): needs Q-A7
   resolution before implementation.
-- Cut-over gaps (no issue yet): see `docs/plan-to-usable.md` — auto-OCR
-  on first GET, page-image route registration, page-nav session
-  writeback, source-folder picker UI.
+- Path-to-usable: `docs/plan-to-usable.md` — only the smoke-run row
+  and legacy-README banner are still pending.
 
 See `docs/ROADMAP.md` for per-slice history.
 
