@@ -1,7 +1,8 @@
 # Plan: pd-ocr-labeler-spa → usable
 
-> **Status:** Active gap analysis — 2026-05-15.
-> B1/B3/F1 shipped (commit 06094b2). B2 confirmed already fixed (#332 closed).
+> **Status:** Active gap analysis — 2026-05-15 (updated).
+> B1/B2/B3/F1/F2/F3/F4/F6 closed. F5 audit doc committed; browser walk TODOs
+> remain for CT to confirm before final M9.5 sign-off.
 > **Authority:** This plan is informed by `PARITY_STATUS.md` §5+§7,
 > `docs/architecture/*`, `specs/16-milestones.md`, and direct reads
 > of the implementation tree. Spec authority is unchanged: items below
@@ -42,11 +43,11 @@ gaps**, and **polish**, then prescribes a cut-over checklist.
 | # | What | Why needed | Size | Spec |
 |---|------|------------|------|------|
 | F1 | `last_page_index` not written back on page navigation | ✅ CLOSED #333 — `POST /api/projects/{id}/current-page-index` added; writes `session_state.json` on each nav. | — | — |
-| F2 | Source-folder picker UI is stub-only | Backend `POST /api/projects/source-root` exists and persists into `config.yaml`. Frontend has buttons that do not open a real picker dialog. | M | spec 22 §10 — `<SourceRootPicker>` dialog. Maps to `ProjectLoadControls` + new dialog component. |
-| F3 | `WeightsResolver` resolves to `None` for non-stock model keys | The `OCRConfigModal` lets users pick custom HF revisions and local fine-tuned pairs (M3-iter-14). The picker emits the keys; the resolver returns `None` so `PredictorCache` falls through to stock DocTR. Custom weights cannot actually be loaded today. | M | `core/ocr/predictor.py` resolver injection point; `adapters/ocr/local_doctr.py` resolver wiring. Risk register §1 in `PARITY_STATUS.md`. |
-| F4 | Image-cache population on lane resolution | The cached lane (`<cache_root>/page-images/...`) and the on-disk source image both exist; the SPA's image URL needs to point at *something* that resolves. If B2 takes the content-addressed-URL path, the page model's first `ensure_page_model` call must run `ensure_image_cached(...)` (helper at `core/persistence/image_cache.py:174`) so the URL is valid before the frontend fetches it. | S | Part of the B1+B2 design; document the contract explicitly in spec 04 or spec 23. |
-| F5 | M9.5 keyboard-only end-to-end editing audit | Hotkeys shipped (#235–#238) and axe-core audit landed (#238), but no dedicated session walk exists. Without it, focus-trap / tab-order regressions can ship unnoticed. | M | spec 16-milestones M9.5; tracked as issue #286. Acceptance: `docs/M9.5-keyboard-audit.md` report. |
-| F6 | `useProject` hook shape drift | Memory note `project_useProject_shape_drift.md` flags that `GET /api/projects/{id}` returns a flat `Project`, not the `LoadProjectResponse` shape; hook types may diverge from runtime. | S | Audit `frontend/src/hooks/useProject.ts` against `api/types.ts`; align or document the divergence in spec 03. |
+| F2 | Source-folder picker UI is stub-only | ✅ CLOSED #294 — `SourceFolderDialog.tsx` fully implemented; wired in `App.tsx`; all 9 driver-contract testids present; `source-folder-button` in `ProjectLoadControls` opens it via `dialogStore`. | — | — |
+| F3 | `WeightsResolver` resolves to `None` for non-stock model keys | ✅ CLOSED #334 — `core/ocr/weights_resolver.py` implements `build_weights_resolver(local_models_root)`; wired into `PredictorCache` in `bootstrap.py`. Handles `HF_LATEST_KEY` (via `pd_book_tools.hf.hf_download`) and `"<profile>/<signature>"` local keys. Stock pass-through preserved. | — | — |
+| F4 | Image-cache population on lane resolution | ✅ RESOLVED (no code needed) — `GET /api/projects/{id}/pages/{idx}/image` reads source files directly (`project.image_paths[page_index]`); no content-addressed JPEG cache is required for the image URL to resolve. The `_write_cached_envelope` in `run_ocr` handles the OCR result cache. `write_cached_image` (JPEG overlay cache) is a future polishing item, not a cut-over blocker. | — | — |
+| F5 | M9.5 keyboard-only end-to-end editing audit | 🟡 PARTIAL — `docs/M9.5-keyboard-audit.md` committed (#335). Full hotkey inventory + focus-management code review done. Browser walk items listed as TODOs; requires CT confirmation before final sign-off. | M | spec 16-milestones M9.5; tracked as issue #286 → #335. |
+| F6 | `useProject` hook shape drift | ✅ RESOLVED (no code needed) — `frontend/src/hooks/useProject.ts` already defines hand-written `ProjectResponse` interface matching the flat `Project` shape returned by `GET /api/projects/{id}`; hook comment explicitly documents the divergence from `LoadProjectResponse`. | — | — |
 
 ## Polish (nice to have, not on cut-over critical path)
 
@@ -73,12 +74,16 @@ retiring the legacy `pd-ocr-labeler`:
       real `LocalDoctrPageLoader` build path. (commit 06094b2)
 - [x] F1 — page-nav writes `last_page_index` into `session_state.json`;
       app restart returns the user to the page they left. (commit 06094b2)
-- [ ] F2 — source-folder picker dialog lets the user pick a new
-      `source_projects_root` from the UI.
-- [ ] F3 — custom HF revision and local fine-tuned model keys actually
-      load via `PredictorCache` (no silent fall-through to stock).
-- [ ] F5 — M9.5 keyboard-only session audit report committed.
-- [ ] F6 — `useProject` hook types match the runtime response shape.
+- [x] F2 — source-folder picker dialog lets the user pick a new
+      `source_projects_root` from the UI. (#294 closed)
+- [x] F3 — custom HF revision and local fine-tuned model keys actually
+      load via `PredictorCache` (no silent fall-through to stock). (#334)
+- [x] F4 — image URL resolves end-to-end; image route reads source files
+      directly; no JPEG cache pre-population required.
+- [~] F5 — M9.5 keyboard-only session audit report committed
+      (`docs/M9.5-keyboard-audit.md`); browser walk TODOs pending CT.
+- [x] F6 — `useProject` hook types already match runtime response shape;
+      divergence from `LoadProjectResponse` is documented in the hook.
 - [ ] Smoke run: CT opens the built wheel against a real scanned-book
       project, walks 10 pages, edits at least one word per page,
       saves, exports.

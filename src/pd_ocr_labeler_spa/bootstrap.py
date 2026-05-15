@@ -48,7 +48,7 @@ from .api.middleware.error_handler import install_error_handlers
 from .api.middleware.request_id import RequestIdMiddleware
 from .api.normalize import install_normalize_router
 from .api.notifications import install_notifications_router
-from .api.ocr_config import install_ocr_config_router
+from .api.ocr_config import _resolve_local_models_root, install_ocr_config_router
 from .api.pages import install_pages_router
 from .api.projects import install_projects_router
 from .api.refine import install_refine_router
@@ -64,6 +64,7 @@ from .core.jobs import JobEventBroker, JobRunner
 from .core.logging_config import configure_logging
 from .core.notifications import NotificationQueue
 from .core.ocr.predictor import PredictorCache
+from .core.ocr.weights_resolver import build_weights_resolver
 from .core.ocr_config_state import OCRConfigCarrier
 from .core.persistence.config_yaml import load_config
 from .core.persistence.ocr_config import load_ocr_config
@@ -359,7 +360,9 @@ def build_app(settings: Settings | None = None) -> FastAPI:
     # no explicit ``page_loader`` has been injected (test/route-layer
     # path). ``ocr_carrier`` is the same instance captured by the
     # lifespan closure so snapshot() reads current user selection.
-    runner.context["predictor_cache"] = PredictorCache()
+    runner.context["predictor_cache"] = PredictorCache(
+        weights_resolver=build_weights_resolver(_resolve_local_models_root())
+    )
     runner.context["ocr_config_carrier"] = ocr_carrier
     runner.context["settings"] = settings
 
