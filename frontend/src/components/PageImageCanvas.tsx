@@ -40,11 +40,14 @@
 // Ctrl/Cmd = toggle. Rebox + erase reset to "select" on a successful drag;
 // add-word stays active for multi-add.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { Layer, Rect, Stage } from "react-konva";
+import type { components } from "../api/types";
 import { getStageDimensions, type EncodedDims } from "../lib/canvas-utils";
 import type { BBox } from "../lib/coords";
+import { expandSelection } from "../lib/selection-expand";
+import { BBoxOverlay, type BBoxItem } from "./BBoxOverlay";
 import { PageImage } from "./PageImage";
 import { scheduleDragUpdate } from "../lib/rafSchedule";
 import { setDragRect, clearSelection } from "../stores/selection-store";
@@ -79,6 +82,8 @@ function resolveModifier(evt: {
   return "replace";
 }
 
+type PagePayload = components["schemas"]["PagePayload"];
+
 interface PageImageCanvasProps {
   imageUrl: string;
   /**
@@ -86,6 +91,12 @@ interface PageImageCanvasProps {
    * (spec §13: `<div data-testid="image-viewport" data-state="empty">`).
    */
   encoded: EncodedDims | null;
+  /**
+   * Full page payload — feeds the selection layer via `expandSelection`
+   * (spec §4, §8). `null` or `undefined` renders an empty selection
+   * (zero rects, sidecars at item-count=0).
+   */
+  page?: PagePayload | null;
   /** Project ID for constructing POST URLs. */
   projectId?: string;
   /** Page index (0-based) for constructing POST URLs. */
@@ -152,9 +163,16 @@ const MODE_RECT_FILLS: Partial<Record<ViewportMode, string>> = {
  * with `data-testid="image-stage"` for Playwright introspection. Drag
  * handlers will migrate to Konva Stage events in spec-21-C.
  */
+/** Tag every BBoxItem with `selected: true` so BBoxOverlay's selected
+ * branch lights the SELECTION_STROKE_WIDTH (3 px) path per spec §6/§8. */
+function markSelected(items: BBoxItem[]): BBoxItem[] {
+  return items.map((item) => ({ ...item, selected: true }));
+}
+
 export default function PageImageCanvas({
   imageUrl,
   encoded,
+  page,
   onBoxSelect,
   onRebox,
   onAddWord,
@@ -192,6 +210,22 @@ export default function PageImageCanvas({
   // is "global once mounted", which matches the document-scope behaviour
   // the #237 hook already had. Modals self-disable global hotkeys via
   // their own useHotkey scope/options.
+  // Spec §4/§8 (spec-21-A5, #300): expand PagePayload.selection into
+  // per-layer BBoxItem arrays for the `selection` Konva layer. Memoised
+  // on the page reference so unchanged pages don't re-walk line_matches.
+  // Items are marked `selected: true` so BBoxOverlay's selected branch
+  // upgrades strokeWidth to SELECTION_STROKE_WIDTH=3 (spec §6).
+  // Called unconditionally before any early return per Rules of Hooks.
+  const expandedSelection = useMemo(() => {
+    if (!page) return { paragraphs: [], lines: [], words: [] };
+    const e = expandSelection(page);
+    return {
+      paragraphs: markSelected(e.paragraphs),
+      lines: markSelected(e.lines),
+      words: markSelected(e.words),
+    };
+  }, [page]);
+
   useViewportHotkeys({
     enabled: true,
     layerVisibility: useUiPrefs.getState().layerVisibility,
@@ -375,7 +409,11 @@ export default function PageImageCanvas({
         <Layer name="overlay-paragraphs" listening={false} />
         <Layer name="overlay-lines" listening={false} />
         <Layer name="overlay-words" listening={false} />
-        <Layer name="selection" listening={false} />
+        <Layer name="selection" listening={false}>
+          <BBoxOverlay layer="selection-paragraphs" items={expandedSelection.paragraphs} />
+          <BBoxOverlay layer="selection-lines" items={expandedSelection.lines} />
+          <BBoxOverlay layer="selection-words" items={expandedSelection.words} />
+        </Layer>
         <Layer name="drag">
           {dragRect && (
             <Rect

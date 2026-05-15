@@ -16,12 +16,22 @@
 //
 // Legacy-exact RGBA values from
 // pd-ocr-labeler/pd_ocr_labeler/views/projects/pages/image_tabs.py:280-285,500-535.
+// Selection RGBA from image_tabs.py:514-519 (fill rgba(37,99,235,0.20),
+// stroke #1d4ed8). The legacy renders selection strokes at width 1; spec
+// §6/§8 bumps to 3 px via the `selected` branch on BBoxItem.
 
 import { Rect } from "react-konva";
 import type { BBox } from "../lib/coords";
 
 /** Layer name type. */
-export type LayerName = "paragraphs" | "lines" | "words" | "drag-rect";
+export type LayerName =
+  | "paragraphs"
+  | "lines"
+  | "words"
+  | "drag-rect"
+  | "selection-paragraphs"
+  | "selection-lines"
+  | "selection-words";
 
 /** Fill + stroke RGBA string pair per layer. */
 export interface LayerColorSpec {
@@ -55,6 +65,24 @@ export const LAYER_COLORS: Record<LayerName, LayerColorSpec> = {
     fill: "transparent",
     stroke: "#2563eb",
     strokeWidth: 2,
+  },
+  // Selection layers share legacy fill/stroke (image_tabs.py:514-519);
+  // selection items carry `selected: true` so BBoxOverlay's selected
+  // branch upgrades strokeWidth to SELECTION_STROKE_WIDTH (spec §6, §8).
+  "selection-paragraphs": {
+    fill: "rgba(37,99,235,0.20)",
+    stroke: "#1d4ed8",
+    strokeWidth: 1,
+  },
+  "selection-lines": {
+    fill: "rgba(37,99,235,0.20)",
+    stroke: "#1d4ed8",
+    strokeWidth: 1,
+  },
+  "selection-words": {
+    fill: "rgba(37,99,235,0.20)",
+    stroke: "#1d4ed8",
+    strokeWidth: 1,
   },
 };
 

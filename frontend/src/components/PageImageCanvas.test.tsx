@@ -136,6 +136,7 @@ vi.mock("react-konva", () => ({
     height,
     fill,
     stroke,
+    strokeWidth,
     dash,
     "data-testid": testId,
   }: {
@@ -145,6 +146,7 @@ vi.mock("react-konva", () => ({
     height?: number;
     fill?: string;
     stroke?: string;
+    strokeWidth?: number;
     dash?: number[];
     "data-testid"?: string;
   }) => (
@@ -156,6 +158,7 @@ vi.mock("react-konva", () => ({
       data-height={height}
       data-fill={fill}
       data-stroke={stroke}
+      data-stroke-width={strokeWidth}
       data-dash={dash ? dash.join(",") : undefined}
     />
   ),
@@ -169,6 +172,71 @@ vi.mock("../lib/rafSchedule", () => ({
 
 // Import the component AFTER mocks so it pulls the mocked react-konva.
 import PageImageCanvas from "./PageImageCanvas";
+import type { components } from "../api/types";
+import { SELECTION_STROKE_WIDTH } from "./BBoxOverlay";
+
+type PagePayload = components["schemas"]["PagePayload"];
+type LineMatch = components["schemas"]["LineMatch"];
+type WordMatch = components["schemas"]["WordMatch"];
+
+// ── Selection-layer fixture helpers (spec-21-A5, #300) ──────────────────────
+
+function makeWord(
+  line_index: number,
+  word_index: number,
+  bbox: { x: number; y: number; width: number; height: number },
+): WordMatch {
+  return {
+    line_index,
+    word_index,
+    ocr_text: `w${line_index}-${word_index}`,
+    ground_truth_text: "",
+    match_status: "exact",
+    normalized_match: false,
+    is_validated: false,
+    bbox,
+  };
+}
+
+function makeLine(
+  line_index: number,
+  paragraph_index: number | null,
+  word_bboxes: { x: number; y: number; width: number; height: number }[],
+): LineMatch {
+  return {
+    line_index,
+    paragraph_index,
+    ocr_line_text: `line ${line_index}`,
+    ground_truth_line_text: "",
+    word_matches: word_bboxes.map((b, i) => makeWord(line_index, i, b)),
+    overall_match_status: "exact",
+    exact_count: word_bboxes.length,
+    fuzzy_count: 0,
+    mismatch_count: 0,
+    unmatched_gt_count: 0,
+    unmatched_ocr_count: 0,
+    validated_word_count: 0,
+    total_word_count: word_bboxes.length,
+    is_fully_validated: false,
+  };
+}
+
+function makePage(
+  line_matches: LineMatch[],
+  selection: PagePayload["selection"] = undefined,
+): PagePayload {
+  return {
+    project_id: "proj-001",
+    page_index: 0,
+    page_record: null,
+    line_matches,
+    selection,
+    encoded_dims: null,
+    line_filter: "all",
+    image_url: null,
+    generation: 1,
+  };
+}
 
 const encoded = {
   src_width: 1600,
@@ -700,6 +768,94 @@ describe("PageImageCanvas — viewport hotkeys (spec-21-A8, #304, spec §10)", (
 
     fireEvent.keyDown(document, { key: "A", shiftKey: true });
     expect(viewportStore.getState().mode).toBe("add-word");
+  });
+});
+
+// ── spec-21-A5 (#300): selection layer rendering ────────────────────────────
+
+describe("PageImageCanvas — selection layer rendering (spec-21-A5, #300)", () => {
+  it("renders three BBoxOverlay sidecars inside the selection layer with count=0 when page is null", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} page={null} />);
+    const selectionLayer = screen.getByTestId("konva-layer-selection");
+    const paragraphs = selectionLayer.querySelector(
+      '[data-testid="bbox-overlay-selection-paragraphs"]',
+    );
+    const lines = selectionLayer.querySelector('[data-testid="bbox-overlay-selection-lines"]');
+    const words = selectionLayer.querySelector('[data-testid="bbox-overlay-selection-words"]');
+    expect(paragraphs).not.toBeNull();
+    expect(lines).not.toBeNull();
+    expect(words).not.toBeNull();
+    expect(paragraphs?.getAttribute("data-item-count")).toBe("0");
+    expect(lines?.getAttribute("data-item-count")).toBe("0");
+    expect(words?.getAttribute("data-item-count")).toBe("0");
+  });
+
+  it("renders three BBoxOverlay sidecars when page has no selection", () => {
+    const page = makePage([makeLine(0, 0, [{ x: 10, y: 20, width: 30, height: 5 }])], undefined);
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} page={page} />);
+    expect(
+      screen.getByTestId("bbox-overlay-selection-paragraphs").getAttribute("data-item-count"),
+    ).toBe("0");
+    expect(screen.getByTestId("bbox-overlay-selection-lines").getAttribute("data-item-count")).toBe(
+      "0",
+    );
+    expect(screen.getByTestId("bbox-overlay-selection-words").getAttribute("data-item-count")).toBe(
+      "0",
+    );
+  });
+
+  it("selected line populates bbox-overlay-selection-lines with item-count=1 and a Rect with stroke width 3 (acceptance criterion)", () => {
+    const page = makePage(
+      [
+        makeLine(0, 0, [
+          { x: 10, y: 20, width: 30, height: 5 },
+          { x: 45, y: 20, width: 20, height: 5 },
+        ]),
+      ],
+      {
+        selection_mode: "line",
+        selected_paragraphs: [],
+        selected_lines: [0],
+        selected_words: [],
+      },
+    );
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} page={page} />);
+
+    const sidecar = screen.getByTestId("bbox-overlay-selection-lines");
+    expect(sidecar.getAttribute("data-item-count")).toBe("1");
+
+    const selectionLayer = screen.getByTestId("konva-layer-selection");
+    // Find rects rendered inside the selection layer. There should be exactly
+    // one rect across all three selection-* BBoxOverlays (the selected line).
+    const rects = selectionLayer.querySelectorAll('[data-testid="konva-rect"]');
+    expect(rects.length).toBe(1);
+    expect(rects[0].getAttribute("data-stroke-width")).toBe(String(SELECTION_STROKE_WIDTH));
+  });
+
+  it("selected word populates bbox-overlay-selection-words with item-count=1", () => {
+    const page = makePage([makeLine(0, 0, [{ x: 10, y: 20, width: 30, height: 5 }])], {
+      selection_mode: "word",
+      selected_paragraphs: [],
+      selected_lines: [],
+      selected_words: [[0, 0]],
+    });
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} page={page} />);
+    expect(screen.getByTestId("bbox-overlay-selection-words").getAttribute("data-item-count")).toBe(
+      "1",
+    );
+  });
+
+  it("selected paragraph populates bbox-overlay-selection-paragraphs with item-count=1", () => {
+    const page = makePage([makeLine(0, 0, [{ x: 10, y: 20, width: 30, height: 5 }])], {
+      selection_mode: "paragraph",
+      selected_paragraphs: [0],
+      selected_lines: [],
+      selected_words: [],
+    });
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} page={page} />);
+    expect(
+      screen.getByTestId("bbox-overlay-selection-paragraphs").getAttribute("data-item-count"),
+    ).toBe("1");
   });
 });
 
