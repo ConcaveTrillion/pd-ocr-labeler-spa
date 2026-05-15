@@ -143,19 +143,28 @@ def test_post_load_page_returns_404_when_no_project(bare_client: TestClient) -> 
     assert resp.json()["error"] == "project_not_found"
 
 
-def test_post_load_page_returns_503_when_no_page_loader_wired(
+def test_post_load_page_does_not_return_503_without_explicit_loader(
     loaded_client: TestClient,
 ) -> None:
-    """spec-23-B2 §5: /load needs a ``PageLoader`` on ``runner.context``.
+    """B3 fix (issue #331): /load no longer returns 503 when no explicit
+    ``page_loader`` is injected on ``runner.context``.
 
-    M3 wires a ``LocalDoctrPageLoader``; until then bare ``build_app``
-    leaves the slot empty → 503 ``page_loader_not_wired``. Functional
-    /load tests with an injected fake loader live in
-    ``tests/unit/api/test_save_load.py``.
+    The route now builds a ``LocalDoctrPageLoader`` on-demand from the
+    production context keys (``predictor_cache``, ``ocr_config_carrier``,
+    ``settings``). With the ``b"\\x00"`` stub PNG bytes used by this fixture,
+    DocTR will fail to load the image and return a non-200 status — but
+    NOT a ``503 page_loader_not_wired``. The production path is exercised;
+    functional /load tests with a fake loader live in
+    ``tests/unit/api/test_save_load.py`` and
+    ``tests/unit/api/test_b1_b3_f1.py``.
     """
     resp = loaded_client.post("/api/projects/book1/pages/0/load", json={})
-    assert resp.status_code == 503
-    assert resp.json()["error"] == "page_loader_not_wired"
+    # The 503 page_loader_not_wired path has been removed.
+    assert resp.status_code != 503, "503 page_loader_not_wired should not occur after B3 fix"
+    if resp.status_code == 500:
+        assert resp.json().get("error") != "page_loader_not_wired", (
+            "503 error tag should not appear even in a 500 body"
+        )
 
 
 def test_post_reload_ocr_returns_404_when_no_project(bare_client: TestClient) -> None:

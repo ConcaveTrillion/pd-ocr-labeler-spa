@@ -170,6 +170,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/current-page-index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Current Page Index
+         * @description ``POST /api/projects/{id}/current-page-index`` — persist page cursor.
+         *
+         *     F1 fix (issue #333): page navigation in the SPA changes the React Router
+         *     URL but does not roundtrip the server. Without this endpoint, a server
+         *     restart always resumes at the page stored by ``POST /api/projects/load``
+         *     (typically page 0). This endpoint lets the frontend write-back the
+         *     current page index so ``session_state.json`` stays up to date.
+         *
+         *     The frontend should call this on ``useEffect([page_index])`` in
+         *     ``ProjectPage`` (or equivalent) after each page navigation.
+         *
+         *     Validation:
+         *     - 404 ``project_not_found`` when the project isn't loaded or id mismatch.
+         *     - 404 ``page_not_found`` when ``body.page_index`` is out of range.
+         *
+         *     On success:
+         *     - Calls ``project_state.set_current_page_index(body.page_index)``.
+         *     - Writes ``session_state.json`` (best-effort; a write failure is logged
+         *       but does not return 500 — mirrors the load-handler pattern).
+         *     - Returns ``200 {project_id, page_index}``.
+         */
+        post: operations["set_current_page_index_api_projects__project_id__current_page_index_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/source-root": {
         parameters: {
             query?: never;
@@ -283,6 +322,14 @@ export interface paths {
          *     spec-23-A).  The keystone backend slice — every Phase D mutation
          *     endpoint (spec-23-C/D/E) reuses the ``_page_payload`` helper this
          *     slice introduces.
+         *
+         *     B1 fix (issue #330): when no page_record is cached for this page,
+         *     calls ``ensure_page_model`` with an on-demand ``LocalDoctrPageLoader``
+         *     (same pattern as ``reload_ocr`` handler + ``load`` route).  This means
+         *     the first GET on a fresh page synchronously triggers the labeled →
+         *     cached → OCR lane probes, so the response has a populated
+         *     ``page_record`` and ``line_matches`` without requiring a separate
+         *     Reload OCR click.
          */
         get: operations["get_page_api_projects__project_id__pages__page_index__get"];
         put?: never;
@@ -345,16 +392,17 @@ export interface paths {
          * @description ``POST .../load`` — re-read the page from disk, discard in-memory edits.
          *
          *     Spec §5. Discards any in-memory ``PageState`` for this index, then
-         *     calls ``ensure_page_model`` with the route-layer-injected
+         *     calls ``ensure_page_model`` with the route-layer-injected or on-demand
          *     ``PageLoader`` (probes labeled → cached → OCR lanes in that order).
          *     Returns the freshly-assembled ``PagePayload`` so the SPA can render
          *     the just-loaded state.
          *
-         *     The page_loader is read off ``runner.context["page_loader"]`` (the
-         *     same wiring slot the ``reload_ocr`` job uses, per spec §6); a
-         *     503 ``page_loader_not_wired`` is returned when no loader is wired
-         *     (tests inject a fake; M3 wiring binds a ``LocalDoctrPageLoader``
-         *     once DocTR is in scope).
+         *     B3 fix (issue #331): the loader is resolved via
+         *     ``_build_page_loader_from_context`` which tries the explicit
+         *     ``runner.context["page_loader"]`` first (test injection), then falls
+         *     back to building a ``LocalDoctrPageLoader`` on-demand from the
+         *     production context keys.  The previous 503 path is removed — the
+         *     route now works in production without an explicit injection.
          */
         post: operations["load_page_api_projects__project_id__pages__page_index__load_post"];
         delete?: never;
@@ -2851,6 +2899,14 @@ export interface components {
             ranges: components["schemas"]["CharRange"][];
         };
         /**
+         * SetCurrentPageIndexRequest
+         * @description Body for ``POST /api/projects/{id}/current-page-index`` — F1 fix.
+         */
+        SetCurrentPageIndexRequest: {
+            /** Page Index */
+            page_index: number;
+        };
+        /**
          * SetOCRModelsRequest
          * @description Body of ``POST /api/ocr-config/models`` — spec lines 397-400.
          */
@@ -3224,6 +3280,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_current_page_index_api_projects__project_id__current_page_index_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetCurrentPageIndexRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
             };
             /** @description Validation Error */
             422: {

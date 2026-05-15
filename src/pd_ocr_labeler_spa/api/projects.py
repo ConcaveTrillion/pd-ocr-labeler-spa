@@ -552,6 +552,70 @@ def get_project_by_id(
     return JSONResponse(status_code=200, content=project.model_dump(mode="json"))
 
 
+class SetCurrentPageIndexRequest(BaseModel):
+    """Body for ``POST /api/projects/{id}/current-page-index`` — F1 fix."""
+
+    page_index: int
+
+
+@router.post("/{project_id}/current-page-index")
+def set_current_page_index(
+    project_id: str,
+    body: SetCurrentPageIndexRequest,
+    project_state: ProjectState = Depends(get_project_state),
+    settings: Settings = Depends(get_settings),
+) -> JSONResponse:
+    """``POST /api/projects/{id}/current-page-index`` — persist page cursor.
+
+    F1 fix (issue #333): page navigation in the SPA changes the React Router
+    URL but does not roundtrip the server. Without this endpoint, a server
+    restart always resumes at the page stored by ``POST /api/projects/load``
+    (typically page 0). This endpoint lets the frontend write-back the
+    current page index so ``session_state.json`` stays up to date.
+
+    The frontend should call this on ``useEffect([page_index])`` in
+    ``ProjectPage`` (or equivalent) after each page navigation.
+
+    Validation:
+    - 404 ``project_not_found`` when the project isn't loaded or id mismatch.
+    - 404 ``page_not_found`` when ``body.page_index`` is out of range.
+
+    On success:
+    - Calls ``project_state.set_current_page_index(body.page_index)``.
+    - Writes ``session_state.json`` (best-effort; a write failure is logged
+      but does not return 500 — mirrors the load-handler pattern).
+    - Returns ``200 {project_id, page_index}``.
+    """
+    project = project_state.loaded_project
+    if project is None or project.project_id != project_id:
+        return _api_error(404, "project_not_found", f"project not found: {project_id}")
+    if body.page_index < 0 or body.page_index >= project.total_pages:
+        return _api_error(
+            404,
+            "page_not_found",
+            f"page_index {body.page_index} out of range for project with total_pages={project.total_pages}",
+        )
+
+    project_state.set_current_page_index(body.page_index)
+
+    try:
+        save_session_state(
+            settings.data_root,
+            SessionState(
+                schema_version=SESSION_STATE_SCHEMA_VERSION,
+                last_project_path=str(project.project_root),
+                last_page_index=body.page_index,
+            ),
+        )
+    except OSError as exc:
+        log.warning("set_current_page_index: failed to write session_state.json (continuing): %s", exc)
+
+    return JSONResponse(
+        status_code=200,
+        content={"project_id": project_id, "page_index": body.page_index},
+    )
+
+
 @router.post("/source-root", response_model=SetSourceProjectsRootResponse)
 def set_source_root(
     body: SetSourceProjectsRootRequest,

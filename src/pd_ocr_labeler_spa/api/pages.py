@@ -14,8 +14,9 @@ from pydantic import BaseModel, Field
 from ..core import text_normalize
 from ..core.ground_truth_matcher import rematch_page
 from ..core.jobs import JobRunner
-from ..core.models import EncodedDims, LineFilter, LineMatch, PageRecord, Selection
-from ..core.page_state import ensure_page_model, persist_page_to_file
+from ..core.models import EncodedDims, LineFilter, LineMatch, PageRecord, PageSource, Selection
+from ..core.page_state import PageLoader, ensure_page_model, persist_page_to_file
+from ..core.page_to_line_matches import page_to_line_matches
 from ..core.persistence.ground_truth import find_ground_truth_text
 from ..core.persistence.lanes import LaneResolver
 from ..core.persistence.user_page_envelope import (
@@ -195,6 +196,55 @@ def _check_project_and_page(
     return None
 
 
+def _build_page_loader_from_context(
+    runner: JobRunner,
+    project_state: ProjectState,
+    settings: Settings,
+) -> PageLoader:
+    """Build a ``PageLoader`` from ``runner.context`` — on-demand production path.
+
+    Priority (mirrors
+    ``core/jobs/handlers/reload_ocr.py::_get_page_loader`` lines 112-155):
+
+    1. If ``runner.context["page_loader"]`` is already set (test injection
+       or explicit wiring), return it directly.
+    2. Otherwise, build a ``LocalDoctrPageLoader`` from the production
+       context keys ``predictor_cache`` / ``ocr_config_carrier`` /
+       ``settings`` that ``bootstrap.py`` wires at startup.
+
+    Raises ``RuntimeError`` when the project hasn't been loaded yet (the
+    caller is responsible for checking project state first).
+
+    Spec authority: ``docs/plan-to-usable.md`` blockers B1 + B3.
+    """
+    # Fast path: explicit injection (tests + future route-layer wiring).
+    loader = runner.context.get("page_loader")
+    if loader is not None:
+        return loader  # type: ignore[return-value]
+
+    # Production path: build LocalDoctrPageLoader on-demand.
+    if project_state.loaded_project is None:
+        raise RuntimeError("_build_page_loader_from_context: no project loaded")
+
+    from ..adapters.ocr.local_doctr import LocalDoctrPageLoader
+    from ..core.ocr.predictor import PredictorCache
+
+    ctx: dict[str, Any] = runner.context
+    predictor_cache: PredictorCache = ctx["predictor_cache"]
+    ocr_carrier = ctx["ocr_config_carrier"]
+    detection_key, recognition_key, hf_revision = ocr_carrier.snapshot()
+
+    return LocalDoctrPageLoader(
+        project=project_state.loaded_project,
+        predictor_cache=predictor_cache,
+        detection_key=detection_key,
+        recognition_key=recognition_key,
+        hf_revision=hf_revision,
+        data_root=settings.data_root,
+        cache_root=settings.cache_root,
+    )
+
+
 def _write_cached_envelope_best_effort(
     *,
     page: Any,
@@ -359,26 +409,41 @@ def _page_payload(
 
     pstate = project_state.get_page_state(page_index)
 
-    # Page record + line matches: pulled from the cached PageState.
-    # When no OCR has run yet, both are absent — the response is still
-    # well-formed (PagePayload allows them None / []).
+    # Page record + line matches: lifted from the cached PageState outcome.
+    # ``PageLoadOutcome.payload`` divergence between lanes:
+    # - run_ocr → payload is a ``pd_book_tools.ocr.page.Page``
+    # - load_labeled / load_cached → payload is a ``UserPageEnvelope``
+    #
+    # For the OCR lane (``source == PageSource.OCR``), we call
+    # ``page_to_line_matches`` to lift the live ``Page`` object into
+    # ``PageRecord + LineMatch[]`` (B1 fix, issue #330).
+    # For labeled/cached lanes, lifting from ``UserPageEnvelope`` is a
+    # future slice — until then we fall back to the envelope's
+    # ``payload.page`` dict if it has a ``Page.from_dict`` path, or
+    # degrade gracefully to ``page_record=None`` / ``line_matches=[]``.
     page_record: PageRecord | None = None
     line_matches: list[LineMatch] = []
     outcome = pstate.page_record if pstate is not None else None
     if outcome is not None:
-        # ``PageLoadOutcome.payload`` divergence between lanes (see
-        # ``core/page_state.py`` module docstring):
-        # - run_ocr → payload is a ``pd_book_tools.ocr.page.Page``
-        # - load_labeled / load_cached → payload is a ``UserPageEnvelope``
-        # Both lifts are out-of-scope for this slice; future slices
-        # (spec-23-C/D/E) attach ``page_record`` / ``line_matches``
-        # directly onto ``PageState`` after the mutation.
-        candidate_record = getattr(outcome, "record", None)
-        if isinstance(candidate_record, PageRecord):
-            page_record = candidate_record
-        candidate_matches = getattr(outcome, "line_matches", None)
-        if isinstance(candidate_matches, list):
-            line_matches = candidate_matches
+        payload_obj = getattr(outcome, "payload", None)
+        source = getattr(outcome, "source", None)
+
+        if payload_obj is not None and 0 <= page_index < len(project.image_paths):
+            image_path = project.image_paths[page_index]
+            page_source = PageSource(str(source)) if source else PageSource.OCR
+
+            # Try lifting the Page object (OCR or envelope-lifted lane).
+            # ``page_to_line_matches`` tolerates non-Page objects gracefully
+            # (returns empty LineMatch list) so this is safe for any payload type.
+            _rec, _lms = page_to_line_matches(
+                payload_obj,
+                page_index,
+                image_path,
+                source=page_source,
+            )
+            if _lms or _rec is not None:
+                page_record = _rec
+                line_matches = _lms
 
     # Encoded dims from on-disk image.  None when PIL can't open the
     # bytes; the URL builder degrades gracefully.
@@ -426,6 +491,7 @@ def get_page(
     project_id: str,
     page_index: int,
     project_state: ProjectState = Depends(get_project_state),
+    runner: JobRunner = Depends(get_job_runner),
     settings: Settings = Depends(get_settings),
 ) -> JSONResponse:
     """``GET /api/projects/{pid}/pages/{idx}`` — populated PagePayload.
@@ -434,10 +500,36 @@ def get_page(
     spec-23-A).  The keystone backend slice — every Phase D mutation
     endpoint (spec-23-C/D/E) reuses the ``_page_payload`` helper this
     slice introduces.
+
+    B1 fix (issue #330): when no page_record is cached for this page,
+    calls ``ensure_page_model`` with an on-demand ``LocalDoctrPageLoader``
+    (same pattern as ``reload_ocr`` handler + ``load`` route).  This means
+    the first GET on a fresh page synchronously triggers the labeled →
+    cached → OCR lane probes, so the response has a populated
+    ``page_record`` and ``line_matches`` without requiring a separate
+    Reload OCR click.
     """
     err = _check_project_and_page(project_id, page_index, project_state)
     if err is not None:
         return err
+
+    # B1: auto-trigger ensure_page_model when no page_record is cached.
+    pstate = project_state.get_page_state(page_index)
+    if pstate is None or pstate.page_record is None:
+        try:
+            loader = _build_page_loader_from_context(runner, project_state, settings)
+            ensure_page_model(project_state, page_index, loader=loader)
+        except Exception:
+            # Loader unavailable (e.g. DocTR not installed, test env with no
+            # context keys) — degrade gracefully to empty page_record.  The
+            # SPA can still show the image and let the user trigger Reload OCR
+            # manually.  Log at DEBUG so test noise stays low.
+            log.debug(
+                "get_page: ensure_page_model failed for %s/%d — degrading to empty page_record",
+                project_id,
+                page_index,
+                exc_info=True,
+            )
 
     payload = _page_payload(
         project_id=project_id,
@@ -550,33 +642,23 @@ def load_page(
     """``POST .../load`` — re-read the page from disk, discard in-memory edits.
 
     Spec §5. Discards any in-memory ``PageState`` for this index, then
-    calls ``ensure_page_model`` with the route-layer-injected
+    calls ``ensure_page_model`` with the route-layer-injected or on-demand
     ``PageLoader`` (probes labeled → cached → OCR lanes in that order).
     Returns the freshly-assembled ``PagePayload`` so the SPA can render
     the just-loaded state.
 
-    The page_loader is read off ``runner.context["page_loader"]`` (the
-    same wiring slot the ``reload_ocr`` job uses, per spec §6); a
-    503 ``page_loader_not_wired`` is returned when no loader is wired
-    (tests inject a fake; M3 wiring binds a ``LocalDoctrPageLoader``
-    once DocTR is in scope).
+    B3 fix (issue #331): the loader is resolved via
+    ``_build_page_loader_from_context`` which tries the explicit
+    ``runner.context["page_loader"]`` first (test injection), then falls
+    back to building a ``LocalDoctrPageLoader`` on-demand from the
+    production context keys.  The previous 503 path is removed — the
+    route now works in production without an explicit injection.
     """
     err = _check_project_and_page(project_id, page_index, project_state)
     if err is not None:
         return err
 
-    loader = runner.context.get("page_loader")
-    if loader is None:
-        return JSONResponse(
-            status_code=503,
-            content=ApiError(
-                error="page_loader_not_wired",
-                message=(
-                    "page loader is not wired on the job runner; "
-                    "the route layer must inject a PageLoader (M3 follow-on)"
-                ),
-            ).model_dump(),
-        )
+    loader = _build_page_loader_from_context(runner, project_state, settings)
 
     # Discard in-memory state so ensure_page_model re-probes from disk
     # (the lane probes are loader-driven and don't consult in-memory
