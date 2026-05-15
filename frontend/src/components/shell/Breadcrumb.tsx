@@ -1,9 +1,12 @@
 // Breadcrumb.tsx — Right-panel header path chips.
 // Spec: docs/specs/2026-05-15-hifi-redesign-plan.md Slice 14.
+// P5.i Gap 55: terminal (deepest) chip uses kind-specific bg fill instead of neutral.
 //
 // Renders a chain like `Project › Block 2 › Para 3 › Line 7 › Word 1` from the
 // current `selection-store` path. Each chip is a real `<button>`:
-//   - The deepest chip (data-active=true) is `text-ink-1`.
+//   - The deepest chip (data-active=true) gets a kind-color background fill
+//     (bg-layer-{kind}/10 + text-layer-{kind}) so the active selection kind is
+//     visually distinct from the ancestor breadcrumb trail.
 //   - Ancestor chips (data-active=false) are `text-ink-3` and clickable —
 //     clicking them re-selects at that level, dropping deeper levels.
 //   - The "Project" root chip clears the selection.
@@ -43,6 +46,19 @@ const LAYER_GLYPH: Record<"block" | "para" | "line" | "word", string> = {
   word: "W",
 };
 
+/**
+ * Gap 55 — kind-color fill classes for the terminal (deepest) chip.
+ *
+ * Tailwind needs full class strings at scan time (no dynamic interpolation).
+ * Each tuple is [background, text] using the layer token at 10% opacity.
+ */
+const LAYER_ACTIVE_CLASS: Record<"block" | "para" | "line" | "word", string> = {
+  block: "bg-layer-block/10 text-layer-block",
+  para: "bg-layer-para/10 text-layer-para",
+  line: "bg-layer-line/10 text-layer-line",
+  word: "bg-layer-word/10 text-layer-word",
+};
+
 // ─── Subscriber bridge ───────────────────────────────────────────────────────
 
 function subscribeSelection(cb: () => void): () => void {
@@ -63,6 +79,14 @@ interface ChipProps {
 }
 
 function Chip({ testid, label, layer, active, onClick }: ChipProps) {
+  // Gap 55: active terminal chip gets kind-specific bg fill; root chip (no layer) stays neutral.
+  const activeClass =
+    active && layer
+      ? LAYER_ACTIVE_CLASS[layer]
+      : active
+        ? "text-ink-1 cursor-default"
+        : "text-ink-3 hover:text-ink-1 hover:bg-bg-raised";
+
   return (
     <button
       type="button"
@@ -71,7 +95,7 @@ function Chip({ testid, label, layer, active, onClick }: ChipProps) {
       onClick={onClick}
       className={cn(
         "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium select-none transition-colors",
-        active ? "text-ink-1 cursor-default" : "text-ink-3 hover:text-ink-1 hover:bg-bg-raised",
+        activeClass,
       )}
     >
       {layer ? (

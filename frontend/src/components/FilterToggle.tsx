@@ -1,6 +1,9 @@
 // FilterToggle.tsx — three-state cycling toggle for the word-match filter.
 //
 // Spec: specs/22-page-surface-wireup.md §8 (FilterToggle).
+// P5.i (Gap 52): use design token classes (accent, bg-bg-raised, etc.) instead
+// of generic gray/gray-50 utilities so the toggle respects dark/light theme.
+//
 // Cycles through unvalidated → mismatched → all → unvalidated. State lives
 // in `useUiPrefs.matchFilter` (spec calls this `usePrefsStore.matchFilter`;
 // the store is named `useUiPrefs` in this repo).
@@ -56,7 +59,7 @@ export function FilterToggle() {
       data-filter={filter}
       onClick={cycleMatchFilter}
       aria-label={`Filter: ${LABELS[filter]} (click to cycle)`}
-      className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
+      className="text-xs px-2 py-1 border border-border-2 rounded bg-bg-raised text-ink-2 hover:bg-bg-raised/80 hover:text-ink-1 transition-colors"
     >
       {LABELS[filter]}
     </button>

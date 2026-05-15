@@ -130,3 +130,55 @@ describe("Breadcrumb (Slice 14)", () => {
     expect(screen.getByTestId("breadcrumb-chip-para")).toHaveTextContent("Unsorted");
   });
 });
+
+// --- Gap 55: terminal chip kind-color fill ---
+
+describe("Breadcrumb Gap 55 — terminal chip kind-color fill", () => {
+  beforeEach(() => {
+    clearSelection();
+  });
+
+  it("word chip (active) has bg-layer-word/10 class", () => {
+    selectWord(0, 1);
+    render(<Breadcrumb page={makePage()} />);
+    const chip = screen.getByTestId("breadcrumb-chip-word");
+    expect(chip.className).toMatch(/bg-layer-word/);
+  });
+
+  it("word chip (active) has text-layer-word class", () => {
+    selectWord(0, 1);
+    render(<Breadcrumb page={makePage()} />);
+    const chip = screen.getByTestId("breadcrumb-chip-word");
+    expect(chip.className).toMatch(/text-layer-word/);
+  });
+
+  it("line chip (active) has bg-layer-line/10 class", () => {
+    selectLine(0);
+    render(<Breadcrumb page={makePage()} />);
+    const chip = screen.getByTestId("breadcrumb-chip-line");
+    expect(chip.className).toMatch(/bg-layer-line/);
+  });
+
+  it("para chip (active) has bg-layer-para/10 class", () => {
+    selectPara(0);
+    render(<Breadcrumb page={makePage()} />);
+    const chip = screen.getByTestId("breadcrumb-chip-para");
+    expect(chip.className).toMatch(/bg-layer-para/);
+  });
+
+  it("root chip (active, no layer) uses text-ink-1 not a layer class", () => {
+    render(<Breadcrumb page={makePage()} />);
+    // Root chip has no layer prop — should get neutral active class.
+    const chip = screen.getByTestId("breadcrumb-chip-root");
+    expect(chip.className).not.toMatch(/bg-layer-/);
+  });
+
+  it("ancestor line chip (not active) does not get layer bg fill", () => {
+    selectWord(0, 1);
+    render(<Breadcrumb page={makePage()} />);
+    // Line is an ancestor, not the deepest chip.
+    const lineChip = screen.getByTestId("breadcrumb-chip-line");
+    expect(lineChip.getAttribute("data-active")).toBe("false");
+    expect(lineChip.className).not.toMatch(/bg-layer-/);
+  });
+});

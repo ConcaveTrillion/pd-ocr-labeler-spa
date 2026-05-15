@@ -309,9 +309,13 @@ export default function HeaderBar({ navSlot, actionsSlot }: HeaderBarProps = {})
         aria-label="OCR Labeler home"
         className="flex items-center gap-1.5 text-ink-1 no-underline shrink-0"
       >
-        {/* Glyph placeholder — real asset in a later slice */}
-        <span aria-hidden className="text-accent font-bold text-heading select-none">
-          &#9673;
+        {/* Gap 2: orange "O" logo badge using --accent token */}
+        <span
+          aria-hidden
+          data-testid="header-logo-badge"
+          className="inline-flex items-center justify-center w-6 h-6 rounded bg-accent text-white font-bold text-[13px] select-none leading-none"
+        >
+          O
         </span>
         <span className="text-heading font-semibold text-ink-1 hidden sm:inline">OCR Labeler</span>
       </Link>

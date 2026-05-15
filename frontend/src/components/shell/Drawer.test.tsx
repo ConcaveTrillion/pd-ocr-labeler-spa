@@ -119,3 +119,47 @@ describe("Drawer (Slice 11)", () => {
     expect(useUiPrefs.getState().drawerOpen).toBe(true);
   });
 });
+
+// --- Gap 18: tab icons + count badges + collapse chevron ---
+
+describe("Drawer Gap 18 — tab icons + count badges", () => {
+  beforeEach(() => {
+    resetPrefs();
+  });
+
+  it("renders icon span for worklist tab", () => {
+    render(<Drawer />);
+    expect(screen.getByTestId("drawer-tab-icon-worklist")).toBeInTheDocument();
+  });
+
+  it("renders icon span for hierarchy tab", () => {
+    render(<Drawer />);
+    expect(screen.getByTestId("drawer-tab-icon-hierarchy")).toBeInTheDocument();
+  });
+
+  it("does not render count badge when tabCounts is not provided", () => {
+    render(<Drawer />);
+    expect(screen.queryByTestId("drawer-tab-count-worklist")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("drawer-tab-count-hierarchy")).not.toBeInTheDocument();
+  });
+
+  it("renders count badge for worklist when tabCounts.worklist > 0", () => {
+    render(<Drawer tabCounts={{ worklist: 7 }} />);
+    expect(screen.getByTestId("drawer-tab-count-worklist")).toHaveTextContent("7");
+  });
+
+  it("renders count badge for hierarchy when tabCounts.hierarchy > 0", () => {
+    render(<Drawer tabCounts={{ hierarchy: 3 }} />);
+    expect(screen.getByTestId("drawer-tab-count-hierarchy")).toHaveTextContent("3");
+  });
+
+  it("does not render count badge when count is 0", () => {
+    render(<Drawer tabCounts={{ worklist: 0 }} />);
+    expect(screen.queryByTestId("drawer-tab-count-worklist")).not.toBeInTheDocument();
+  });
+
+  it("renders collapse button with ChevronLeft", () => {
+    render(<Drawer />);
+    expect(screen.getByTestId("drawer-collapse-btn")).toBeInTheDocument();
+  });
+});

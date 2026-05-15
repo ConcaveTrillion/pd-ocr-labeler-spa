@@ -32,8 +32,8 @@ import type { BBox } from "../lib/coords";
 import {
   useLayerColors,
   hexToLayerColorSpec,
-  SELECTION_LAYER_SPEC,
-  DRAG_RECT_LAYER_SPEC,
+  buildSelectionLayerSpec,
+  buildDragRectLayerSpec,
   type LayerColorSpec,
 } from "../hooks/useLayerColors";
 
@@ -162,11 +162,13 @@ function resolveLayerColorSpec(
     case "words":
       return hexToLayerColorSpec(layerColors.word);
     case "drag-rect":
-      return DRAG_RECT_LAYER_SPEC;
+      // Gap 26: use --accent token instead of hardcoded blue.
+      return buildDragRectLayerSpec();
     case "selection-paragraphs":
     case "selection-lines":
     case "selection-words":
-      return SELECTION_LAYER_SPEC;
+      // Gap 25: use --accent token instead of hardcoded blue.
+      return buildSelectionLayerSpec();
   }
 }
 

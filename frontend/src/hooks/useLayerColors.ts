@@ -94,16 +94,59 @@ export function hexToLayerColorSpec(hexColor: string): LayerColorSpec {
   };
 }
 
-// ─── Hardcoded specs for non-token layers ────────────────────────────────────
+// ─── Accent color reading (Gaps 25 + 26) ────────────────────────────────────
 
-/** Selection overlay colors (same across para/line/word selection layers). */
+/**
+ * Read the --accent CSS custom property from the root element.
+ * Returns a fallback orange hex if the token is not set (e.g. in jsdom).
+ * Used to build selection + drag-rect layer specs using the live theme token.
+ */
+export function readAccentColor(): string {
+  try {
+    const style = getComputedStyle(document.documentElement);
+    return style.getPropertyValue("--accent").trim() || "#d6925a";
+  } catch {
+    return "#d6925a";
+  }
+}
+
+// ─── Computed specs for non-token layers ─────────────────────────────────────
+
+/**
+ * Selection overlay colors — built from --accent token (Gap 25).
+ * Falls back to the legacy blue if the token is unavailable.
+ */
+export function buildSelectionLayerSpec(): LayerColorSpec {
+  const accent = readAccentColor();
+  return {
+    fill: hexToRgba(accent, 0.18),
+    stroke: accent,
+    strokeWidth: 1,
+  };
+}
+
+/**
+ * Drag-rect layer spec (transparent fill, solid accent stroke) — Gap 26.
+ */
+export function buildDragRectLayerSpec(): LayerColorSpec {
+  const accent = readAccentColor();
+  return {
+    fill: "transparent",
+    stroke: accent,
+    strokeWidth: 2,
+  };
+}
+
+// ─── Static fallback specs (legacy-exact values) ──────────────────────────────
+
+/** Selection overlay colors — legacy-exact fallback. */
 export const SELECTION_LAYER_SPEC: LayerColorSpec = {
   fill: "rgba(37,99,235,0.20)",
   stroke: "#1d4ed8",
   strokeWidth: 1,
 };
 
-/** Drag-rect layer spec (transparent fill, solid accent stroke). */
+/** Drag-rect layer spec — legacy-exact fallback. */
 export const DRAG_RECT_LAYER_SPEC: LayerColorSpec = {
   fill: "transparent",
   stroke: "#2563eb",
