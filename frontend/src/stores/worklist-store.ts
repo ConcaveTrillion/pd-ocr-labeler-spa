@@ -1,7 +1,8 @@
 // worklist-store.ts — Worklist filter + bulk-selection state store.
-// Spec: docs/specs/2026-05-15-hifi-redesign-plan.md Slice 11, Slice 23.
+// Spec: docs/specs/2026-05-15-hifi-redesign-plan.md Slice 11, Slice 23, P5.b.
 //
 // activeFilter: the current MatchFilter for the worklist queue.
+// sort: current sort order for the queue (P5.b).
 // selectedLineIndex: the currently-selected line index in the queue (null = none).
 // selectedIds: set of line indices chosen for bulk actions (Slice 23).
 
@@ -12,8 +13,13 @@ export type { MatchFilter };
 /** Status values used in the Worklist chip row. */
 export type WorklistStatus = "exact" | "fuzzy" | "mismatch" | "all";
 
+/** Sort order for the worklist queue (P5.b). */
+export type WorklistSort = "index" | "confidence" | "status";
+
 export interface WorklistState {
   activeFilter: MatchFilter;
+  /** Sort order for the worklist queue (P5.b). Default: "index". */
+  sort: WorklistSort;
   selectedLineIndex: number | null;
   /** Bulk-selected line indices (Slice 23). */
   selectedIds: number[];
@@ -24,6 +30,7 @@ type Listener = () => void;
 function createWorklistStore() {
   let state: WorklistState = {
     activeFilter: "unvalidated",
+    sort: "index",
     selectedLineIndex: null,
     selectedIds: [],
   };
@@ -38,13 +45,23 @@ function createWorklistStore() {
     notify();
   }
 
+  function setSort(sort: WorklistSort) {
+    state = { ...state, sort };
+    notify();
+  }
+
   function setSelectedLineIndex(index: number | null) {
     state = { ...state, selectedLineIndex: index };
     notify();
   }
 
   function reset() {
-    state = { activeFilter: "unvalidated", selectedLineIndex: null, selectedIds: [] };
+    state = {
+      activeFilter: "unvalidated",
+      sort: "index",
+      selectedLineIndex: null,
+      selectedIds: [],
+    };
     notify();
   }
 
@@ -75,6 +92,7 @@ function createWorklistStore() {
   return {
     getState: () => state,
     setActiveFilter,
+    setSort,
     setSelectedLineIndex,
     reset,
     selectAll,
