@@ -20,8 +20,8 @@ Per-mutation skeleton (mirrors ``api/words.py``'s spec-23-C handlers):
    are sync, FastAPI threadpool).
 4. Call the pd-book-tools method. If it returns ``False`` → 400
    ``mutation_failed``. Bump ``PageState.generation``.
-5. Release lock; write cached envelope best-effort.
-6. Refresh ``PagePayload`` and return.
+5. Write cached envelope best-effort (inside the lock — spec §13).
+6. Release lock; refresh ``PagePayload`` and return.
 
 Pd-book-tools method mapping (spec §9 names → actual pd-book-tools API):
 
