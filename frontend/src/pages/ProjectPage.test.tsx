@@ -333,7 +333,10 @@ describe("ProjectPage — real shell (spec 22 §3, #314)", () => {
     renderProjectPage();
     // Wait for the redirect effect to fire.
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith("/", { replace: true });
+      expect(mockNavigate).toHaveBeenCalledWith("/", {
+        replace: true,
+        state: { skipSessionRedirect: true },
+      });
     });
     // Banner is no longer rendered (navigate replaces it).
     expect(screen.queryByTestId("banner-project-not-found")).toBeNull();

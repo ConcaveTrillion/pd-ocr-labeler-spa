@@ -261,7 +261,7 @@ export default function ProjectPage() {
   useEffect(() => {
     if (projectNotFound) {
       toast.warn("Project not found — returning to project list.");
-      navigate("/", { replace: true });
+      navigate("/", { replace: true, state: { skipSessionRedirect: true } });
     }
   }, [projectNotFound, navigate]);
 

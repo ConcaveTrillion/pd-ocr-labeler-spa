@@ -8,7 +8,7 @@
 // - In-flight loading            → render blank <div /> (HeaderBar stays above).
 
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import type { components } from "../api/types";
 import { Button } from "../components/ui/button";
@@ -150,6 +150,9 @@ function ProjectListView({ projects }: { projects: ProjectKey[] }) {
  */
 export default function RootPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const skipSessionRedirect = !!(location.state as { skipSessionRedirect?: boolean } | null)
+    ?.skipSessionRedirect;
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["session-state"],
@@ -170,16 +173,16 @@ export default function RootPage() {
     (projects?.projects ?? []).some((p) => p.project_id === derivedProjectId);
 
   useEffect(() => {
-    if (!projectExists || !derivedProjectId) return;
+    if (!projectExists || !derivedProjectId || skipSessionRedirect) return;
     const pageNo = (data?.last_page_index ?? 0) + 1;
     navigate(`/projects/${derivedProjectId}/pages/pageno/${pageNo}`, { replace: true });
-  }, [projectExists, derivedProjectId, data, navigate]);
+  }, [projectExists, derivedProjectId, data, navigate, skipSessionRedirect]);
 
   // In-flight: blank content area while either query is loading.
   if (isLoading || isProjectsLoading) return <div />;
 
-  // Session error, no saved path, or saved project no longer exists: show project list.
-  if (isError || !data?.last_project_path || !projectExists) {
+  // Session error, no saved path, project gone, or redirected here from a 404: show project list.
+  if (isError || !data?.last_project_path || !projectExists || skipSessionRedirect) {
     return <ProjectListView projects={projects?.projects ?? []} />;
   }
 
