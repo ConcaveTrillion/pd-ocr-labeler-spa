@@ -157,28 +157,32 @@ export default function RootPage() {
     retry: false,
   });
 
-  const { data: projects } = useQuery({
+  const { data: projects, isLoading: isProjectsLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: fetchProjects,
     retry: false,
   });
 
+  const derivedProjectId = data?.last_project_path ? deriveProjectId(data.last_project_path) : null;
+
+  const projectExists =
+    derivedProjectId !== null &&
+    (projects?.projects ?? []).some((p) => p.project_id === derivedProjectId);
+
   useEffect(() => {
-    if (!data?.last_project_path) return;
-    const projectId = deriveProjectId(data.last_project_path);
-    const pageNo = (data.last_page_index ?? 0) + 1;
-    navigate(`/projects/${projectId}/pages/pageno/${pageNo}`, { replace: true });
-  }, [data, navigate]);
+    if (!projectExists || !derivedProjectId) return;
+    const pageNo = (data?.last_page_index ?? 0) + 1;
+    navigate(`/projects/${derivedProjectId}/pages/pageno/${pageNo}`, { replace: true });
+  }, [projectExists, derivedProjectId, data, navigate]);
 
-  // In-flight: blank content area (no spinner — sub-100ms local fetch).
-  if (isLoading) return <div />;
+  // In-flight: blank content area while either query is loading.
+  if (isLoading || isProjectsLoading) return <div />;
 
-  // Error or null last_project_path: show project list (Slice 27).
-  if (isError || !data?.last_project_path) {
+  // Session error, no saved path, or saved project no longer exists: show project list.
+  if (isError || !data?.last_project_path || !projectExists) {
     return <ProjectListView projects={projects?.projects ?? []} />;
   }
 
   // Project found: redirect is pending (useEffect fires next tick).
-  // Render blank while the navigation resolves.
   return <div />;
 }
