@@ -18,6 +18,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { getStageDimensions } from "../lib/canvas-utils";
 import { viewportStore } from "../stores/viewport-store";
 import { selectionStore } from "../stores/selection-store";
+import { useUiPrefs } from "../stores/ui-prefs";
 
 // ── use-image mock (used by PageImage) ───────────────────────────────────────
 // Default state: image not yet loaded → PageImage renders the grey fallback Rect.
@@ -185,6 +186,13 @@ afterEach(() => {
     selectedLines: [],
     selectedWords: [],
     dragRect: null,
+  });
+  useUiPrefs.setState({
+    lineFilter: null,
+    layerVisibility: { paragraph: true, line: true, word: true },
+    splitterRatio: 0.5,
+    selectionMode: "paragraph",
+    matchFilter: "unvalidated",
   });
   mockUseImageState.image = undefined;
   mockUseImageState.status = "loading";
@@ -593,6 +601,104 @@ describe("PageImageCanvas — Add Word mode (#198)", () => {
     simulateDrag({ x: 50, y: 50 }, { x: 150, y: 120 });
 
     // Still in add-word mode for next drag
+    expect(viewportStore.getState().mode).toBe("add-word");
+  });
+});
+
+// ── spec-21-A8 (#304): focus wrapper + viewport hotkeys ─────────────────────
+
+describe("PageImageCanvas — focus wrapper (spec-21-A8, #304, spec §10)", () => {
+  it("wrapper carries focus-visible:ring-2 class for visible keyboard focus", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    const viewport = screen.getByTestId("image-viewport");
+    expect(viewport.className).toContain("focus-visible:ring-2");
+  });
+
+  it("wrapper is focused on mount (focusRef.current.focus() in effect)", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    const viewport = screen.getByTestId("image-viewport");
+    expect(document.activeElement).toBe(viewport);
+  });
+
+  it("wrapper has tabIndex=0 so it can receive focus (spec §10)", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    const viewport = screen.getByTestId("image-viewport");
+    expect(viewport.getAttribute("tabindex")).toBe("0");
+  });
+});
+
+describe("PageImageCanvas — viewport hotkeys (spec-21-A8, #304, spec §10)", () => {
+  it("Esc clears drag state (acceptance criterion)", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    const stage = getStage();
+
+    fireEvent.mouseDown(stage, { clientX: 50, clientY: 50 });
+    fireEvent.mouseMove(stage, { clientX: 150, clientY: 150 });
+    expect(screen.queryByTestId("ocr-drag-rect")).not.toBeNull();
+
+    // Document-scope Esc (the hook listens at document scope per #237).
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByTestId("ocr-drag-rect")).toBeNull();
+  });
+
+  it("Shift+1 sets selectionMode to 'paragraph' (acceptance criterion)", () => {
+    // Start from a non-paragraph state so the assertion is meaningful.
+    useUiPrefs.setState({ selectionMode: "word" });
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+
+    fireEvent.keyDown(document, { key: "!", code: "Digit1", shiftKey: true });
+    expect(useUiPrefs.getState().selectionMode).toBe("paragraph");
+  });
+
+  it("Shift+2 sets selectionMode to 'line'", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    fireEvent.keyDown(document, { key: "@", code: "Digit2", shiftKey: true });
+    expect(useUiPrefs.getState().selectionMode).toBe("line");
+  });
+
+  it("Shift+3 sets selectionMode to 'word'", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    fireEvent.keyDown(document, { key: "#", code: "Digit3", shiftKey: true });
+    expect(useUiPrefs.getState().selectionMode).toBe("word");
+  });
+
+  it("Shift+W toggles layerVisibility.word (acceptance criterion)", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    expect(useUiPrefs.getState().layerVisibility.word).toBe(true);
+
+    fireEvent.keyDown(document, { key: "W", shiftKey: true });
+    expect(useUiPrefs.getState().layerVisibility.word).toBe(false);
+  });
+
+  it("Shift+P toggles layerVisibility.paragraph", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    expect(useUiPrefs.getState().layerVisibility.paragraph).toBe(true);
+
+    fireEvent.keyDown(document, { key: "P", shiftKey: true });
+    expect(useUiPrefs.getState().layerVisibility.paragraph).toBe(false);
+  });
+
+  it("Shift+L toggles layerVisibility.line", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    expect(useUiPrefs.getState().layerVisibility.line).toBe(true);
+
+    fireEvent.keyDown(document, { key: "L", shiftKey: true });
+    expect(useUiPrefs.getState().layerVisibility.line).toBe(false);
+  });
+
+  it("Shift+E toggles erase mode via viewportStore", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    expect(viewportStore.getState().mode).toBe("select");
+
+    fireEvent.keyDown(document, { key: "E", shiftKey: true });
+    expect(viewportStore.getState().mode).toBe("erase");
+  });
+
+  it("Shift+A toggles add-word mode via viewportStore", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    expect(viewportStore.getState().mode).toBe("select");
+
+    fireEvent.keyDown(document, { key: "A", shiftKey: true });
     expect(viewportStore.getState().mode).toBe("add-word");
   });
 });

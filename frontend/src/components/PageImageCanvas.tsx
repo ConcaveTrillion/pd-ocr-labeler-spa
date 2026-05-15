@@ -48,7 +48,16 @@ import type { BBox } from "../lib/coords";
 import { PageImage } from "./PageImage";
 import { scheduleDragUpdate } from "../lib/rafSchedule";
 import { setDragRect, clearSelection } from "../stores/selection-store";
-import { viewportStore, exitToSelectMode, type ViewportMode } from "../stores/viewport-store";
+import {
+  viewportStore,
+  exitToSelectMode,
+  toggleAddWordMode,
+  toggleEraseMode,
+  type ViewportMode,
+} from "../stores/viewport-store";
+import { useUiPrefs, type LayerVisibility } from "../stores/ui-prefs";
+import type { SelectionMode } from "./ImageTabsHeader";
+import { useViewportHotkeys } from "../hooks/useViewportHotkeys";
 
 export type SelectionModifier = "replace" | "remove" | "toggle";
 
@@ -163,6 +172,45 @@ export default function PageImageCanvas({
     const unsub = viewportStore.subscribe((s) => setMode(s.mode));
     return unsub;
   }, []);
+
+  // Focus the wrapper on mount so keyboard hotkeys (Esc / Shift+…) work
+  // immediately without an explicit click. The Stage cannot itself receive
+  // focus, so the wrapping div carries tabIndex=0 + focus-visible:ring-2
+  // (spec 21 §10, #304).
+  useEffect(() => {
+    wrapperRef.current?.focus();
+  }, []);
+
+  // Spec 21 §10 viewport hotkeys (#304). Wired to useUiPrefs (layer
+  // visibility + selection mode) and viewportStore (erase/add-word toggle,
+  // cancel mode). The hook listens at document scope; the focus wrapper
+  // gives the user a visible focus ring while these are armed.
+  //
+  // Called unconditionally before any early return so the Rules of Hooks
+  // are satisfied — `enabled: true` even on the empty-state branch is
+  // harmless because the keys still call store actions; the legacy parity
+  // is "global once mounted", which matches the document-scope behaviour
+  // the #237 hook already had. Modals self-disable global hotkeys via
+  // their own useHotkey scope/options.
+  useViewportHotkeys({
+    enabled: true,
+    layerVisibility: useUiPrefs.getState().layerVisibility,
+    onLayerToggle: (layer: keyof LayerVisibility) => {
+      useUiPrefs.setState((s) => ({
+        layerVisibility: { ...s.layerVisibility, [layer]: !s.layerVisibility[layer] },
+      }));
+    },
+    onEraseToggle: () => toggleEraseMode(),
+    onAddWordToggle: () => toggleAddWordMode(),
+    onCancelMode: () => {
+      clearSelection();
+      clearDrag();
+      exitToSelectMode();
+    },
+    onSelectionModeChange: (m: SelectionMode) => {
+      useUiPrefs.setState({ selectionMode: m });
+    },
+  });
 
   // ── Empty-state branch (spec §13) ──────────────────────────────────────────
   if (!encoded) {
@@ -281,7 +329,7 @@ export default function PageImageCanvas({
   return (
     <div
       ref={wrapperRef}
-      className="page-image-canvas relative select-none"
+      className="page-image-canvas relative select-none outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       style={{
         width: dims.width,
         height: dims.height,

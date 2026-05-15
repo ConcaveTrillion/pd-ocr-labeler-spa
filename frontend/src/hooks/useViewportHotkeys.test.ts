@@ -1,8 +1,10 @@
-// useViewportHotkeys.test.ts — tests for viewport-scope hotkeys (#237)
-// Spec: docs/specs/2026-05-12-hotkeys-a11y-design.md §Viewport scope
+// useViewportHotkeys.test.ts — tests for viewport-scope hotkeys (#237, #304)
+// Spec: docs/specs/2026-05-12-hotkeys-a11y-design.md §Viewport scope,
+//       specs/21-konva-renderer.md §10.
 //
 // Acceptance:
 //   - Shift+P/L/W toggle paragraph/line/word layer
+//   - Shift+1/2/3 set selection mode to paragraph/line/word (#304, spec §10)
 //   - Shift+E toggles erase mode
 //   - Shift+A toggles add-word mode
 //   - Esc calls onCancelMode when viewport is active
@@ -24,12 +26,14 @@ describe("useViewportHotkeys", () => {
   const onEraseToggle = vi.fn();
   const onAddWordToggle = vi.fn();
   const onCancelMode = vi.fn();
+  const onSelectionModeChange = vi.fn();
 
   beforeEach(() => {
     onLayerToggle.mockClear();
     onEraseToggle.mockClear();
     onAddWordToggle.mockClear();
     onCancelMode.mockClear();
+    onSelectionModeChange.mockClear();
   });
 
   function renderHotkeys(enabled = true) {
@@ -41,6 +45,7 @@ describe("useViewportHotkeys", () => {
         onEraseToggle,
         onAddWordToggle,
         onCancelMode,
+        onSelectionModeChange,
       }),
     );
   }
@@ -81,11 +86,31 @@ describe("useViewportHotkeys", () => {
     expect(onCancelMode).toHaveBeenCalledOnce();
   });
 
+  it("Shift+1 calls onSelectionModeChange('paragraph') (spec §10, #304)", () => {
+    renderHotkeys();
+    fireEvent.keyDown(document, { key: "!", code: "Digit1", shiftKey: true });
+    expect(onSelectionModeChange).toHaveBeenCalledWith("paragraph");
+  });
+
+  it("Shift+2 calls onSelectionModeChange('line') (spec §10, #304)", () => {
+    renderHotkeys();
+    fireEvent.keyDown(document, { key: "@", code: "Digit2", shiftKey: true });
+    expect(onSelectionModeChange).toHaveBeenCalledWith("line");
+  });
+
+  it("Shift+3 calls onSelectionModeChange('word') (spec §10, #304)", () => {
+    renderHotkeys();
+    fireEvent.keyDown(document, { key: "#", code: "Digit3", shiftKey: true });
+    expect(onSelectionModeChange).toHaveBeenCalledWith("word");
+  });
+
   it("hotkeys do NOT fire when enabled=false", () => {
     renderHotkeys(false);
     fireEvent.keyDown(document, { key: "P", shiftKey: true });
     fireEvent.keyDown(document, { key: "E", shiftKey: true });
+    fireEvent.keyDown(document, { key: "!", code: "Digit1", shiftKey: true });
     expect(onLayerToggle).not.toHaveBeenCalled();
     expect(onEraseToggle).not.toHaveBeenCalled();
+    expect(onSelectionModeChange).not.toHaveBeenCalled();
   });
 });

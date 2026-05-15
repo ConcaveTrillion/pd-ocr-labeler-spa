@@ -48,7 +48,7 @@ export interface UiPrefsState {
   matchFilter: MatchFilter;
 }
 
-type SetStateArg<T> = T | ((state: T) => T);
+type SetStateArg<T> = Partial<T> | ((state: T) => Partial<T>);
 
 interface Store<T> {
   getState: () => T;
@@ -69,11 +69,11 @@ export function clampSplitterRatio(ratio: number): number {
   return ratio;
 }
 
-function createStore<T>(initialState: T): Store<T> {
+function createStore<T extends object>(initialState: T): Store<T> {
   let state = initialState;
 
   const setState = (arg: SetStateArg<T>) => {
-    const newState = typeof arg === "function" ? (arg as (s: T) => T)(state) : arg;
+    const newState = typeof arg === "function" ? (arg as (s: T) => Partial<T>)(state) : arg;
     state = { ...state, ...newState };
   };
 
