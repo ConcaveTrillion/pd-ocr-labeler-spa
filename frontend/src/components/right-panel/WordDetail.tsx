@@ -1,10 +1,10 @@
 // WordDetail.tsx — Word detail editor (right panel, level="word").
-// Spec: docs/specs/2026-05-15-hifi-redesign-plan.md Slice 16.
+// Spec: docs/specs/2026-05-15-hifi-redesign-plan.md Slice 16 (scaffold), 17 (Rebox/Erase).
 //
 // Renders an Accordion with 6 items:
 //   1. Bounding Box  — wired (BBoxSection)
-//   2. Rebox         — stub (Slice 17)
-//   3. Erase Pixels  — stub (Slice 17)
+//   2. Rebox         — wired (ReboxSection, tag="accent")   [Slice 17]
+//   3. Erase Pixels  — wired (ErasePixelsSection, tag="mismatch") [Slice 17]
 //   4. Structure     — stub (Slice 18)
 //   5. Char Ranges   — stub (Slice 19)
 //   6. Char Fixer    — stub (Slice 20)
@@ -19,6 +19,8 @@
 import { useSyncExternalStore } from "react";
 import { Accordion } from "../ui/accordion";
 import { BBoxSection } from "./sections/BBoxSection";
+import { ReboxSection } from "./sections/ReboxSection";
+import { ErasePixelsSection } from "./sections/ErasePixelsSection";
 import { selectionStore } from "../../stores/selection-store";
 import type { components } from "../../api/types";
 
@@ -112,7 +114,7 @@ export function WordDetail({ page, projectId, pageIndex }: WordDetailProps) {
         <Accordion.Item value="rebox" tag="accent">
           <Accordion.Trigger>Rebox</Accordion.Trigger>
           <Accordion.Content>
-            <StubContent label="Rebox" />
+            <ReboxSection hasPrev={(word.word_index ?? 0) > 0} hasNext={true} />
           </Accordion.Content>
         </Accordion.Item>
 
@@ -120,7 +122,7 @@ export function WordDetail({ page, projectId, pageIndex }: WordDetailProps) {
         <Accordion.Item value="erase" tag="mismatch">
           <Accordion.Trigger>Erase Pixels</Accordion.Trigger>
           <Accordion.Content>
-            <StubContent label="Erase Pixels" />
+            <ErasePixelsSection backendAvailable={false} />
           </Accordion.Content>
         </Accordion.Item>
 
