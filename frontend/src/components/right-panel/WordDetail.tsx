@@ -31,6 +31,7 @@ import { OcrGtCompareRow } from "./OcrGtCompareRow";
 import { StylePalette } from "./StylePalette";
 import { ComponentPalette } from "./ComponentPalette";
 import { selectionStore, walkSibling } from "../../stores/selection-store";
+import { WordFooter } from "./WordFooter";
 import { useRefineAvailable } from "../../hooks/useRefineAvailable";
 import {
   useUpdateWordGroundTruth,
@@ -171,6 +172,7 @@ export function WordDetail({ page, projectId, pageIndex }: WordDetailProps) {
         data-testid="word-detail-accordion"
         type="multiple"
         className="flex flex-col gap-1"
+        style={{ paddingBottom: "52px" }}
       >
         {/* 1 — Bounding Box */}
         <Accordion.Item value="bbox">
@@ -220,6 +222,16 @@ export function WordDetail({ page, projectId, pageIndex }: WordDetailProps) {
           </Accordion.Content>
         </Accordion.Item>
       </Accordion>
+
+      {/* P2.f: Sticky three-button footer — Validate / Skip / Delete */}
+      <WordFooter
+        page={page}
+        projectId={projectId}
+        pageIndex={pageIndex}
+        lineIndex={lineIdx}
+        wordIndex={wordIdx}
+        isValidated={word.is_validated ?? false}
+      />
     </div>
   );
 }
