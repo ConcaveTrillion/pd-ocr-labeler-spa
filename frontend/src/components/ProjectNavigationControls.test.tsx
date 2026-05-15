@@ -113,12 +113,21 @@ describe("ProjectNavigationControls: testids", () => {
     expect(screen.getByTestId("nav-page-total-label")).toBeInTheDocument();
   });
 
-  it("nav-page-total-label shows '${currentPageNo} / ${total_pages}'", async () => {
+  it("nav-page-total-label shows '/ ${total_pages}' (P1.b: page shown in input)", async () => {
     mockProject("proj-1", 7);
     renderControls({ projectId: "proj-1", route: "/projects/proj-1/pages/pageno/3" });
 
     const label = await screen.findByTestId("nav-page-total-label");
-    await waitFor(() => expect(label.textContent).toMatch(/3\s*\/\s*7/));
+    // P1.b re-skin: total label shows "/ N" only; current page is shown in the input.
+    await waitFor(() => expect(label.textContent).toMatch(/\/\s*7/));
+  });
+
+  it("nav-page-input shows the current page number when not editing", async () => {
+    mockProject("proj-1", 7);
+    renderControls({ projectId: "proj-1", route: "/projects/proj-1/pages/pageno/3" });
+
+    const input = (await screen.findByTestId("nav-page-input")) as HTMLInputElement;
+    await waitFor(() => expect(input.value).toBe("3"));
   });
 });
 
@@ -199,7 +208,7 @@ describe("ProjectNavigationControls: GoTo", () => {
 
     // wait for the project to load so the component knows total_pages
     await waitFor(() => {
-      expect(screen.getByTestId("nav-page-total-label").textContent).toMatch(/2\s*\/\s*5/);
+      expect(screen.getByTestId("nav-page-total-label").textContent).toMatch(/\/\s*5/);
     });
 
     const input = (await screen.findByTestId("nav-page-input")) as HTMLInputElement;
@@ -216,7 +225,7 @@ describe("ProjectNavigationControls: GoTo", () => {
     renderControls({ projectId: "proj-1", route: "/projects/proj-1/pages/pageno/2" });
 
     await waitFor(() => {
-      expect(screen.getByTestId("nav-page-total-label").textContent).toMatch(/2\s*\/\s*5/);
+      expect(screen.getByTestId("nav-page-total-label").textContent).toMatch(/\/\s*5/);
     });
 
     const input = (await screen.findByTestId("nav-page-input")) as HTMLInputElement;
@@ -232,7 +241,7 @@ describe("ProjectNavigationControls: GoTo", () => {
     renderControls({ projectId: "proj-1", route: "/projects/proj-1/pages/pageno/2" });
 
     await waitFor(() => {
-      expect(screen.getByTestId("nav-page-total-label").textContent).toMatch(/2\s*\/\s*5/);
+      expect(screen.getByTestId("nav-page-total-label").textContent).toMatch(/\/\s*5/);
     });
 
     const input = (await screen.findByTestId("nav-page-input")) as HTMLInputElement;

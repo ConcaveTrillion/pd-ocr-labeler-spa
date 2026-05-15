@@ -1,11 +1,12 @@
-// ProjectNavigationControls.tsx — real Prev / Next / GoTo bar for ProjectPage.
+// ProjectNavigationControls.tsx — inline pager bar for the project header.
 //
 // Spec: specs/22-page-surface-wireup.md §7 (Navigation controls).
+//       docs/plans/hifi-gaps-plan.md P1.b (Gap 4, 7)
 // Issue #311 (spec-22-B2).
 //
-// Replaces the five `display:none` nav-control testids in `ProjectPage.tsx`
-// (the actual removal of the stub block belongs to spec-22-C); this slice
-// just ships the working component + tests.
+// Visual layout (P1.b hi-fi): ◀ <page-number-input> ▶ /total
+// The Prev/Next arrows replace "Prev"/"Next" text labels, the GoTo button is
+// visually hidden (sr-only) while retaining its driver-contract testid.
 //
 // Behavior:
 //   - Reads `projectId` + `pageNo` from the URL via `useParams`.
@@ -20,10 +21,11 @@
 //     parses to an integer in [1, total_pages]. Out-of-range or non-numeric
 //     values are silently rejected (no navigation, no toast — matches legacy
 //     behavior in `pd-ocr-labeler/pd_ocr_labeler/views/projects/pages/page_view.py`).
-//   - Total label: `${currentPageNo} / ${total_pages}`.
+//   - Total label: `/ ${total_pages}` (testid: nav-page-total-label).
 
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useProject } from "../hooks/useProject";
 import { pageNoUrl } from "../lib/routes";
 
@@ -60,7 +62,8 @@ export default function ProjectNavigationControls() {
   }
 
   function onGoTo() {
-    const n = parsePositiveInt(gotoValue);
+    // Use gotoValue if typed; fall back to currentPageNo (no-op re-navigate).
+    const n = parsePositiveInt(gotoValue !== "" ? gotoValue : String(currentPageNo));
     if (n === null) return;
     navigateToPage(n);
   }
@@ -69,54 +72,79 @@ export default function ProjectNavigationControls() {
     if (event.key === "Enter") {
       event.preventDefault();
       onGoTo();
+      setGotoValue("");
+    }
+    if (event.key === "Escape") {
+      setGotoValue("");
     }
   }
 
+  // Button base classes for the compact header style.
+  const btnBase =
+    "flex items-center justify-center h-6 w-6 rounded text-ink-2 border border-border-2 bg-bg-raised hover:bg-bg-surface hover:text-ink-1 disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
+
   return (
-    <div data-testid="project-navigation-controls" className="flex items-center gap-2 px-2 py-1">
+    <div
+      data-testid="project-navigation-controls"
+      className="flex items-center gap-1 px-1"
+      aria-label="Page navigation"
+    >
+      {/* ◀ Prev arrow */}
       <button
         type="button"
         data-testid="nav-prev-button"
         aria-label="Previous page"
         disabled={!canPrev}
         onClick={onPrev}
-        className="px-2 py-1 text-sm border rounded disabled:opacity-50"
+        className={btnBase}
       >
-        Prev
+        <ChevronLeft size={14} aria-hidden="true" />
       </button>
-      <button
-        type="button"
-        data-testid="nav-next-button"
-        aria-label="Next page"
-        disabled={!canNext}
-        onClick={onNext}
-        className="px-2 py-1 text-sm border rounded disabled:opacity-50"
-      >
-        Next
-      </button>
+
+      {/* Page number input — shows current page; Enter navigates */}
       <input
         type="number"
         min={1}
         max={totalPages || undefined}
         data-testid="nav-page-input"
         aria-label="Page number"
-        value={gotoValue}
+        value={gotoValue !== "" ? gotoValue : String(currentPageNo)}
         onChange={(e) => setGotoValue(e.target.value)}
+        onBlur={() => setGotoValue("")}
         onKeyDown={onInputKeyDown}
-        className="w-16 px-1 py-0.5 text-sm border rounded"
+        className="w-10 h-6 px-1 text-center text-[11px] tabular-nums border border-border-2 rounded bg-bg-sunk text-ink-1 focus:outline-none focus:border-accent"
       />
+
+      {/* ▶ Next arrow */}
+      <button
+        type="button"
+        data-testid="nav-next-button"
+        aria-label="Next page"
+        disabled={!canNext}
+        onClick={onNext}
+        className={btnBase}
+      >
+        <ChevronRight size={14} aria-hidden="true" />
+      </button>
+
+      {/* / total label */}
+      <span
+        data-testid="nav-page-total-label"
+        className="text-[11px] tabular-nums text-ink-3 pl-0.5"
+      >
+        / {totalPages}
+      </span>
+
+      {/* nav-goto-button: driver-contract testid preserved; sr-only (Enter key triggers GoTo) */}
       <button
         type="button"
         data-testid="nav-goto-button"
         aria-label="Go to page"
         onClick={onGoTo}
-        className="px-2 py-1 text-sm border rounded"
+        className="sr-only"
       >
         Go
       </button>
-      <span data-testid="nav-page-total-label" className="text-sm tabular-nums">
-        {currentPageNo} / {totalPages}
-      </span>
     </div>
   );
 }
