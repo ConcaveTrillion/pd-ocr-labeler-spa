@@ -29,9 +29,14 @@ import { WordHeader } from "./WordHeader";
 import { WordImagePreview } from "./WordImagePreview";
 import { OcrGtCompareRow } from "./OcrGtCompareRow";
 import { StylePalette } from "./StylePalette";
+import { ComponentPalette } from "./ComponentPalette";
 import { selectionStore, walkSibling } from "../../stores/selection-store";
 import { useRefineAvailable } from "../../hooks/useRefineAvailable";
-import { useUpdateWordGroundTruth, useApplyStyle } from "../../hooks/useWordMutations";
+import {
+  useUpdateWordGroundTruth,
+  useApplyStyle,
+  useApplyComponent,
+} from "../../hooks/useWordMutations";
 import type { components } from "../../api/types";
 
 type PagePayload = components["schemas"]["PagePayload"];
@@ -72,6 +77,7 @@ export function WordDetail({ page, projectId, pageIndex }: WordDetailProps) {
   const refineAvailable = refineProbe?.available ?? false;
   const updateGt = useUpdateWordGroundTruth(projectId, pageIndex);
   const applyStyle = useApplyStyle(projectId, pageIndex);
+  const applyComponent = useApplyComponent(projectId, pageIndex);
 
   const state = useSyncExternalStore(
     subscribeSelection,
@@ -143,6 +149,20 @@ export function WordDetail({ page, projectId, pageIndex }: WordDetailProps) {
             wordIndex: wordIdx,
             style: styleKey,
             scope: "whole",
+          });
+        }}
+      />
+
+      {/* P2.e: COMPONENT chip palette — word component tags */}
+      <ComponentPalette
+        activeComponents={word.word_components ?? []}
+        onComponentChange={(componentKey, next) => {
+          if (next === "mixed") return; // skip mixed for component toggle
+          applyComponent.mutate({
+            lineIndex: lineIdx,
+            wordIndex: wordIdx,
+            component: componentKey,
+            enabled: next === "on",
           });
         }}
       />

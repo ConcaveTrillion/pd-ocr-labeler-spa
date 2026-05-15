@@ -17,6 +17,7 @@ type ReboxWordRequest = components["schemas"]["ReboxWordRequest"];
 type MergeWordsRequest = components["schemas"]["MergeWordsRequest"];
 type SplitWordRequest = components["schemas"]["SplitWordRequest"];
 type ApplyStyleRequest = components["schemas"]["ApplyStyleRequest"];
+type ApplyComponentRequest = components["schemas"]["ApplyComponentRequest"];
 type UpdateWordGroundTruthRequest = components["schemas"]["UpdateWordGroundTruthRequest"];
 type SetCharRangesRequest = components["schemas"]["SetCharRangesRequest"];
 type CharRange = components["schemas"]["CharRange"];
@@ -182,6 +183,34 @@ export function useUpdateWordGroundTruth(projectId: string, pageIndex: number) {
       const body: UpdateWordGroundTruthRequest = { text };
       return apiPost<PagePayload>(
         `${wordBase(projectId, pageIndex, lineIndex, wordIndex)}/gt`,
+        body,
+      );
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["page", projectId, pageIndex] });
+    },
+  });
+}
+
+// ─── useApplyComponent ────────────────────────────────────────────────────
+
+/**
+ * Toggle a word component flag (P2.e).
+ *
+ * Backend endpoint: ``POST /api/projects/{pid}/pages/{idx}/words/{li}/{wi}/component``
+ * Body: ``ApplyComponentRequest { component, enabled }``
+ */
+export function useApplyComponent(projectId: string, pageIndex: number) {
+  const qc = useQueryClient();
+  return useMutation<
+    PagePayload,
+    Error,
+    { lineIndex: number; wordIndex: number; component: string; enabled: boolean }
+  >({
+    mutationFn: ({ lineIndex, wordIndex, component, enabled }) => {
+      const body: ApplyComponentRequest = { component, enabled };
+      return apiPost<PagePayload>(
+        `${wordBase(projectId, pageIndex, lineIndex, wordIndex)}/component`,
         body,
       );
     },
