@@ -1,34 +1,69 @@
 // HotkeyHelpModal.tsx — ? help modal listing all registered hotkeys.
 // Spec: docs/specs/2026-05-12-hotkeys-a11y-design.md §Hotkey help modal
 //       specs/22-page-surface-wireup.md §5 (uses dialog store)
+//       docs/specs/2026-05-15-hifi-redesign-plan.md Slice 25 (KeyCap + registry)
 // Issues: #235 (initial), #309 (spec-22-A — wire to dialog store)
 //
 // Opens when ? is pressed outside a form input, OR when something calls
 // `dialogStore.open('hotkeyHelp')` (e.g. the HeaderBar trigger button).
-// Reads from HOTKEY_MAP — always in sync with registered keys.
+// Reads from HOTKEY_MAP (legacy scope groups) and the new hotkey-registry
+// (grouped sections with KeyCap components).
 // testid: hotkey-help-dialog
 
-import { HOTKEY_MAP, type Scope } from "../lib/hotkeyMap";
+import { useSyncExternalStore } from "react";
 import { useHotkey } from "../hooks/useHotkey";
 import { dialogStore, useDialogStore } from "../stores/dialog-store";
+import { KeyCap } from "./ui/KeyCap";
+import {
+  getPopulatedGroups,
+  subscribeRegistry,
+  type RegistryEntry,
+  type HotkeyGroupDef,
+} from "../lib/hotkey-registry";
 
-const SCOPE_ORDER: Scope[] = [
-  "global",
-  "viewport",
-  "matches",
-  "dialog",
-  "source-folder",
-  "gt-input",
-];
+// ─── Registry hook ───────────────────────────────────────────────────────────
 
-const SCOPE_LABELS: Record<Scope, string> = {
-  global: "Global",
-  viewport: "Viewport",
-  matches: "Word Matches",
-  dialog: "Word Edit Dialog",
-  "source-folder": "Source Folder Dialog",
-  "gt-input": "GT Input",
-};
+function useHotkeyGroups(): HotkeyGroupDef[] {
+  return useSyncExternalStore(subscribeRegistry, getPopulatedGroups, getPopulatedGroups);
+}
+
+// ─── KeyCap row ──────────────────────────────────────────────────────────────
+
+function HotkeyRow({ entry }: { entry: RegistryEntry }) {
+  return (
+    <tr className="hover:bg-bg-raised/40">
+      <td className="py-1 pr-4 whitespace-nowrap w-48">
+        <span className="inline-flex items-center gap-1 flex-wrap">
+          {entry.keyCaps.map((k, i) => (
+            <KeyCap key={i} keys={k} />
+          ))}
+        </span>
+      </td>
+      <td className="py-1 text-ink-2 text-body">{entry.label}</td>
+    </tr>
+  );
+}
+
+// ─── Group section ───────────────────────────────────────────────────────────
+
+function GroupSection({ group }: { group: HotkeyGroupDef }) {
+  return (
+    <section key={group.id} data-testid={`hotkey-group-${group.id}`}>
+      <h3 className="text-[10px] font-semibold text-ink-3 uppercase tracking-wider mb-1.5 mt-3 first:mt-0">
+        {group.label}
+      </h3>
+      <table className="w-full" data-testid={`hotkey-group-table-${group.id}`}>
+        <tbody>
+          {group.entries.map((entry, i) => (
+            <HotkeyRow key={i} entry={entry} />
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+// ─── Modal ───────────────────────────────────────────────────────────────────
 
 /**
  * Hotkey help modal.
@@ -40,6 +75,7 @@ const SCOPE_LABELS: Record<Scope, string> = {
  */
 export function HotkeyHelpModal() {
   const open = useDialogStore((s) => s.hotkeyHelp.open);
+  const groups = useHotkeyGroups();
 
   // ? key opens help outside inputs (enableOnFormTags: false is default)
   useHotkey("?", () => dialogStore.open("hotkeyHelp"));
@@ -61,45 +97,25 @@ export function HotkeyHelpModal() {
         if (e.target === e.currentTarget) close();
       }}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
+      <div className="bg-bg-surface rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col border border-border-2">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-          <h2 className="text-base font-semibold">Keyboard Shortcuts</h2>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border-1">
+          <h2 className="text-heading font-semibold text-ink-1">Keyboard Shortcuts</h2>
           <button
             data-testid="hotkey-help-close"
             onClick={close}
-            className="text-gray-400 hover:text-gray-700 text-lg leading-none"
+            className="text-ink-3 hover:text-ink-1 text-lg leading-none transition-colors"
             aria-label="Close"
           >
             ×
           </button>
         </div>
 
-        {/* Scrollable list */}
-        <div className="overflow-y-auto px-4 py-3 space-y-4">
-          {SCOPE_ORDER.map((scope) => {
-            const entries = HOTKEY_MAP.filter((e) => e.scope === scope);
-            if (entries.length === 0) return null;
-            return (
-              <section key={scope}>
-                <h3 className="text-xs font-semibold text-gray-500 uppercase mb-1">
-                  {SCOPE_LABELS[scope]}
-                </h3>
-                <table className="w-full text-sm">
-                  <tbody>
-                    {entries.map((entry) => (
-                      <tr key={`${entry.scope}-${entry.combo}`} className="hover:bg-gray-50">
-                        <td className="py-0.5 pr-4 font-mono text-gray-700 whitespace-nowrap w-36">
-                          {entry.combo}
-                        </td>
-                        <td className="py-0.5 text-gray-600">{entry.description}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </section>
-            );
-          })}
+        {/* Scrollable grouped sections */}
+        <div className="overflow-y-auto px-4 py-3">
+          {groups.map((group) => (
+            <GroupSection key={group.id} group={group} />
+          ))}
         </div>
       </div>
     </div>
