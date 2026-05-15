@@ -9,11 +9,8 @@ Spec authority:
   refreshed ``PagePayload`` via the keystone ``_page_payload`` helper
   in ``api/pages.py``.
 
-The five spec-23-C1 handlers below
-(GT / style / component / validated / validate-batch) are fully wired.
-The remaining word endpoints (add, rebox, nudge, split, merge,
-erase-pixels) still return stub payloads — they belong to
-spec-23-C2/C3 issues.
+Spec-23-C1 (#315) wired GT / style / component / validated / validate-batch.
+Spec-23-C2 (#316) wired add / rebox / nudge / split / merge / erase-pixels.
 
 Pd-book-tools method mapping (spec §9 names → actual pd-book-tools API):
 
@@ -26,6 +23,25 @@ Pd-book-tools method mapping (spec §9 names → actual pd-book-tools API):
   Until that lands, the SPA writes the flag onto a per-page
   ``validated_words`` map on ``PageState`` (lossy across envelope
   round-trips; documented limitation).
+- ``page.add_word(bbox, text)`` → ``Page.add_word_to_page(x1, y1, x2, y2, text)``
+  (closest-line picked automatically; ``line_index`` request field is
+  informational, not enforced).
+- ``word.rebox(bbox)`` → ``Page.rebox_word(li, wi, x1, y1, x2, y2)``.
+- ``word.nudge(left, right, top, bottom)`` →
+  ``Page.nudge_word_bbox(li, wi, left, right, top, bottom, refine_after)``.
+- ``word.split(orientation, marker_position)`` →
+  ``Page.split_word(li, wi, split_fraction)`` — horizontal only;
+  vertical split returns 400 ``mutation_failed``.
+- ``page.merge_words(targets)`` — **no method exists** on pd-book-tools
+  ``Page`` today (tracking issue ConcaveTrillion/pd-book-tools#53).
+  Route delegates to per-line ``Line.merge_word_left(wi)`` /
+  ``Line.merge_word_right(wi)`` (``pd_book_tools/ocr/block.py:785,789``).
+- ``page.erase_pixels(bbox, fill_value)`` — **no method exists** in
+  pd-book-tools (tracking issue #53). Handler mirrors the legacy
+  labeler inline implementation at
+  ``pd_ocr_labeler/state/page_state.py:1802``: clamp bbox to image
+  extents, assign ``cv2_numpy_page_image[top:bottom, left:right] =
+  fill_value``, then call ``page.finalize_page_structure()``.
 """
 
 from __future__ import annotations
@@ -231,6 +247,33 @@ def _word_not_found(line_index: int, word_index: int) -> JSONResponse:
     )
 
 
+def _mutation_failed(message: str) -> JSONResponse:
+    """400 envelope used when a pd-book-tools mutation returns ``False``.
+
+    pd-book-tools methods like ``Page.rebox_word``, ``Line.merge_word_left``,
+    etc. return ``True``/``False`` rather than raising. The False return
+    means the call was rejected (out-of-range index, invalid rect, no
+    image to erase, etc.); spec §9 requires we surface that rather than
+    silently no-op. ``mutation_failed`` is distinct from ``word_not_found``
+    so the SPA can differentiate "couldn't find target" from "target
+    found but mutation refused".
+    """
+    return JSONResponse(
+        status_code=400,
+        content=ApiError(error="mutation_failed", message=message).model_dump(),
+    )
+
+
+def _bbox_to_coords(bbox: BBox) -> tuple[int, int, int, int]:
+    """Convert ``BBox(x, y, width, height)`` → ``(x1, y1, x2, y2)``.
+
+    Spec wire-shape (``docs/architecture/01-data-models.md §1``):
+    width/height are positive integers, so x2 = x + width and
+    y2 = y + height are well-defined.
+    """
+    return bbox.x, bbox.y, bbox.x + bbox.width, bbox.y + bbox.height
+
+
 def _resolve_page_object(pstate: PageState | None) -> Any | None:
     """Pull the ``Page``-like object out of ``PageState.page_record``.
 
@@ -297,18 +340,6 @@ def _write_cached_envelope_best_effort(
             page_index,
             exc,
         )
-
-
-def _stub_payload_response(project_id: str, page_index: int) -> JSONResponse:
-    """Empty ``PagePayload`` for the not-yet-wired word endpoints.
-
-    Add / rebox / nudge / split / merge / erase-pixels are still
-    stub-handlers pending their respective spec-23-C2 / spec-23-C3
-    issues. Until then they return a deterministic empty payload so the
-    SPA wire-shape contract stays stable.
-    """
-    payload = PagePayload(project_id=project_id, page_index=page_index)
-    return JSONResponse(status_code=200, content=payload.model_dump(mode="json"))
 
 
 def _refresh_payload_response(
@@ -649,12 +680,46 @@ def add_word(
     page_index: int,
     body: AddWordRequest,
     project_state: ProjectState = Depends(get_project_state),
+    settings: Settings = Depends(get_settings),
 ) -> JSONResponse:
-    """``POST .../words/add`` — insert a new word bbox."""
+    """``POST .../words/add`` — insert a new word bbox.
+
+    Spec 23 §9 row 6: ``page.add_word(bbox, text, line_index=None)`` →
+    ``Page.add_word_to_page(x1, y1, x2, y2, text)`` in pd-book-tools.
+    The request body's ``line_index`` is informational only:
+    pd-book-tools picks the closest line by bbox centroid (see
+    ``Page.add_word_to_page`` at
+    ``pd_book_tools/ocr/page.py:2132``).
+    """
     err = _check_project_and_page(project_id, page_index, project_state)
     if err is not None:
         return err
-    return _stub_payload_response(project_id, page_index)
+
+    pstate = project_state.get_page_state(page_index)
+    page = _resolve_page_object(pstate)
+    if pstate is None or page is None:
+        return _page_not_loaded(page_index)
+
+    x1, y1, x2, y2 = _bbox_to_coords(body.bbox)
+    page_lock = project_state.get_page_lock(page_index)
+    with page_lock:
+        ok = page.add_word_to_page(x1, y1, x2, y2, body.text)
+        if not ok:
+            return _mutation_failed(f"add_word_to_page rejected bbox=({x1}, {y1}, {x2}, {y2})")
+        pstate.generation += 1
+
+    _write_cached_envelope_best_effort(
+        page=page,
+        project_state=project_state,
+        page_index=page_index,
+        settings=settings,
+    )
+    return _refresh_payload_response(
+        project_id=project_id,
+        page_index=page_index,
+        project_state=project_state,
+        settings=settings,
+    )
 
 
 @router.post(
@@ -668,12 +733,48 @@ def rebox_word(
     word_index: int,
     body: ReboxWordRequest,
     project_state: ProjectState = Depends(get_project_state),
+    settings: Settings = Depends(get_settings),
 ) -> JSONResponse:
-    """``POST .../words/{li}/{wi}/rebox`` — replace the word's bounding box."""
+    """``POST .../words/{li}/{wi}/rebox`` — replace the word's bounding box.
+
+    Spec 23 §9 row 7: ``word.rebox(bbox)`` →
+    ``Page.rebox_word(li, wi, x1, y1, x2, y2)`` in pd-book-tools
+    (``pd_book_tools/ocr/page.py:2043``).
+    """
     err = _check_project_and_page(project_id, page_index, project_state)
     if err is not None:
         return err
-    return _stub_payload_response(project_id, page_index)
+
+    pstate = project_state.get_page_state(page_index)
+    page = _resolve_page_object(pstate)
+    if pstate is None or page is None:
+        return _page_not_loaded(page_index)
+
+    page_lock = project_state.get_page_lock(page_index)
+    with page_lock:
+        word = _resolve_word(page, line_index, word_index)
+        if word is None:
+            return _word_not_found(line_index, word_index)
+        x1, y1, x2, y2 = _bbox_to_coords(body.bbox)
+        ok = page.rebox_word(line_index, word_index, x1, y1, x2, y2)
+        if not ok:
+            return _mutation_failed(
+                f"rebox_word rejected line={line_index} word={word_index} bbox=({x1}, {y1}, {x2}, {y2})"
+            )
+        pstate.generation += 1
+
+    _write_cached_envelope_best_effort(
+        page=page,
+        project_state=project_state,
+        page_index=page_index,
+        settings=settings,
+    )
+    return _refresh_payload_response(
+        project_id=project_id,
+        page_index=page_index,
+        project_state=project_state,
+        settings=settings,
+    )
 
 
 @router.post(
@@ -687,12 +788,57 @@ def nudge_bbox(
     word_index: int,
     body: NudgeBboxRequest,
     project_state: ProjectState = Depends(get_project_state),
+    settings: Settings = Depends(get_settings),
 ) -> JSONResponse:
-    """``POST .../words/{li}/{wi}/nudge`` — nudge bbox edges by pixel offsets."""
+    """``POST .../words/{li}/{wi}/nudge`` — nudge bbox edges by pixel offsets.
+
+    Spec 23 §9 row 8: ``word.nudge(left, right, top, bottom)`` →
+    ``Page.nudge_word_bbox(li, wi, left, right, top, bottom,
+    refine_after)`` in pd-book-tools
+    (``pd_book_tools/ocr/page.py:2571``).
+    """
     err = _check_project_and_page(project_id, page_index, project_state)
     if err is not None:
         return err
-    return _stub_payload_response(project_id, page_index)
+
+    pstate = project_state.get_page_state(page_index)
+    page = _resolve_page_object(pstate)
+    if pstate is None or page is None:
+        return _page_not_loaded(page_index)
+
+    page_lock = project_state.get_page_lock(page_index)
+    with page_lock:
+        word = _resolve_word(page, line_index, word_index)
+        if word is None:
+            return _word_not_found(line_index, word_index)
+        ok = page.nudge_word_bbox(
+            line_index,
+            word_index,
+            body.left,
+            body.right,
+            body.top,
+            body.bottom,
+            body.refine_after,
+        )
+        if not ok:
+            return _mutation_failed(
+                f"nudge_word_bbox rejected line={line_index} word={word_index} "
+                f"deltas=({body.left}, {body.right}, {body.top}, {body.bottom})"
+            )
+        pstate.generation += 1
+
+    _write_cached_envelope_best_effort(
+        page=page,
+        project_state=project_state,
+        page_index=page_index,
+        settings=settings,
+    )
+    return _refresh_payload_response(
+        project_id=project_id,
+        page_index=page_index,
+        project_state=project_state,
+        settings=settings,
+    )
 
 
 @router.post(
@@ -706,12 +852,54 @@ def split_word(
     word_index: int,
     body: SplitWordRequest,
     project_state: ProjectState = Depends(get_project_state),
+    settings: Settings = Depends(get_settings),
 ) -> JSONResponse:
-    """``POST .../words/{li}/{wi}/split`` — split one word bbox into two."""
+    """``POST .../words/{li}/{wi}/split`` — split one word bbox into two.
+
+    Spec 23 §9 row 9: ``word.split(orientation, marker_position)`` →
+    ``Page.split_word(li, wi, split_fraction)`` in pd-book-tools
+    (``pd_book_tools/ocr/page.py:1756``). pd-book-tools only supports
+    horizontal split today; ``direction='vertical'`` returns 400.
+    """
     err = _check_project_and_page(project_id, page_index, project_state)
     if err is not None:
         return err
-    return _stub_payload_response(project_id, page_index)
+
+    if body.direction != "horizontal":
+        return _mutation_failed(
+            f"split_word direction={body.direction!r} not supported; "
+            "pd-book-tools exposes only horizontal split"
+        )
+
+    pstate = project_state.get_page_state(page_index)
+    page = _resolve_page_object(pstate)
+    if pstate is None or page is None:
+        return _page_not_loaded(page_index)
+
+    page_lock = project_state.get_page_lock(page_index)
+    with page_lock:
+        word = _resolve_word(page, line_index, word_index)
+        if word is None:
+            return _word_not_found(line_index, word_index)
+        ok = page.split_word(line_index, word_index, body.x_fraction)
+        if not ok:
+            return _mutation_failed(
+                f"split_word rejected line={line_index} word={word_index} fraction={body.x_fraction}"
+            )
+        pstate.generation += 1
+
+    _write_cached_envelope_best_effort(
+        page=page,
+        project_state=project_state,
+        page_index=page_index,
+        settings=settings,
+    )
+    return _refresh_payload_response(
+        project_id=project_id,
+        page_index=page_index,
+        project_state=project_state,
+        settings=settings,
+    )
 
 
 @router.post(
@@ -725,12 +913,53 @@ def merge_words(
     word_index: int,
     body: MergeWordsRequest,
     project_state: ProjectState = Depends(get_project_state),
+    settings: Settings = Depends(get_settings),
 ) -> JSONResponse:
-    """``POST .../words/{li}/{wi}/merge`` — merge this word with an adjacent one."""
+    """``POST .../words/{li}/{wi}/merge`` — merge with adjacent word.
+
+    Spec 23 §9 row 10 names ``page.merge_words(targets)``, which is not
+    implemented in pd-book-tools (tracking ConcaveTrillion/pd-book-tools#53).
+    The route delegates to per-line ``Line.merge_word_left(wi)`` /
+    ``Line.merge_word_right(wi)`` from ``pd_book_tools/ocr/block.py:785,789``.
+    """
     err = _check_project_and_page(project_id, page_index, project_state)
     if err is not None:
         return err
-    return _stub_payload_response(project_id, page_index)
+
+    pstate = project_state.get_page_state(page_index)
+    page = _resolve_page_object(pstate)
+    if pstate is None or page is None:
+        return _page_not_loaded(page_index)
+
+    page_lock = project_state.get_page_lock(page_index)
+    with page_lock:
+        word = _resolve_word(page, line_index, word_index)
+        if word is None:
+            return _word_not_found(line_index, word_index)
+        # Resolve the line — guaranteed in-range by _resolve_word success.
+        line = page.lines[line_index]
+        if body.direction == "left":
+            ok = line.merge_word_left(word_index)
+        else:
+            ok = line.merge_word_right(word_index)
+        if not ok:
+            return _mutation_failed(
+                f"merge_word_{body.direction} rejected line={line_index} word={word_index}"
+            )
+        pstate.generation += 1
+
+    _write_cached_envelope_best_effort(
+        page=page,
+        project_state=project_state,
+        page_index=page_index,
+        settings=settings,
+    )
+    return _refresh_payload_response(
+        project_id=project_id,
+        page_index=page_index,
+        project_state=project_state,
+        settings=settings,
+    )
 
 
 @router.post(
@@ -744,12 +973,91 @@ def erase_pixels(
     word_index: int,
     body: ErasePixelsRequest,
     project_state: ProjectState = Depends(get_project_state),
+    settings: Settings = Depends(get_settings),
 ) -> JSONResponse:
-    """``POST .../words/{li}/{wi}/erase-pixels`` — erase pixels inside a bbox region."""
+    """``POST .../words/{li}/{wi}/erase-pixels`` — erase pixels in a bbox.
+
+    Spec 23 §9 row 11 names ``page.erase_pixels(bbox, fill_value=255)``,
+    which does not exist in pd-book-tools (tracking ConcaveTrillion/
+    pd-book-tools#53). The handler mirrors the legacy labeler's inline
+    implementation at ``pd_ocr_labeler/state/page_state.py:1802``:
+
+    1. Resolve ``page.cv2_numpy_page_image`` → numpy ndarray.
+    2. Clamp the bbox to image extents.
+    3. Assign ``image[top:bottom, left:right] = clamped_fill_value``.
+    4. Call ``page.finalize_page_structure()`` so derived caches reset.
+
+    Note that ``(line_index, word_index)`` is only used to anchor the
+    operation onto a specific word for selection feedback; the actual
+    erase rectangle is taken from ``body.bbox`` (image-coordinate, not
+    word-relative).
+    """
     err = _check_project_and_page(project_id, page_index, project_state)
     if err is not None:
         return err
-    return _stub_payload_response(project_id, page_index)
+
+    pstate = project_state.get_page_state(page_index)
+    page = _resolve_page_object(pstate)
+    if pstate is None or page is None:
+        return _page_not_loaded(page_index)
+
+    page_lock = project_state.get_page_lock(page_index)
+    with page_lock:
+        word = _resolve_word(page, line_index, word_index)
+        if word is None:
+            return _word_not_found(line_index, word_index)
+
+        image = getattr(page, "cv2_numpy_page_image", None)
+        shape = getattr(image, "shape", None)
+        if image is None or shape is None or len(shape) < 2:
+            return _mutation_failed("erase_pixels: page image unavailable (cv2_numpy_page_image)")
+
+        try:
+            height = int(shape[0])
+            width = int(shape[1])
+        except Exception:
+            return _mutation_failed("erase_pixels: invalid page image shape")
+
+        if width <= 0 or height <= 0:
+            return _mutation_failed("erase_pixels: empty page image")
+
+        x1, y1, x2, y2 = _bbox_to_coords(body.bbox)
+        left = max(0, min(width, round(min(x1, x2))))
+        right = max(0, min(width, round(max(x1, x2))))
+        top = max(0, min(height, round(min(y1, y2))))
+        bottom = max(0, min(height, round(max(y1, y2))))
+
+        if right <= left or bottom <= top:
+            return _mutation_failed(
+                f"erase_pixels: rectangle out of bounds or empty "
+                f"after clamp ({left}, {top}, {right}, {bottom})"
+            )
+
+        clamped_fill = max(0, min(255, int(body.fill_value)))
+        try:
+            image[top:bottom, left:right] = clamped_fill
+        except Exception as exc:
+            log.exception("erase_pixels: in-place assignment failed: %s", exc)
+            return _mutation_failed(f"erase_pixels: in-place assignment failed: {exc}")
+
+        # Mirror legacy: reset derived bbox/image caches.
+        finalize = getattr(page, "finalize_page_structure", None)
+        if callable(finalize):
+            finalize()
+        pstate.generation += 1
+
+    _write_cached_envelope_best_effort(
+        page=page,
+        project_state=project_state,
+        page_index=page_index,
+        settings=settings,
+    )
+    return _refresh_payload_response(
+        project_id=project_id,
+        page_index=page_index,
+        project_state=project_state,
+        settings=settings,
+    )
 
 
 def install_words_router(app) -> None:  # type: ignore[no-untyped-def]

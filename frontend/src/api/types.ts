@@ -780,6 +780,13 @@ export interface paths {
         /**
          * Add Word
          * @description ``POST .../words/add`` — insert a new word bbox.
+         *
+         *     Spec 23 §9 row 6: ``page.add_word(bbox, text, line_index=None)`` →
+         *     ``Page.add_word_to_page(x1, y1, x2, y2, text)`` in pd-book-tools.
+         *     The request body's ``line_index`` is informational only:
+         *     pd-book-tools picks the closest line by bbox centroid (see
+         *     ``Page.add_word_to_page`` at
+         *     ``pd_book_tools/ocr/page.py:2132``).
          */
         post: operations["add_word_api_projects__project_id__pages__page_index__words_add_post"];
         delete?: never;
@@ -800,6 +807,10 @@ export interface paths {
         /**
          * Rebox Word
          * @description ``POST .../words/{li}/{wi}/rebox`` — replace the word's bounding box.
+         *
+         *     Spec 23 §9 row 7: ``word.rebox(bbox)`` →
+         *     ``Page.rebox_word(li, wi, x1, y1, x2, y2)`` in pd-book-tools
+         *     (``pd_book_tools/ocr/page.py:2043``).
          */
         post: operations["rebox_word_api_projects__project_id__pages__page_index__words__line_index___word_index__rebox_post"];
         delete?: never;
@@ -820,6 +831,11 @@ export interface paths {
         /**
          * Nudge Bbox
          * @description ``POST .../words/{li}/{wi}/nudge`` — nudge bbox edges by pixel offsets.
+         *
+         *     Spec 23 §9 row 8: ``word.nudge(left, right, top, bottom)`` →
+         *     ``Page.nudge_word_bbox(li, wi, left, right, top, bottom,
+         *     refine_after)`` in pd-book-tools
+         *     (``pd_book_tools/ocr/page.py:2571``).
          */
         post: operations["nudge_bbox_api_projects__project_id__pages__page_index__words__line_index___word_index__nudge_post"];
         delete?: never;
@@ -840,6 +856,11 @@ export interface paths {
         /**
          * Split Word
          * @description ``POST .../words/{li}/{wi}/split`` — split one word bbox into two.
+         *
+         *     Spec 23 §9 row 9: ``word.split(orientation, marker_position)`` →
+         *     ``Page.split_word(li, wi, split_fraction)`` in pd-book-tools
+         *     (``pd_book_tools/ocr/page.py:1756``). pd-book-tools only supports
+         *     horizontal split today; ``direction='vertical'`` returns 400.
          */
         post: operations["split_word_api_projects__project_id__pages__page_index__words__line_index___word_index__split_post"];
         delete?: never;
@@ -859,7 +880,12 @@ export interface paths {
         put?: never;
         /**
          * Merge Words
-         * @description ``POST .../words/{li}/{wi}/merge`` — merge this word with an adjacent one.
+         * @description ``POST .../words/{li}/{wi}/merge`` — merge with adjacent word.
+         *
+         *     Spec 23 §9 row 10 names ``page.merge_words(targets)``, which is not
+         *     implemented in pd-book-tools (tracking ConcaveTrillion/pd-book-tools#53).
+         *     The route delegates to per-line ``Line.merge_word_left(wi)`` /
+         *     ``Line.merge_word_right(wi)`` from ``pd_book_tools/ocr/block.py:785,789``.
          */
         post: operations["merge_words_api_projects__project_id__pages__page_index__words__line_index___word_index__merge_post"];
         delete?: never;
@@ -879,7 +905,22 @@ export interface paths {
         put?: never;
         /**
          * Erase Pixels
-         * @description ``POST .../words/{li}/{wi}/erase-pixels`` — erase pixels inside a bbox region.
+         * @description ``POST .../words/{li}/{wi}/erase-pixels`` — erase pixels in a bbox.
+         *
+         *     Spec 23 §9 row 11 names ``page.erase_pixels(bbox, fill_value=255)``,
+         *     which does not exist in pd-book-tools (tracking ConcaveTrillion/
+         *     pd-book-tools#53). The handler mirrors the legacy labeler's inline
+         *     implementation at ``pd_ocr_labeler/state/page_state.py:1802``:
+         *
+         *     1. Resolve ``page.cv2_numpy_page_image`` → numpy ndarray.
+         *     2. Clamp the bbox to image extents.
+         *     3. Assign ``image[top:bottom, left:right] = clamped_fill_value``.
+         *     4. Call ``page.finalize_page_structure()`` so derived caches reset.
+         *
+         *     Note that ``(line_index, word_index)`` is only used to anchor the
+         *     operation onto a specific word for selection feedback; the actual
+         *     erase rectangle is taken from ``body.bbox`` (image-coordinate, not
+         *     word-relative).
          */
         post: operations["erase_pixels_api_projects__project_id__pages__page_index__words__line_index___word_index__erase_pixels_post"];
         delete?: never;

@@ -247,14 +247,18 @@ def test_add_word_returns_404_for_bad_page(loaded_client: TestClient) -> None:
     assert resp.json()["error"] == "page_not_found"
 
 
-def test_add_word_returns_200_for_valid_page(loaded_client: TestClient) -> None:
+def test_add_word_returns_400_when_page_not_loaded(loaded_client: TestClient) -> None:
+    """Spec-23-C2: 400 ``page_not_loaded`` until PageState is seeded.
+
+    Happy-path geometry assertions live in
+    ``tests/unit/api/test_words_mutate_geometry.py`` (uses a stub Page).
+    """
     resp = loaded_client.post(
         "/api/projects/book1/pages/0/words/add",
         json={"bbox": {"x": 10, "y": 10, "width": 50, "height": 20}, "text": "new"},
     )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["project_id"] == "book1"
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "page_not_loaded"
 
 
 # ── rebox-word ────────────────────────────────────────────────────────
@@ -278,14 +282,14 @@ def test_rebox_word_returns_404_for_bad_page(loaded_client: TestClient) -> None:
     assert resp.json()["error"] == "page_not_found"
 
 
-def test_rebox_word_returns_200_for_valid_page(loaded_client: TestClient) -> None:
+def test_rebox_word_returns_400_when_page_not_loaded(loaded_client: TestClient) -> None:
+    """Spec-23-C2: 400 ``page_not_loaded`` until PageState is seeded."""
     resp = loaded_client.post(
         "/api/projects/book1/pages/0/words/0/0/rebox",
         json={"bbox": {"x": 5, "y": 5, "width": 40, "height": 15}},
     )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["project_id"] == "book1"
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "page_not_loaded"
 
 
 # ── nudge-bbox ────────────────────────────────────────────────────────
@@ -309,14 +313,14 @@ def test_nudge_bbox_returns_404_for_bad_page(loaded_client: TestClient) -> None:
     assert resp.json()["error"] == "page_not_found"
 
 
-def test_nudge_bbox_returns_200_for_valid_page(loaded_client: TestClient) -> None:
+def test_nudge_bbox_returns_400_when_page_not_loaded(loaded_client: TestClient) -> None:
+    """Spec-23-C2: 400 ``page_not_loaded`` until PageState is seeded."""
     resp = loaded_client.post(
         "/api/projects/book1/pages/0/words/0/0/nudge",
         json={"left": 1, "right": 0, "top": 0, "bottom": 0},
     )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["project_id"] == "book1"
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "page_not_loaded"
 
 
 # ── split-word ────────────────────────────────────────────────────────
@@ -340,14 +344,17 @@ def test_split_word_returns_404_for_bad_page(loaded_client: TestClient) -> None:
     assert resp.json()["error"] == "page_not_found"
 
 
-def test_split_word_returns_200_for_valid_page(loaded_client: TestClient) -> None:
+def test_split_word_vertical_returns_400_mutation_failed(loaded_client: TestClient) -> None:
+    """Spec-23-C2: pd-book-tools only supports horizontal split today;
+    ``direction='vertical'`` short-circuits to 400 ``mutation_failed``
+    before the page-load check.
+    """
     resp = loaded_client.post(
         "/api/projects/book1/pages/0/words/0/0/split",
         json={"x_fraction": 0.5, "direction": "vertical"},
     )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["project_id"] == "book1"
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "mutation_failed"
 
 
 # ── merge-words ───────────────────────────────────────────────────────
@@ -371,14 +378,14 @@ def test_merge_words_returns_404_for_bad_page(loaded_client: TestClient) -> None
     assert resp.json()["error"] == "page_not_found"
 
 
-def test_merge_words_returns_200_for_valid_page(loaded_client: TestClient) -> None:
+def test_merge_words_returns_400_when_page_not_loaded(loaded_client: TestClient) -> None:
+    """Spec-23-C2: 400 ``page_not_loaded`` until PageState is seeded."""
     resp = loaded_client.post(
         "/api/projects/book1/pages/0/words/0/0/merge",
         json={"direction": "right"},
     )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["project_id"] == "book1"
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "page_not_loaded"
 
 
 # ── erase-pixels ──────────────────────────────────────────────────────
@@ -402,11 +409,11 @@ def test_erase_pixels_returns_404_for_bad_page(loaded_client: TestClient) -> Non
     assert resp.json()["error"] == "page_not_found"
 
 
-def test_erase_pixels_returns_200_for_valid_page(loaded_client: TestClient) -> None:
+def test_erase_pixels_returns_400_when_page_not_loaded(loaded_client: TestClient) -> None:
+    """Spec-23-C2: 400 ``page_not_loaded`` until PageState is seeded."""
     resp = loaded_client.post(
         "/api/projects/book1/pages/0/words/0/0/erase-pixels",
         json={"bbox": {"x": 0, "y": 0, "width": 10, "height": 10}},
     )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["project_id"] == "book1"
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "page_not_loaded"
