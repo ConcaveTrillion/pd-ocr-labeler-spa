@@ -27,8 +27,10 @@ import { CharRangesSection } from "./sections/CharRangesSection";
 import { CharFixerSection } from "./sections/CharFixerSection";
 import { WordHeader } from "./WordHeader";
 import { WordImagePreview } from "./WordImagePreview";
+import { OcrGtCompareRow } from "./OcrGtCompareRow";
 import { selectionStore, walkSibling } from "../../stores/selection-store";
 import { useRefineAvailable } from "../../hooks/useRefineAvailable";
+import { useUpdateWordGroundTruth } from "../../hooks/useWordMutations";
 import type { components } from "../../api/types";
 
 type PagePayload = components["schemas"]["PagePayload"];
@@ -67,6 +69,7 @@ export interface WordDetailProps {
 export function WordDetail({ page, projectId, pageIndex }: WordDetailProps) {
   const { data: refineProbe } = useRefineAvailable();
   const refineAvailable = refineProbe?.available ?? false;
+  const updateGt = useUpdateWordGroundTruth(projectId, pageIndex);
 
   const state = useSyncExternalStore(
     subscribeSelection,
@@ -114,6 +117,19 @@ export function WordDetail({ page, projectId, pageIndex }: WordDetailProps) {
 
       {/* P2.b: Word image preview + confidence bars */}
       <WordImagePreview word={word} />
+
+      {/* P2.c: OCR/GT compare row + inline Ω unicode picker */}
+      <OcrGtCompareRow
+        ocrText={word.ocr_text}
+        gtText={word.ground_truth_text}
+        onCommitGt={(text) =>
+          updateGt.mutate({
+            lineIndex: lineIdx,
+            wordIndex: wordIdx,
+            text,
+          })
+        }
+      />
 
       <Accordion
         data-testid="word-detail-accordion"

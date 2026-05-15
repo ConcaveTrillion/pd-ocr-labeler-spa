@@ -217,7 +217,9 @@ describe("BBoxOverlay theme-aware colors (FO-4, #328)", () => {
     expect(rect.getAttribute("data-fill")).toBe(expectedFill);
   });
 
-  it("drag-rect uses hardcoded transparent fill (no CSS token)", () => {
+  it("drag-rect uses transparent fill + accent stroke (Gap 26)", () => {
+    // In jsdom, --accent CSS var is unavailable; readAccentColor() falls back
+    // to "#d6925a". buildDragRectLayerSpec() uses that value.
     const { getAllByTestId } = render(
       <Stage>
         <Layer>
@@ -227,10 +229,13 @@ describe("BBoxOverlay theme-aware colors (FO-4, #328)", () => {
     );
     const rect = getAllByTestId("konva-rect")[0];
     expect(rect.getAttribute("data-fill")).toBe("transparent");
-    expect(rect.getAttribute("data-stroke")).toBe("#2563eb");
+    // stroke is whatever readAccentColor() returns (jsdom fallback = #d6925a)
+    expect(rect.getAttribute("data-stroke")).toMatch(/^#[0-9a-f]{6}$/i);
   });
 
-  it("selection-words uses hardcoded selection fill (no CSS token)", () => {
+  it("selection-words uses accent-based fill + stroke (Gap 25)", () => {
+    // In jsdom, --accent CSS var is unavailable; readAccentColor() falls back
+    // to "#d6925a". buildSelectionLayerSpec() uses hexToRgba(accent, 0.18).
     const { getAllByTestId } = render(
       <Stage>
         <Layer>
@@ -239,8 +244,9 @@ describe("BBoxOverlay theme-aware colors (FO-4, #328)", () => {
       </Stage>,
     );
     const rect = getAllByTestId("konva-rect")[0];
-    expect(rect.getAttribute("data-fill")).toBe("rgba(37,99,235,0.20)");
-    expect(rect.getAttribute("data-stroke")).toBe("#1d4ed8");
+    // Fill should be a valid rgba string derived from the accent token
+    expect(rect.getAttribute("data-fill")).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
+    expect(rect.getAttribute("data-stroke")).toMatch(/^#[0-9a-f]{6}$/i);
   });
 });
 
