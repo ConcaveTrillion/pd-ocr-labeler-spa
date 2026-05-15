@@ -84,6 +84,7 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { StudioShell } from "../components/shell/StudioShell";
 import { Rail } from "../components/shell/Rail";
 import { RightPanel } from "../components/shell/RightPanel";
+import { WordDetail } from "../components/right-panel/WordDetail";
 import { useBreadcrumbHotkeys } from "../hooks/useBreadcrumbHotkeys";
 
 import type {
@@ -466,10 +467,14 @@ export default function ProjectPage() {
     </div>
   );
 
-  // Right panel slot — RightPanel routes on selection-store.level. Word-level
-  // content is intentionally a placeholder for Slice 14; Slice 16 replaces it
-  // with WordDetail. WordMatchView itself stays in the canvas TextTabs.
-  const rightSlot = <RightPanel page={pagePayload ?? undefined} />;
+  // Right panel slot — RightPanel routes on selection-store.level.
+  // Word-level content is WordDetail (Slice 16). WordMatchView stays in the
+  // canvas TextTabs.
+  const wordDetailSlot =
+    pagePayload && projectId ? (
+      <WordDetail page={pagePayload} projectId={projectId} pageIndex={idx0} />
+    ) : undefined;
+  const rightSlot = <RightPanel page={pagePayload ?? undefined} wordSlot={wordDetailSlot} />;
 
   return (
     <div data-testid="project-page" className="h-full">

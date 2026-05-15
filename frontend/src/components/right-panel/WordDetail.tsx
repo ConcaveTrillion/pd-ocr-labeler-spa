@@ -1,0 +1,153 @@
+// WordDetail.tsx — Word detail editor (right panel, level="word").
+// Spec: docs/specs/2026-05-15-hifi-redesign-plan.md Slice 16.
+//
+// Renders an Accordion with 6 items:
+//   1. Bounding Box  — wired (BBoxSection)
+//   2. Rebox         — stub (Slice 17)
+//   3. Erase Pixels  — stub (Slice 17)
+//   4. Structure     — stub (Slice 18)
+//   5. Char Ranges   — stub (Slice 19)
+//   6. Char Fixer    — stub (Slice 20)
+//
+// The component receives the selected word via the selection-store path and
+// the page payload from the parent (ProjectPage / RightPanel).
+//
+// data-testids:
+//   word-detail             — outer container
+//   word-detail-accordion   — accordion root
+
+import { useSyncExternalStore } from "react";
+import { Accordion } from "../ui/accordion";
+import { BBoxSection } from "./sections/BBoxSection";
+import { selectionStore } from "../../stores/selection-store";
+import type { components } from "../../api/types";
+
+type PagePayload = components["schemas"]["PagePayload"];
+type WordMatch = components["schemas"]["WordMatch"];
+
+// ─── store subscription ───────────────────────────────────────────────────
+
+function subscribeSelection(cb: () => void): () => void {
+  return selectionStore.subscribe(() => cb());
+}
+function getSelectionSnapshot() {
+  return selectionStore.getState();
+}
+
+// ─── helpers ──────────────────────────────────────────────────────────────
+
+function resolveWord(
+  page: PagePayload,
+  lineId: number,
+  wordId: [number, number],
+): WordMatch | null {
+  const line = page.line_matches?.find((l) => l.line_index === lineId);
+  if (!line) return null;
+  const [, wi] = wordId;
+  return line.word_matches[wi] ?? null;
+}
+
+// ─── StubContent ─────────────────────────────────────────────────────────
+
+function StubContent({ label }: { label: string }) {
+  return <p className="text-[11px] text-ink-3 py-1">{label} — coming in a future slice.</p>;
+}
+
+// ─── WordDetail ───────────────────────────────────────────────────────────
+
+export interface WordDetailProps {
+  page: PagePayload;
+  projectId: string;
+  pageIndex: number;
+}
+
+export function WordDetail({ page, projectId, pageIndex }: WordDetailProps) {
+  const state = useSyncExternalStore(
+    subscribeSelection,
+    getSelectionSnapshot,
+    getSelectionSnapshot,
+  );
+
+  const { level, path } = state;
+
+  if (level !== "word" || !path.wordId) {
+    return (
+      <div data-testid="word-detail" className="p-3 text-ink-3 text-sm">
+        No word selected.
+      </div>
+    );
+  }
+
+  const word = resolveWord(page, path.lineId ?? path.wordId[0], path.wordId);
+
+  if (!word) {
+    return (
+      <div data-testid="word-detail" className="p-3 text-ink-3 text-sm">
+        Word not found in page data.
+      </div>
+    );
+  }
+
+  return (
+    <div data-testid="word-detail" className="flex flex-col gap-1">
+      {/* Word identity header */}
+      <div className="px-1 py-1 text-[11px] text-ink-2 font-mono truncate" title={word.ocr_text}>
+        {word.ocr_text || <span className="text-ink-4 italic">∅</span>}
+      </div>
+
+      <Accordion
+        data-testid="word-detail-accordion"
+        type="multiple"
+        className="flex flex-col gap-1"
+      >
+        {/* 1 — Bounding Box */}
+        <Accordion.Item value="bbox">
+          <Accordion.Trigger>Bounding Box</Accordion.Trigger>
+          <Accordion.Content>
+            <BBoxSection word={word} projectId={projectId} pageIndex={pageIndex} />
+          </Accordion.Content>
+        </Accordion.Item>
+
+        {/* 2 — Rebox (Slice 17) */}
+        <Accordion.Item value="rebox" tag="accent">
+          <Accordion.Trigger>Rebox</Accordion.Trigger>
+          <Accordion.Content>
+            <StubContent label="Rebox" />
+          </Accordion.Content>
+        </Accordion.Item>
+
+        {/* 3 — Erase Pixels (Slice 17) */}
+        <Accordion.Item value="erase" tag="mismatch">
+          <Accordion.Trigger>Erase Pixels</Accordion.Trigger>
+          <Accordion.Content>
+            <StubContent label="Erase Pixels" />
+          </Accordion.Content>
+        </Accordion.Item>
+
+        {/* 4 — Structure (Slice 18) */}
+        <Accordion.Item value="structure">
+          <Accordion.Trigger>Structure</Accordion.Trigger>
+          <Accordion.Content>
+            <StubContent label="Structure" />
+          </Accordion.Content>
+        </Accordion.Item>
+
+        {/* 5 — Char Ranges (Slice 19) */}
+        <Accordion.Item value="char-ranges">
+          <Accordion.Trigger>Char Ranges</Accordion.Trigger>
+          <Accordion.Content>
+            <StubContent label="Char Ranges" />
+          </Accordion.Content>
+        </Accordion.Item>
+
+        {/* 6 — Char Fixer (Slice 20) */}
+        <Accordion.Item value="char-fixer">
+          <Accordion.Trigger>Char Fixer</Accordion.Trigger>
+          <Accordion.Content>
+            <StubContent label="Char Fixer" />
+          </Accordion.Content>
+        </Accordion.Item>
+      </Accordion>
+    </div>
+  );
+}
