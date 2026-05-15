@@ -2,6 +2,7 @@
 //
 // Spec: specs/21-konva-renderer.md §6 (overlay rendering), §12 (testids).
 // Issues: #196 (LAYER_COLORS RGBA constants), #298 (Konva-rect rewrite).
+// Slice 13: added `dimmed` prop for target-scoped opacity (hi-fi redesign).
 //
 // Renders one react-konva <Rect> per item inside whatever <Layer> the caller
 // has provided. Colours come from LAYER_COLORS[layer]; selected items use
@@ -9,8 +10,8 @@
 // per spec §11 perf pinning (overlay rects never participate in hit-testing).
 //
 // A dev/test-only sidecar <div data-testid="bbox-overlay-${layer}"
-// data-layer data-item-count> is rendered alongside the fragment so the
-// driver-contract Playwright tests can read the per-layer item count
+// data-layer data-item-count data-dimmed> is rendered alongside the fragment
+// so the driver-contract Playwright tests can read the per-layer item count
 // without poking into Konva nodes (spec §6, §12). Production bundles drop
 // the sidecar entirely via the `import.meta.env.MODE !== "production"` gate.
 //
@@ -106,6 +107,11 @@ interface BBoxOverlayProps {
   items: BBoxItem[];
   /** Whether this layer is currently visible. */
   visible?: boolean;
+  /**
+   * When true, renders at reduced opacity (0.3) to indicate this layer is
+   * not the active Rail target. Used by PageImageCanvas (Slice 13).
+   */
+  dimmed?: boolean;
 }
 
 /**
@@ -121,7 +127,10 @@ interface BBoxOverlayProps {
  * actually catch — passing a freshly-built `[...]` literal each render
  * defeats the shallow-equal default.
  */
-function BBoxOverlayInner({ layer, items, visible = true }: BBoxOverlayProps) {
+/** Opacity applied to each Rect when the layer is dimmed (inactive target). */
+const DIMMED_OPACITY = 0.3;
+
+function BBoxOverlayInner({ layer, items, visible = true, dimmed = false }: BBoxOverlayProps) {
   if (!visible) return null;
   const colors = LAYER_COLORS[layer];
   // Vite injects `import.meta.env.MODE` at build time. The frontend tsconfig
@@ -129,6 +138,7 @@ function BBoxOverlayInner({ layer, items, visible = true }: BBoxOverlayProps) {
   // an `env` global), so we read it through a local narrow cast.
   const mode = (import.meta as unknown as { env?: { MODE?: string } }).env?.MODE;
   const isDevOrTest = mode !== "production";
+  const opacity = dimmed ? DIMMED_OPACITY : 1;
 
   return (
     <>
@@ -142,6 +152,7 @@ function BBoxOverlayInner({ layer, items, visible = true }: BBoxOverlayProps) {
           fill={colors.fill}
           stroke={colors.stroke}
           strokeWidth={item.selected ? SELECTION_STROKE_WIDTH : colors.strokeWidth}
+          opacity={opacity}
           listening={false}
           perfectDrawEnabled={false}
         />
@@ -151,6 +162,7 @@ function BBoxOverlayInner({ layer, items, visible = true }: BBoxOverlayProps) {
           data-testid={`bbox-overlay-${layer}`}
           data-layer={layer}
           data-item-count={items.length}
+          data-dimmed={dimmed ? "true" : undefined}
           style={{ position: "absolute", visibility: "hidden", pointerEvents: "none" }}
           aria-hidden="true"
         />

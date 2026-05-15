@@ -61,6 +61,7 @@ import {
 import { useUiPrefs, type LayerVisibility } from "../stores/ui-prefs";
 import type { SelectionMode } from "./ImageTabsHeader";
 import { useViewportHotkeys } from "../hooks/useViewportHotkeys";
+import { railStore, type RailTarget } from "../stores/rail-store";
 
 export type SelectionModifier = "replace" | "remove" | "toggle";
 
@@ -184,10 +185,18 @@ export default function PageImageCanvas({
   const dragStateRef = useRef<DragState | null>(null);
   const [dragRect, setLocalDragRect] = useState<BBox | null>(null);
   const [mode, setMode] = useState<ViewportMode>(viewportStore.getState().mode);
+  const [railTarget, setRailTarget] = useState<RailTarget>(railStore.getState().target);
 
   // Subscribe to viewport store mode changes
   useEffect(() => {
     const unsub = viewportStore.subscribe((s) => setMode(s.mode));
+    return unsub;
+  }, []);
+
+  // Subscribe to rail target changes (Slice 13 — target-scoped bbox opacity).
+  // railStore.subscribe takes a no-arg Listener; read state via getState().
+  useEffect(() => {
+    const unsub = railStore.subscribe(() => setRailTarget(railStore.getState().target));
     return unsub;
   }, []);
 
@@ -410,9 +419,23 @@ export default function PageImageCanvas({
         <Layer name="overlay-lines" listening={false} />
         <Layer name="overlay-words" listening={false} />
         <Layer name="selection" listening={false}>
-          <BBoxOverlay layer="selection-paragraphs" items={expandedSelection.paragraphs} />
-          <BBoxOverlay layer="selection-lines" items={expandedSelection.lines} />
-          <BBoxOverlay layer="selection-words" items={expandedSelection.words} />
+          {/* Slice 13: active target layer renders full opacity; others dimmed.
+              "block" target maps to paragraph layer (closest available). */}
+          <BBoxOverlay
+            layer="selection-paragraphs"
+            items={expandedSelection.paragraphs}
+            dimmed={railTarget !== "block"}
+          />
+          <BBoxOverlay
+            layer="selection-lines"
+            items={expandedSelection.lines}
+            dimmed={railTarget !== "line"}
+          />
+          <BBoxOverlay
+            layer="selection-words"
+            items={expandedSelection.words}
+            dimmed={railTarget !== "word"}
+          />
         </Layer>
         <Layer name="drag">
           {dragRect && (
