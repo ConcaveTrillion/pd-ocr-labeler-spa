@@ -95,10 +95,21 @@ class PageState:
     Not frozen: M3 will add mutable selection-set fields. The carrier
     above doesn't depend on frozenness — it depends on the ``page_index``
     cross-check, which ``__post_init__`` doesn't enforce on its own.
+
+    ``generation`` / ``last_saved_generation`` (spec-23-B2 / spec §4 + §8):
+    ``generation`` bumps on every mutation that "dirties" the in-memory
+    page (OCR reload, future word/line/paragraph edits in spec-23-C/D/E).
+    ``last_saved_generation`` is updated by ``persist_page_to_file``
+    callers (``POST .../save`` and the ``save_project`` job) to mark
+    the on-disk labeled envelope as current. ``generation >
+    last_saved_generation`` is the dirty-page predicate the
+    ``save_project`` job iterates over.
     """
 
     page_index: int
     page_record: Any = field(default=None)
+    generation: int = 0
+    last_saved_generation: int = 0
 
 
 class ProjectState:

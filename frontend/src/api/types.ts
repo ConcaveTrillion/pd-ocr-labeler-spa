@@ -304,7 +304,25 @@ export interface paths {
         put?: never;
         /**
          * Save Page
-         * @description ``POST .../save`` — stub; M3.
+         * @description ``POST .../save`` — write the labeled-lane envelope (spec-23-B2 §4).
+         *
+         *     Pre-conditions enforced:
+         *
+         *     - Project loaded + ``page_index`` in range (else 404, as
+         *       ``_check_project_and_page``).
+         *     - ``PageState.page_record`` is populated — there must be something
+         *       to persist. If not, returns 400 ``page_not_loaded`` (the frontend
+         *       should run OCR / load first; this distinguishes the case from a
+         *       missing project / page).
+         *     - If ``body.generation`` is provided, must equal
+         *       ``pstate.generation`` — else 409 ``generation_mismatch`` so the
+         *       frontend can re-fetch.
+         *
+         *     Calls ``persist_page_to_file`` (#284) with the bound project /
+         *     ``data_root``. On ``OSError`` returns a 500 envelope
+         *     (``save_failed``). On success, advances ``last_saved_generation``
+         *     to the page's current ``generation`` so a subsequent
+         *     ``save_project`` pass is a no-op until the next mutation.
          */
         post: operations["save_page_api_projects__project_id__pages__page_index__save_post"];
         delete?: never;
@@ -324,7 +342,19 @@ export interface paths {
         put?: never;
         /**
          * Load Page
-         * @description ``POST .../load`` — stub; M3.
+         * @description ``POST .../load`` — re-read the page from disk, discard in-memory edits.
+         *
+         *     Spec §5. Discards any in-memory ``PageState`` for this index, then
+         *     calls ``ensure_page_model`` with the route-layer-injected
+         *     ``PageLoader`` (probes labeled → cached → OCR lanes in that order).
+         *     Returns the freshly-assembled ``PagePayload`` so the SPA can render
+         *     the just-loaded state.
+         *
+         *     The page_loader is read off ``runner.context["page_loader"]`` (the
+         *     same wiring slot the ``reload_ocr`` job uses, per spec §6); a
+         *     503 ``page_loader_not_wired`` is returned when no loader is wired
+         *     (tests inject a fake; M3 wiring binds a ``LocalDoctrPageLoader``
+         *     once DocTR is in scope).
          */
         post: operations["load_page_api_projects__project_id__pages__page_index__load_post"];
         delete?: never;

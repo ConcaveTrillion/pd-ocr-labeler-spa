@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from ..core import text_normalize
 from ..core.jobs import JobRunner
 from ..core.models import EncodedDims, LineFilter, LineMatch, PageRecord, Selection
+from ..core.page_state import ensure_page_model, persist_page_to_file
 from ..core.project_state import ProjectState
 from ..settings import Settings
 from .dependencies import get_job_runner, get_project_state, get_settings
@@ -377,12 +378,89 @@ def save_page(
     page_index: int,
     body: SavePageRequest,
     project_state: ProjectState = Depends(get_project_state),
+    settings: Settings = Depends(get_settings),
 ) -> JSONResponse:
-    """``POST .../save`` — stub; M3."""
+    """``POST .../save`` — write the labeled-lane envelope (spec-23-B2 §4).
+
+    Pre-conditions enforced:
+
+    - Project loaded + ``page_index`` in range (else 404, as
+      ``_check_project_and_page``).
+    - ``PageState.page_record`` is populated — there must be something
+      to persist. If not, returns 400 ``page_not_loaded`` (the frontend
+      should run OCR / load first; this distinguishes the case from a
+      missing project / page).
+    - If ``body.generation`` is provided, must equal
+      ``pstate.generation`` — else 409 ``generation_mismatch`` so the
+      frontend can re-fetch.
+
+    Calls ``persist_page_to_file`` (#284) with the bound project /
+    ``data_root``. On ``OSError`` returns a 500 envelope
+    (``save_failed``). On success, advances ``last_saved_generation``
+    to the page's current ``generation`` so a subsequent
+    ``save_project`` pass is a no-op until the next mutation.
+    """
     err = _check_project_and_page(project_id, page_index, project_state)
     if err is not None:
         return err
-    return _not_implemented("save page requires M3 persistence plumbing")
+
+    pstate = project_state.get_page_state(page_index)
+    if pstate is None or pstate.page_record is None:
+        return JSONResponse(
+            status_code=400,
+            content=ApiError(
+                error="page_not_loaded",
+                message=(f"page {page_index} has no in-memory state to save; load or run OCR first"),
+            ).model_dump(),
+        )
+
+    if body.generation is not None and body.generation != pstate.generation:
+        return JSONResponse(
+            status_code=409,
+            content={
+                "error": "generation_mismatch",
+                "message": (
+                    f"generation mismatch: client sent {body.generation}, server has {pstate.generation}"
+                ),
+                "current_generation": pstate.generation,
+            },
+        )
+
+    # ``PageLoadOutcome.payload`` is the Page-like object exposing
+    # ``to_dict()`` for ``build_envelope``. See lane-divergence note
+    # ``project_envelope_lanes_payload_divergence`` — labeled / cached
+    # lanes store a ``UserPageEnvelope`` here, but those paths shouldn't
+    # be dirty under current code (OCR lane is the only dirty-marker).
+    page_obj = pstate.page_record.payload
+
+    project = project_state.loaded_project
+    assert project is not None  # _check_project_and_page guarantees
+
+    try:
+        persist_page_to_file(
+            page=page_obj,
+            project=project,
+            page_index=page_index,
+            data_root=settings.data_root,
+        )
+    except OSError as exc:
+        log.exception("save_page: persist failed project=%s page=%d", project_id, page_index)
+        return JSONResponse(
+            status_code=500,
+            content=ApiError(
+                error="save_failed",
+                message=f"failed to persist page {page_index}: {exc}",
+            ).model_dump(),
+        )
+
+    pstate.last_saved_generation = pstate.generation
+
+    return JSONResponse(
+        status_code=200,
+        content=SavePageResponse(project_id=project_id, page_index=page_index, saved=True).model_dump(
+            mode="json"
+        ),
+    )
 
 
 @router.post("/{page_index}/load", response_model=PagePayload)
@@ -390,12 +468,62 @@ def load_page(
     project_id: str,
     page_index: int,
     project_state: ProjectState = Depends(get_project_state),
+    runner: JobRunner = Depends(get_job_runner),
+    settings: Settings = Depends(get_settings),
 ) -> JSONResponse:
-    """``POST .../load`` — stub; M3."""
+    """``POST .../load`` — re-read the page from disk, discard in-memory edits.
+
+    Spec §5. Discards any in-memory ``PageState`` for this index, then
+    calls ``ensure_page_model`` with the route-layer-injected
+    ``PageLoader`` (probes labeled → cached → OCR lanes in that order).
+    Returns the freshly-assembled ``PagePayload`` so the SPA can render
+    the just-loaded state.
+
+    The page_loader is read off ``runner.context["page_loader"]`` (the
+    same wiring slot the ``reload_ocr`` job uses, per spec §6); a
+    503 ``page_loader_not_wired`` is returned when no loader is wired
+    (tests inject a fake; M3 wiring binds a ``LocalDoctrPageLoader``
+    once DocTR is in scope).
+    """
     err = _check_project_and_page(project_id, page_index, project_state)
     if err is not None:
         return err
-    return _not_implemented("reload page from disk requires M3 persistence plumbing")
+
+    loader = runner.context.get("page_loader")
+    if loader is None:
+        return JSONResponse(
+            status_code=503,
+            content=ApiError(
+                error="page_loader_not_wired",
+                message=(
+                    "page loader is not wired on the job runner; "
+                    "the route layer must inject a PageLoader (M3 follow-on)"
+                ),
+            ).model_dump(),
+        )
+
+    # Discard in-memory state so ensure_page_model re-probes from disk
+    # (the lane probes are loader-driven and don't consult in-memory
+    # state; clearing here keeps the contract explicit and means a
+    # future swap to a precedence-aware ``force_reload`` flag on
+    # ``ensure_page_model`` won't change observable behavior).
+    project_state._page_states.pop(page_index, None)
+
+    # Call the dispatcher. Holds the project lock for the lane probes
+    # + optional OCR run.
+    ensure_page_model(
+        project_state,
+        page_index,
+        loader=loader,  # type: ignore[arg-type]
+    )
+
+    payload = _page_payload(
+        project_id=project_id,
+        page_index=page_index,
+        project_state=project_state,
+        settings=settings,
+    )
+    return JSONResponse(status_code=200, content=payload.model_dump(mode="json"))
 
 
 @router.post("/{page_index}/reload-ocr", response_model=ReloadOCRResponse)

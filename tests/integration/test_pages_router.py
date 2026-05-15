@@ -122,12 +122,19 @@ def test_post_save_page_returns_404_when_no_project(bare_client: TestClient) -> 
     assert resp.json()["error"] == "project_not_found"
 
 
-def test_post_save_page_returns_501_for_loaded_project(
+def test_post_save_page_returns_400_when_page_not_loaded(
     loaded_client: TestClient,
 ) -> None:
-    """Save-page endpoint exists; returns 501 until M3 wires the page graph."""
+    """spec-23-B2 §4: /save with no in-memory page state → 400 page_not_loaded.
+
+    The wire-up tests for /save success / 409 / 500 live in
+    ``tests/unit/api/test_save_load.py`` (they need to seed a
+    ``PageState`` row); this integration test pins the loaded-project
+    cold-start path (no OCR has run → nothing to save → 400).
+    """
     resp = loaded_client.post("/api/projects/book1/pages/0/save", json={})
-    assert resp.status_code == 501
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "page_not_loaded"
 
 
 def test_post_load_page_returns_404_when_no_project(bare_client: TestClient) -> None:
@@ -136,11 +143,19 @@ def test_post_load_page_returns_404_when_no_project(bare_client: TestClient) -> 
     assert resp.json()["error"] == "project_not_found"
 
 
-def test_post_load_page_returns_501_for_loaded_project(
+def test_post_load_page_returns_503_when_no_page_loader_wired(
     loaded_client: TestClient,
 ) -> None:
+    """spec-23-B2 §5: /load needs a ``PageLoader`` on ``runner.context``.
+
+    M3 wires a ``LocalDoctrPageLoader``; until then bare ``build_app``
+    leaves the slot empty → 503 ``page_loader_not_wired``. Functional
+    /load tests with an injected fake loader live in
+    ``tests/unit/api/test_save_load.py``.
+    """
     resp = loaded_client.post("/api/projects/book1/pages/0/load", json={})
-    assert resp.status_code == 501
+    assert resp.status_code == 503
+    assert resp.json()["error"] == "page_loader_not_wired"
 
 
 def test_post_reload_ocr_returns_404_when_no_project(bare_client: TestClient) -> None:

@@ -249,8 +249,14 @@ async def _handle_reload_ocr(runner: JobRunner, job: Job) -> None:
 
 
 async def _handle_save_project(runner: JobRunner, job: Job) -> None:
-    """Stub save-all handler. M3 will persist labeled envelopes to disk."""
-    await asyncio.sleep(0)
+    """save_project handler — delegates to ``core/jobs/handlers/save_project``.
+
+    Issue #308 (spec-23-B2): iterates dirty pages and persists each via
+    ``persist_page_to_file``; records failures + emits per-page progress.
+    """
+    from .handlers.save_project import handle_save_project  # lazy import
+
+    await handle_save_project(runner, job)
 
 
 async def _handle_export(runner: JobRunner, job: Job) -> None:

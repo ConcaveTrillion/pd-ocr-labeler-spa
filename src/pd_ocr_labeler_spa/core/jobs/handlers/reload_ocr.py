@@ -161,6 +161,12 @@ async def handle_reload_ocr(runner: JobRunner, job: Job) -> None:
             existing = PageState(page_index=page_index)
             project_state._page_states[page_index] = existing
         existing.page_record = outcome
+        # Per-page generation bump (spec-23-B2 / spec §4 + §8): mark the
+        # page dirty so subsequent ``POST .../save`` or ``save_project``
+        # passes pick it up. The pre-existing ``ProjectState._generation``
+        # bump is the project-wide counter; per-page tracking is the
+        # save-precondition.
+        existing.generation += 1
         project_state._generation += 1
 
     # Stage 4 — 1.0 / "Done".
