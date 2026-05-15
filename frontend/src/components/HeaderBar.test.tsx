@@ -591,3 +591,38 @@ describe("HeaderBar: Slice 9 — 40px chrome evolution", () => {
     });
   });
 });
+
+// --- P1.c Gap 6: QuickSearch field in header ---------------------------------
+
+describe("HeaderBar: QuickSearch (P1.c Gap 6)", () => {
+  function stubProjects() {
+    server.use(
+      http.get("/api/projects", () =>
+        HttpResponse.json({
+          projects: [],
+          selected: null,
+          projects_root: "",
+          config_source: "default",
+        }),
+      ),
+    );
+  }
+
+  it("renders the quick-search widget on every route", async () => {
+    stubProjects();
+    renderHeaderBar();
+    await screen.findByTestId("header-bar");
+    expect(screen.getByTestId("quick-search")).toBeInTheDocument();
+    expect(screen.getByTestId("quick-search-input")).toBeInTheDocument();
+    expect(screen.getByTestId("quick-search-keycap")).toBeInTheDocument();
+  });
+
+  it("clicking the ⌘K keycap opens the hotkeyHelp dialog", async () => {
+    stubProjects();
+    renderHeaderBar();
+    const keycap = await screen.findByTestId("quick-search-keycap");
+    expect(dialogStore.getState().hotkeyHelp.open).toBe(false);
+    fireEvent.click(keycap);
+    expect(dialogStore.getState().hotkeyHelp.open).toBe(true);
+  });
+});

@@ -19,6 +19,7 @@ import { Link, useMatch } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 
 import ProjectLoadControls from "./ProjectLoadControls";
+import { QuickSearch } from "./shell/QuickSearch";
 import { useProject } from "../hooks/useProject";
 import { usePage } from "../hooks/usePage";
 import { dialogStore } from "../stores/dialog-store";
@@ -323,7 +324,7 @@ export default function HeaderBar({ navSlot, actionsSlot }: HeaderBarProps = {})
       {/* Center-left: navigation slot (project route only) */}
       {navSlot}
 
-      {/* Center: load controls + metrics strip + dialog triggers */}
+      {/* Center: load controls + metrics strip + ⌘K search + dialog triggers */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <ProjectLoadControls projectName={projectName} />
 
@@ -331,6 +332,11 @@ export default function HeaderBar({ navSlot, actionsSlot }: HeaderBarProps = {})
         {projectId !== undefined && pageIndex !== undefined && (
           <MetricsStrip projectId={projectId} pageIndex={pageIndex} />
         )}
+
+        {/* Gap 6: centred ⌘K quick-search field — mx-auto pushes it to centre */}
+        <div className="flex-1 flex justify-center min-w-0">
+          <QuickSearch />
+        </div>
 
         {/* Center-right: actions slot (project route only) */}
         {actionsSlot}
