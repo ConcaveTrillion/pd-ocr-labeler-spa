@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useUiPrefs } from "./ui-prefs";
+import { useUiPrefs, clampSplitterRatio } from "./ui-prefs";
 
 describe("ui-prefs store", () => {
   beforeEach(() => {
@@ -10,7 +10,7 @@ describe("ui-prefs store", () => {
         line: true,
         word: true,
       },
-      splitterPosition: 0.5,
+      splitterRatio: 0.5,
       selectionMode: "paragraph",
     });
   });
@@ -24,7 +24,7 @@ describe("ui-prefs store", () => {
         line: true,
         word: true,
       });
-      expect(store.splitterPosition).toBe(0.5);
+      expect(store.splitterRatio).toBe(0.5);
       expect(store.selectionMode).toBe("paragraph");
     });
   });
@@ -88,20 +88,47 @@ describe("ui-prefs store", () => {
     });
   });
 
-  describe("splitterPosition updates", () => {
-    it("updates splitterPosition", () => {
-      useUiPrefs.setState({ splitterPosition: 0.7 });
-      expect(useUiPrefs.getState().splitterPosition).toBe(0.7);
+  describe("splitterRatio updates", () => {
+    it("updates splitterRatio via setState", () => {
+      useUiPrefs.setState({ splitterRatio: 0.7 });
+      expect(useUiPrefs.getState().splitterRatio).toBe(0.7);
     });
 
-    it("handles minimum splitter position", () => {
-      useUiPrefs.setState({ splitterPosition: 0.1 });
-      expect(useUiPrefs.getState().splitterPosition).toBe(0.1);
+    it("setSplitterRatio writes the value", () => {
+      useUiPrefs.setSplitterRatio(0.6);
+      expect(useUiPrefs.getState().splitterRatio).toBe(0.6);
     });
 
-    it("handles maximum splitter position", () => {
-      useUiPrefs.setState({ splitterPosition: 0.9 });
-      expect(useUiPrefs.getState().splitterPosition).toBe(0.9);
+    it("setSplitterRatio clamps below 0.2 up to 0.2", () => {
+      useUiPrefs.setSplitterRatio(0.05);
+      expect(useUiPrefs.getState().splitterRatio).toBe(0.2);
+    });
+
+    it("setSplitterRatio clamps above 0.8 down to 0.8", () => {
+      useUiPrefs.setSplitterRatio(0.95);
+      expect(useUiPrefs.getState().splitterRatio).toBe(0.8);
+    });
+
+    it("setSplitterRatio resets NaN to default 0.5", () => {
+      useUiPrefs.setSplitterRatio(Number.NaN);
+      expect(useUiPrefs.getState().splitterRatio).toBe(0.5);
+    });
+  });
+
+  describe("clampSplitterRatio helper", () => {
+    it("passes values inside the range unchanged", () => {
+      expect(clampSplitterRatio(0.5)).toBe(0.5);
+      expect(clampSplitterRatio(0.2)).toBe(0.2);
+      expect(clampSplitterRatio(0.8)).toBe(0.8);
+    });
+
+    it("clamps low / high", () => {
+      expect(clampSplitterRatio(-0.5)).toBe(0.2);
+      expect(clampSplitterRatio(1.5)).toBe(0.8);
+    });
+
+    it("returns default 0.5 for NaN", () => {
+      expect(clampSplitterRatio(Number.NaN)).toBe(0.5);
     });
   });
 
@@ -125,13 +152,13 @@ describe("ui-prefs store", () => {
     it("maintains state across multiple updates", () => {
       useUiPrefs.setState({
         lineFilter: "test_filter",
-        splitterPosition: 0.6,
+        splitterRatio: 0.6,
       });
       useUiPrefs.setState({ selectionMode: "line" });
 
       const state = useUiPrefs.getState();
       expect(state.lineFilter).toBe("test_filter");
-      expect(state.splitterPosition).toBe(0.6);
+      expect(state.splitterRatio).toBe(0.6);
       expect(state.selectionMode).toBe("line");
     });
   });
