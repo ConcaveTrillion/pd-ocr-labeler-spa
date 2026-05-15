@@ -50,7 +50,7 @@ export function ImageTabsHeader({
 }: ImageTabsHeaderProps) {
   return (
     <div
-      className="flex items-center gap-3 px-2 py-1 bg-gray-50 border-b border-gray-200 flex-wrap text-xs"
+      className="flex items-center gap-3 px-2 py-1 bg-bg-surface border-b border-border-1 flex-wrap text-xs"
       aria-label="Viewport controls"
     >
       {/* Layer checkboxes */}
@@ -63,10 +63,10 @@ export function ImageTabsHeader({
             data-testid="layer-paragraphs-checkbox"
             checked={layerVisibility.paragraph}
             onChange={() => onLayerToggle("paragraph")}
-            className="accent-green-600"
+            className="accent-layer-para"
             aria-label="Show paragraphs layer"
           />
-          <span className="text-green-700">Para</span>
+          <span className="text-layer-para">Para</span>
         </label>
 
         <label className="flex items-center gap-1 cursor-pointer select-none">
@@ -75,10 +75,10 @@ export function ImageTabsHeader({
             data-testid="layer-lines-checkbox"
             checked={layerVisibility.line}
             onChange={() => onLayerToggle("line")}
-            className="accent-pink-600"
+            className="accent-layer-line"
             aria-label="Show lines layer"
           />
-          <span className="text-pink-700">Lines</span>
+          <span className="text-layer-line">Lines</span>
         </label>
 
         <label className="flex items-center gap-1 cursor-pointer select-none">
@@ -87,14 +87,14 @@ export function ImageTabsHeader({
             data-testid="layer-words-checkbox"
             checked={layerVisibility.word}
             onChange={() => onLayerToggle("word")}
-            className="accent-blue-600"
+            className="accent-layer-word"
             aria-label="Show words layer"
           />
-          <span className="text-blue-700">Words</span>
+          <span className="text-layer-word">Words</span>
         </label>
       </fieldset>
 
-      <div className="w-px h-4 bg-gray-300" aria-hidden="true" />
+      <div className="w-px h-4 bg-border-2" aria-hidden="true" />
 
       {/* Selection-mode radio buttons */}
       <fieldset className="flex items-center gap-2 border-0 p-0 m-0">
@@ -137,7 +137,7 @@ export function ImageTabsHeader({
         </label>
       </fieldset>
 
-      <div className="w-px h-4 bg-gray-300" aria-hidden="true" />
+      <div className="w-px h-4 bg-border-2" aria-hidden="true" />
 
       {/* Erase Pixels mode toggle */}
       <button
@@ -148,8 +148,8 @@ export function ImageTabsHeader({
         className={[
           "px-2 py-0.5 text-xs rounded border transition-colors",
           eraseActive
-            ? "bg-orange-500 text-white border-orange-600 hover:bg-orange-600"
-            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50",
+            ? "bg-status-mismatch text-ink-1 border-status-mismatch hover:opacity-90"
+            : "bg-bg-raised text-ink-2 border-border-2 hover:bg-bg-raised/80",
         ].join(" ")}
       >
         Erase

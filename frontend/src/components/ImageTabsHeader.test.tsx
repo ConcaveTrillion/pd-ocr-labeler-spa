@@ -161,6 +161,62 @@ describe("ImageTabsHeader (#196)", () => {
     expect(screen.getByTestId("erase-pixels-button")).toHaveAttribute("aria-pressed", "true");
   });
 
+  it("container uses design token classes (bg-bg-surface, border-border-1)", () => {
+    const { container } = render(
+      <ImageTabsHeader
+        layerVisibility={defaultVisibility}
+        selectionMode="paragraph"
+        eraseActive={false}
+        onLayerToggle={vi.fn()}
+        onSelectionModeChange={vi.fn()}
+        onEraseToggle={vi.fn()}
+      />,
+    );
+    const root = container.firstChild as HTMLElement;
+    expect(root.className).toContain("bg-bg-surface");
+    expect(root.className).toContain("border-border-1");
+    // Must NOT use raw Tailwind color classes
+    expect(root.className).not.toContain("bg-gray-50");
+    expect(root.className).not.toContain("border-gray-200");
+  });
+
+  it("para checkbox uses text-layer-para and accent-layer-para tokens", () => {
+    render(
+      <ImageTabsHeader
+        layerVisibility={defaultVisibility}
+        selectionMode="paragraph"
+        eraseActive={false}
+        onLayerToggle={vi.fn()}
+        onSelectionModeChange={vi.fn()}
+        onEraseToggle={vi.fn()}
+      />,
+    );
+    const paraCheckbox = screen.getByTestId("layer-paragraphs-checkbox");
+    expect(paraCheckbox.className).toContain("accent-layer-para");
+    // The span label
+    const paraLabel = paraCheckbox.closest("label");
+    expect(paraLabel?.textContent).toContain("Para");
+    const span = paraLabel?.querySelector("span");
+    expect(span?.className).toContain("text-layer-para");
+  });
+
+  it("erase button uses bg-status-mismatch token when active", () => {
+    render(
+      <ImageTabsHeader
+        layerVisibility={defaultVisibility}
+        selectionMode="paragraph"
+        eraseActive={true}
+        onLayerToggle={vi.fn()}
+        onSelectionModeChange={vi.fn()}
+        onEraseToggle={vi.fn()}
+      />,
+    );
+    const btn = screen.getByTestId("erase-pixels-button");
+    expect(btn.className).toContain("bg-status-mismatch");
+    // Must NOT use raw orange classes
+    expect(btn.className).not.toContain("bg-orange-500");
+  });
+
   // Regression: paragraph radio must reflect selectionMode prop, not be hardcoded (bug #292)
   it("paragraph radio is checked when selectionMode is paragraph", () => {
     render(
