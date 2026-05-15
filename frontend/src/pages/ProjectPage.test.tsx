@@ -143,6 +143,16 @@ describe("ProjectPage — real shell (spec 22 §3, #314)", () => {
     expect(await screen.findByTestId("project-page")).toBeInTheDocument();
   });
 
+  it("renders the StudioShell wrapper with all 5 zones (Slice 8)", async () => {
+    renderProjectPage();
+    expect(await screen.findByTestId("studio-shell")).toBeInTheDocument();
+    expect(screen.getByTestId("studio-shell-header")).toBeInTheDocument();
+    expect(screen.getByTestId("studio-shell-rail")).toBeInTheDocument();
+    expect(screen.getByTestId("studio-shell-drawer")).toBeInTheDocument();
+    expect(screen.getByTestId("studio-shell-canvas")).toBeInTheDocument();
+    expect(screen.getByTestId("studio-shell-right")).toBeInTheDocument();
+  });
+
   it("removes the legacy source-folder + nav stubs from inside ProjectPage", async () => {
     const { container } = renderProjectPage();
     await screen.findByTestId("project-page");

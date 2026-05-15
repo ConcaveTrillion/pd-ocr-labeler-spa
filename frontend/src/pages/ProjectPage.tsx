@@ -81,6 +81,7 @@ import { WordMatchView } from "../components/WordMatchView";
 import { PlaintextEditor } from "../components/PlaintextEditor";
 import { WordEditDialog, type DialogTarget } from "../components/WordEditDialog";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { StudioShell } from "../components/shell/StudioShell";
 
 import type {
   Selection as ToolbarSelection,
@@ -346,29 +347,41 @@ export default function ProjectPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────
 
-  return (
-    <div data-testid="project-page" className="flex flex-col h-full">
-      <ProjectLoadingOverlay isLoading={isPageLoading} />
+  // ── Slot content ──────────────────────────────────────────────────────
+  // StudioShell (Slice 8) splits the page into 5 zones. The header slot
+  // carries nav + page actions; rail + drawer are stubbed (filled by
+  // Slices 10–11); canvas carries toolbar + splitter (preserving all
+  // existing data-testids); right panel stub filled by Slice 14.
 
-      <div data-testid="page-header" className="flex flex-col">
-        <ProjectNavigationControls />
-        <PageActions
-          isBusy={isMutating || activeJob !== null}
-          hasEditedImage={false}
-          pageSource={pageRecord?.page_source}
-          pageName={pageRecord?.image_path?.split("/").pop() ?? null}
-          rotationDegrees={pageRecord?.rotation_degrees ?? 0}
-          rotationSource={pageRecord?.rotation_source ?? null}
-          onReloadOcr={handleReloadOcr}
-          onReloadOcrEdited={handleReloadOcrEdited}
-          onSavePage={handleSavePage}
-          onSaveProject={handleSaveProject}
-          onLoadPage={handleLoadPage}
-          onRematchGt={handleRematchGt}
-          onExport={handleExport}
-        />
-      </div>
+  const headerSlot = (
+    <div data-testid="page-header" className="flex flex-col h-full justify-center px-0">
+      <ProjectNavigationControls />
+      <PageActions
+        isBusy={isMutating || activeJob !== null}
+        hasEditedImage={false}
+        pageSource={pageRecord?.page_source}
+        pageName={pageRecord?.image_path?.split("/").pop() ?? null}
+        rotationDegrees={pageRecord?.rotation_degrees ?? 0}
+        rotationSource={pageRecord?.rotation_source ?? null}
+        onReloadOcr={handleReloadOcr}
+        onReloadOcrEdited={handleReloadOcrEdited}
+        onSavePage={handleSavePage}
+        onSaveProject={handleSaveProject}
+        onLoadPage={handleLoadPage}
+        onRematchGt={handleRematchGt}
+        onExport={handleExport}
+      />
+    </div>
+  );
 
+  // Rail slot — empty stub; Rail component wired in Slice 10.
+  const railSlot = <div data-testid="rail-placeholder" className="h-full bg-bg-surface" />;
+
+  // Drawer slot — empty stub; Drawer component wired in Slice 11.
+  const drawerSlot = <div data-testid="drawer-placeholder" className="h-full" />;
+
+  const canvasSlot = (
+    <div className="flex flex-col h-full min-h-0">
       <ToolbarActionGrid
         selection={toolbarSelection}
         pageData={toolbarPageData}
@@ -378,7 +391,6 @@ export default function ProjectPage() {
         addWordActive={addWordActive}
         onAddWordToggle={handleAddWordToggle}
       />
-
       <div className="flex-1 min-h-0">
         <Splitter
           direction="horizontal"
@@ -444,6 +456,23 @@ export default function ProjectPage() {
           }
         />
       </div>
+    </div>
+  );
+
+  // Right panel slot — empty stub; RightPanel wired in Slice 14.
+  const rightSlot = <div data-testid="right-panel-placeholder" className="h-full" />;
+
+  return (
+    <div data-testid="project-page" className="h-full">
+      <ProjectLoadingOverlay isLoading={isPageLoading} />
+
+      <StudioShell
+        header={headerSlot}
+        rail={railSlot}
+        drawer={drawerSlot}
+        canvas={canvasSlot}
+        right={rightSlot}
+      />
 
       {/* WordEditDialog — opens from per-word pencil click via dialogStore.
           Returns null when open=false, so the dialog testids only appear
