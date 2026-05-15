@@ -1,17 +1,27 @@
-// PageImageCanvas.tsx — image viewport with four interaction modes (#197, #198, #297)
+// PageImageCanvas.tsx — image viewport with four interaction modes (#197, #198, #297, #302)
 //
-// Spec: specs/21-konva-renderer.md §4 (component layout), §12 (testids),
-//       §13 (edge cases — empty state).
+// Spec: specs/21-konva-renderer.md §4 (component layout), §7 (drag modes),
+//       §9 (cursors), §12 (testids), §13 (edge cases — empty state).
 //
-// spec-21-A2 (#297) replaces the DOM-stub viewport with a real react-konva
+// spec-21-A2 (#297) replaced the DOM-stub viewport with a real react-konva
 // <Stage> host carrying the 6-layer skeleton from spec §4:
 //
 //   image / overlay-paragraphs / overlay-lines / overlay-words / selection / drag
 //
-// Overlay layers stay empty in this slice; spec-21-A3 (#298) wires BBoxOverlay
-// into them and spec-21-C migrates drag handlers from DOM events to Konva
-// Stage events. Until then, drag input is captured by DOM mouse events on the
-// wrapping viewport div — same callbacks, same `data-mode`, same modifiers.
+// spec-21-A6 (#302) migrates drag handlers from DOM events on the wrapping
+// viewport div onto the Konva <Stage> per spec §7. The handlers receive
+// `KonvaEventObject<MouseEvent>` and read pointer position via
+// `e.target.getStage().getPointerPosition()`; modifiers come from `e.evt`
+// (the underlying DOM event) and are captured at mousedown so a later
+// shift/ctrl release mid-drag doesn't change the resolved modifier. Mousemove
+// is rAF-throttled through `scheduleDragUpdate` (spec §7 / #301) so 60 Hz
+// mouse movement turns into one state update per animation frame.
+//
+// A Konva <Rect> in the `drag` <Layer> renders the live drag-preview with
+// stroke `#2563eb` (blue-600) and `dash=[4, 2]` per spec §9. A DOM sidecar
+// `<div data-testid="ocr-drag-rect">` mirrors its position so Playwright can
+// locate the drag rect via a CSS selector (Konva nodes can't carry
+// `data-testid` — spec §12).
 //
 // Interaction modes (via viewportStore):
 //   select   — drag box-select; fires onBoxSelect(rect, modifier) (#197)
@@ -20,23 +30,23 @@
 //   erase    — drag erase rect; fires onErasePixels(rect) (#198)
 //
 // Testid layout (spec §12):
-//   image-viewport     — wrapper div around the Stage (also empty-state branch)
-//   image-stage        — sidecar div mirroring Stage geometry (Konva nodes
-//                        cannot themselves carry testids in jsdom or Playwright)
-//   ocr-drag-rect      — drag-preview Rect (must be a DOM sidecar, NOT a Konva
-//                        node — required for Playwright selector access)
-//   bbox-overlay-*     — sidecars rendered by BBoxOverlay (spec-21-A3 #298),
-//                        not by this component
+//   image-viewport       — wrapper div around the Stage (also empty-state branch)
+//   image-stage          — sidecar div mirroring Stage geometry
+//   konva-drag-preview   — the Konva drag-preview Rect inside the `drag` Layer
+//   ocr-drag-rect        — DOM sidecar mirroring drag-rect position (Playwright)
+//   bbox-overlay-*       — sidecars rendered by BBoxOverlay (#298)
 //
-// DragRect preview: data-testid="ocr-drag-rect", CSS class "ocr-drag-rect".
-// Modifier keys on select mousedown: plain = replace, Shift = remove, Ctrl = toggle.
-// Rebox + erase modes reset to "select" on successful drag; add-word stays active.
+// Modifier keys captured at mousedown: plain = replace, Shift = remove,
+// Ctrl/Cmd = toggle. Rebox + erase reset to "select" on a successful drag;
+// add-word stays active for multi-add.
 
 import { useEffect, useRef, useState } from "react";
-import { Layer, Stage } from "react-konva";
+import type { KonvaEventObject } from "konva/lib/Node";
+import { Layer, Rect, Stage } from "react-konva";
 import { getStageDimensions, type EncodedDims } from "../lib/canvas-utils";
 import type { BBox } from "../lib/coords";
 import { PageImage } from "./PageImage";
+import { scheduleDragUpdate } from "../lib/rafSchedule";
 import { setDragRect, clearSelection } from "../stores/selection-store";
 import { viewportStore, exitToSelectMode, type ViewportMode } from "../stores/viewport-store";
 
@@ -45,6 +55,19 @@ export type SelectionModifier = "replace" | "remove" | "toggle";
 interface DragState {
   startX: number;
   startY: number;
+  /** Captured at mousedown per spec §7 (Shift release mid-drag does not flip the modifier). */
+  modifier: SelectionModifier;
+}
+
+/** Resolve the select-mode modifier from a raw DOM MouseEvent (spec §7). */
+function resolveModifier(evt: {
+  shiftKey?: boolean;
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+}): SelectionModifier {
+  if (evt.shiftKey) return "remove";
+  if (evt.ctrlKey || evt.metaKey) return "toggle";
+  return "replace";
 }
 
 interface PageImageCanvasProps {
@@ -119,8 +142,10 @@ export default function PageImageCanvas({
   onAddWord,
   onErasePixels,
 }: PageImageCanvasProps) {
-  const stageRef = useRef<HTMLDivElement>(null);
-  const [dragState, setDragState] = useState<DragState | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  // Hold dragState in a ref *and* state so async rAF callbacks (mousemove)
+  // see the latest start coordinates without re-binding handlers.
+  const dragStateRef = useRef<DragState | null>(null);
   const [dragRect, setLocalDragRect] = useState<BBox | null>(null);
   const [mode, setMode] = useState<ViewportMode>(viewportStore.getState().mode);
 
@@ -144,67 +169,67 @@ export default function PageImageCanvas({
 
   const dims = getStageDimensions(encoded);
 
-  function getRelativePos(e: React.MouseEvent<HTMLDivElement>): {
-    x: number;
-    y: number;
-  } {
-    const rect = stageRef.current?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
+  function readStagePos(e: KonvaEventObject<MouseEvent>): { x: number; y: number } | null {
+    const stage = e.target?.getStage?.();
+    const pos = stage?.getPointerPosition();
+    if (!pos) return null;
+    return { x: pos.x, y: pos.y };
   }
 
-  function resolveModifier(e: React.MouseEvent): SelectionModifier {
-    if (e.shiftKey) return "remove";
-    if (e.ctrlKey || e.metaKey) return "toggle";
-    return "replace";
-  }
-
-  function computeRect(end: { x: number; y: number }): BBox {
-    if (!dragState) return { x: 0, y: 0, width: 0, height: 0 };
+  function computeRect(start: DragState, end: { x: number; y: number }): BBox {
     return {
-      x: Math.min(end.x, dragState.startX),
-      y: Math.min(end.y, dragState.startY),
-      width: Math.abs(end.x - dragState.startX),
-      height: Math.abs(end.y - dragState.startY),
+      x: Math.min(end.x, start.startX),
+      y: Math.min(end.y, start.startY),
+      width: Math.abs(end.x - start.startX),
+      height: Math.abs(end.y - start.startY),
     };
   }
 
   function clearDrag() {
-    setDragState(null);
+    dragStateRef.current = null;
     setLocalDragRect(null);
     setDragRect(null);
   }
 
-  function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
-    const pos = getRelativePos(e);
-    setDragState({ startX: pos.x, startY: pos.y });
+  function handleStageMouseDown(e: KonvaEventObject<MouseEvent>) {
+    const pos = readStagePos(e);
+    if (!pos) return;
+    dragStateRef.current = {
+      startX: pos.x,
+      startY: pos.y,
+      // Capture modifier at mousedown per spec §7.
+      modifier: resolveModifier(e.evt),
+    };
     setLocalDragRect(null);
-    e.preventDefault(); // prevent text selection
   }
 
-  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    if (!dragState) return;
-    const pos = getRelativePos(e);
-    const rect = computeRect(pos);
-    setLocalDragRect(rect);
-    setDragRect(rect);
+  function handleStageMouseMove(e: KonvaEventObject<MouseEvent>) {
+    if (!dragStateRef.current) return;
+    const pos = readStagePos(e);
+    if (!pos) return;
+    // rAF-throttle the React state update (spec §7 / #301).
+    scheduleDragUpdate(() => {
+      const start = dragStateRef.current;
+      if (!start) return;
+      const rect = computeRect(start, pos);
+      setLocalDragRect(rect);
+      setDragRect(rect);
+    });
   }
 
-  function handleMouseUp(e: React.MouseEvent<HTMLDivElement>) {
-    if (!dragState) return;
-    const pos = getRelativePos(e);
-    const rect = computeRect(pos);
+  function handleStageMouseUp(e: KonvaEventObject<MouseEvent>) {
+    const start = dragStateRef.current;
+    if (!start) return;
+    const pos = readStagePos(e) ?? { x: start.startX, y: start.startY };
+    const rect = computeRect(start, pos);
     const isTrivial = rect.width <= 2 && rect.height <= 2;
+    const modifier = start.modifier;
     clearDrag();
 
     if (isTrivial) return;
 
     switch (mode) {
       case "select": {
-        const modifier = resolveModifier(e);
         onBoxSelect?.(rect, modifier);
         break;
       }
@@ -228,8 +253,9 @@ export default function PageImageCanvas({
     }
   }
 
-  function handleMouseLeave() {
-    if (dragState) {
+  function handleStageMouseLeave() {
+    if (dragStateRef.current) {
+      // Drag escaped the Stage area — abort it without firing the callback (spec §13).
       clearDrag();
     }
   }
@@ -245,7 +271,7 @@ export default function PageImageCanvas({
 
   return (
     <div
-      ref={stageRef}
+      ref={wrapperRef}
       className="page-image-canvas relative select-none"
       style={{
         width: dims.width,
@@ -259,10 +285,6 @@ export default function PageImageCanvas({
       role="img"
       aria-label="Page image viewport"
       tabIndex={0}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseLeave}
       onKeyDown={handleKeyDown}
     >
       {/* Sidecar div mirroring Stage geometry (spec §12 — Konva nodes
@@ -280,9 +302,16 @@ export default function PageImageCanvas({
         }}
       />
 
-      {/* Konva Stage + 6-layer skeleton from spec §4. Overlay layers
-          stay empty in spec-21-A2; spec-21-A3 (#298) fills BBoxOverlay. */}
-      <Stage width={dims.width} height={dims.height}>
+      {/* Konva Stage + 6-layer skeleton from spec §4. Drag handlers live on
+          the Stage per spec §7; mousemove is rAF-throttled (spec §7 / #301). */}
+      <Stage
+        width={dims.width}
+        height={dims.height}
+        onMouseDown={handleStageMouseDown}
+        onMouseMove={handleStageMouseMove}
+        onMouseUp={handleStageMouseUp}
+        onMouseLeave={handleStageMouseLeave}
+      >
         <Layer name="image">
           <PageImage url={imageUrl} width={dims.width} height={dims.height} />
         </Layer>
@@ -290,11 +319,26 @@ export default function PageImageCanvas({
         <Layer name="overlay-lines" listening={false} />
         <Layer name="overlay-words" listening={false} />
         <Layer name="selection" listening={false} />
-        <Layer name="drag" />
+        <Layer name="drag">
+          {dragRect && (
+            <Rect
+              data-testid="konva-drag-preview"
+              x={dragRect.x}
+              y={dragRect.y}
+              width={dragRect.width}
+              height={dragRect.height}
+              stroke={MODE_RECT_COLORS[mode]}
+              strokeWidth={2}
+              dash={[4, 2]}
+              listening={false}
+              perfectDrawEnabled={false}
+            />
+          )}
+        </Layer>
       </Stage>
 
-      {/* Drag-rect preview overlay — DOM sidecar (spec §12).
-          Must NOT be a Konva node; Playwright needs a CSS selector. */}
+      {/* Drag-rect preview DOM sidecar (spec §12).
+          Mirrors the Konva <Rect>; Playwright needs a CSS selector. */}
       {dragRect && (
         <div
           data-testid="ocr-drag-rect"

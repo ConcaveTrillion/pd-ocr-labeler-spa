@@ -1,14 +1,17 @@
-// PageImageCanvas.test.tsx — viewport canvas tests (#196, #197, #198, #297)
+// PageImageCanvas.test.tsx — viewport canvas tests (#196, #197, #198, #297, #302)
 //
-// Spec: specs/21-konva-renderer.md §4 (component layout), §12 (testids), §13 (empty state).
+// Spec: specs/21-konva-renderer.md §4 (component layout), §7 (drag modes),
+//       §9 (cursors), §12 (testids), §13 (empty state).
 //
-// spec-21-A2 (#297) — the DOM-stub viewport is replaced with a real Konva
-// <Stage> + 6-layer skeleton. Overlays remain empty in this slice; #298
-// fills BBoxOverlay. DOM-event-based drag handlers stay on the wrapping
-// viewport div (handler migration to Konva Stage events is deferred to
-// spec-21-C). Tests mock react-konva and use-image so jsdom can probe the
-// rendered tree without a real canvas — same pattern as PageImage.test.tsx
-// and WordEditDialog.test.tsx.
+// spec-21-A6 (#302) — drag handlers now live on the Konva <Stage> instead
+// of the wrapping viewport div. The mock Stage forwards onMouseDown/Move/Up
+// to a real inner div, synthesizing a KonvaEventObject whose
+// target.getStage().getPointerPosition() reflects the fireEvent clientX/Y
+// relative to the Stage element, and whose .evt carries the modifier keys.
+//
+// spec-21-A2 (#297) earlier replaced the DOM-stub viewport with a real
+// Konva <Stage> + 6-layer skeleton; #298 filled BBoxOverlay; #301 added the
+// rafSchedule helper this slice consumes.
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -28,20 +31,62 @@ vi.mock("use-image", () => ({
 }));
 
 // ── react-konva mock — render simple divs so jsdom can probe the tree ────────
+//
+// Stage forwards onMouseDown / onMouseMove / onMouseUp / onMouseLeave from
+// react-konva props onto an inner DOM div, synthesizing a Konva-style event
+// object whose target.getStage().getPointerPosition() reflects the
+// fireEvent clientX/clientY (jsdom getBoundingClientRect is all zeros, so
+// clientX === stage-relative X for our purposes) and whose .evt carries
+// the modifier keys.
+type KonvaMouseHandler = (e: {
+  evt: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean };
+  target: { getStage: () => { getPointerPosition: () => { x: number; y: number } } };
+}) => void;
+
+function makeKonvaEvent(e: React.MouseEvent) {
+  const pos = { x: e.clientX, y: e.clientY };
+  return {
+    evt: {
+      shiftKey: !!e.shiftKey,
+      ctrlKey: !!e.ctrlKey,
+      metaKey: !!e.metaKey,
+    },
+    target: {
+      getStage: () => ({ getPointerPosition: () => pos }),
+    },
+  };
+}
+
 vi.mock("react-konva", () => ({
   Stage: ({
     children,
     width,
     height,
     "data-testid": testId,
+    onMouseDown,
+    onMouseMove,
+    onMouseUp,
+    onMouseLeave,
   }: {
     children?: React.ReactNode;
     width?: number;
     height?: number;
     "data-testid"?: string;
+    onMouseDown?: KonvaMouseHandler;
+    onMouseMove?: KonvaMouseHandler;
+    onMouseUp?: KonvaMouseHandler;
+    onMouseLeave?: KonvaMouseHandler;
     [key: string]: unknown;
   }) => (
-    <div data-testid={testId ?? "konva-stage"} data-width={width} data-height={height}>
+    <div
+      data-testid={testId ?? "konva-stage"}
+      data-width={width}
+      data-height={height}
+      onMouseDown={(e) => onMouseDown?.(makeKonvaEvent(e))}
+      onMouseMove={(e) => onMouseMove?.(makeKonvaEvent(e))}
+      onMouseUp={(e) => onMouseUp?.(makeKonvaEvent(e))}
+      onMouseLeave={(e) => onMouseLeave?.(makeKonvaEvent(e))}
+    >
       {children}
     </div>
   ),
@@ -84,23 +129,41 @@ vi.mock("react-konva", () => ({
     />
   ),
   Rect: ({
+    x,
+    y,
     width,
     height,
     fill,
+    stroke,
+    dash,
     "data-testid": testId,
   }: {
+    x?: number;
+    y?: number;
     width?: number;
     height?: number;
     fill?: string;
+    stroke?: string;
+    dash?: number[];
     "data-testid"?: string;
   }) => (
     <div
       data-testid={testId ?? "konva-rect"}
+      data-x={x}
+      data-y={y}
       data-width={width}
       data-height={height}
       data-fill={fill}
+      data-stroke={stroke}
+      data-dash={dash ? dash.join(",") : undefined}
     />
   ),
+}));
+
+// rafSchedule mock — run the scheduled callback synchronously so tests can
+// assert dragRect state immediately after mousemove (no rAF in jsdom).
+vi.mock("../lib/rafSchedule", () => ({
+  scheduleDragUpdate: (fn: () => void) => fn(),
 }));
 
 // Import the component AFTER mocks so it pulls the mocked react-konva.
@@ -127,16 +190,22 @@ afterEach(() => {
   mockUseImageState.status = "loading";
 });
 
-// Helper: simulate a drag (mousedown → mousemove → mouseup)
+// Helper: simulate a drag (mousedown → mousemove → mouseup) on the Konva Stage.
+// Pre-#302 the handlers were on the wrapping viewport div; per spec §7 they
+// now live on the Stage, mocked here as `data-testid="konva-stage"`.
+function getStage(): HTMLElement {
+  return screen.getByTestId("konva-stage");
+}
+
 function simulateDrag(
-  viewport: HTMLElement,
   from: { x: number; y: number },
   to: { x: number; y: number },
   opts: { shiftKey?: boolean; ctrlKey?: boolean } = {},
 ) {
-  fireEvent.mouseDown(viewport, { clientX: from.x, clientY: from.y, ...opts });
-  fireEvent.mouseMove(viewport, { clientX: to.x, clientY: to.y, ...opts });
-  fireEvent.mouseUp(viewport, { clientX: to.x, clientY: to.y, ...opts });
+  const stage = getStage();
+  fireEvent.mouseDown(stage, { clientX: from.x, clientY: from.y, ...opts });
+  fireEvent.mouseMove(stage, { clientX: to.x, clientY: to.y, ...opts });
+  fireEvent.mouseUp(stage, { clientX: to.x, clientY: to.y, ...opts });
 }
 
 // ── spec-21-A2 (#297): Stage scaffold ─────────────────────────────────────────
@@ -247,7 +316,7 @@ describe("PageImageCanvas — dimensions", () => {
 // is captured by DOM mouse events on the wrapping viewport div, which is
 // why these tests use fireEvent.mouseDown/Move/Up on the viewport.
 
-describe("PageImageCanvas — Select mode (drag box-select, #197)", () => {
+describe("PageImageCanvas — Select mode (drag box-select, #197, #302)", () => {
   it("shows no drag-rect initially", () => {
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
     expect(screen.queryByTestId("ocr-drag-rect")).toBeNull();
@@ -255,26 +324,24 @@ describe("PageImageCanvas — Select mode (drag box-select, #197)", () => {
 
   it("drag-rect appears during mouse drag", () => {
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
-    const viewport = screen.getByTestId("image-viewport");
+    const stage = getStage();
 
-    fireEvent.mouseDown(viewport, { clientX: 100, clientY: 100 });
-    fireEvent.mouseMove(viewport, { clientX: 200, clientY: 200 });
+    fireEvent.mouseDown(stage, { clientX: 100, clientY: 100 });
+    fireEvent.mouseMove(stage, { clientX: 200, clientY: 200 });
 
     expect(screen.queryByTestId("ocr-drag-rect")).not.toBeNull();
   });
 
   it("drag-rect disappears after mouseup", () => {
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
-    const viewport = screen.getByTestId("image-viewport");
-    simulateDrag(viewport, { x: 100, y: 100 }, { x: 200, y: 200 });
+    simulateDrag({ x: 100, y: 100 }, { x: 200, y: 200 });
     expect(screen.queryByTestId("ocr-drag-rect")).toBeNull();
   });
 
   it("calls onBoxSelect with rect and 'replace' modifier on plain drag", () => {
     const onBoxSelect = vi.fn();
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} onBoxSelect={onBoxSelect} />);
-    const viewport = screen.getByTestId("image-viewport");
-    simulateDrag(viewport, { x: 50, y: 50 }, { x: 150, y: 120 });
+    simulateDrag({ x: 50, y: 50 }, { x: 150, y: 120 });
 
     expect(onBoxSelect).toHaveBeenCalledOnce();
     const [rect, modifier] = onBoxSelect.mock.calls[0];
@@ -282,11 +349,10 @@ describe("PageImageCanvas — Select mode (drag box-select, #197)", () => {
     expect(rect.width).toBeGreaterThan(2);
   });
 
-  it("calls onBoxSelect with 'remove' modifier when Shift held", () => {
+  it("calls onBoxSelect with 'remove' modifier when Shift held (modifier captured at mousedown per spec §7)", () => {
     const onBoxSelect = vi.fn();
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} onBoxSelect={onBoxSelect} />);
-    const viewport = screen.getByTestId("image-viewport");
-    simulateDrag(viewport, { x: 50, y: 50 }, { x: 150, y: 120 }, { shiftKey: true });
+    simulateDrag({ x: 50, y: 50 }, { x: 150, y: 120 }, { shiftKey: true });
 
     expect(onBoxSelect.mock.calls[0][1]).toBe("remove");
   });
@@ -294,8 +360,7 @@ describe("PageImageCanvas — Select mode (drag box-select, #197)", () => {
   it("calls onBoxSelect with 'toggle' modifier when Ctrl held", () => {
     const onBoxSelect = vi.fn();
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} onBoxSelect={onBoxSelect} />);
-    const viewport = screen.getByTestId("image-viewport");
-    simulateDrag(viewport, { x: 50, y: 50 }, { x: 150, y: 120 }, { ctrlKey: true });
+    simulateDrag({ x: 50, y: 50 }, { x: 150, y: 120 }, { ctrlKey: true });
 
     expect(onBoxSelect.mock.calls[0][1]).toBe("toggle");
   });
@@ -303,8 +368,7 @@ describe("PageImageCanvas — Select mode (drag box-select, #197)", () => {
   it("does NOT call onBoxSelect for tiny drag (≤2px)", () => {
     const onBoxSelect = vi.fn();
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} onBoxSelect={onBoxSelect} />);
-    const viewport = screen.getByTestId("image-viewport");
-    simulateDrag(viewport, { x: 100, y: 100 }, { x: 101, y: 101 });
+    simulateDrag({ x: 100, y: 100 }, { x: 101, y: 101 });
 
     expect(onBoxSelect).not.toHaveBeenCalled();
   });
@@ -316,14 +380,77 @@ describe("PageImageCanvas — Select mode (drag box-select, #197)", () => {
 
   it("Escape key clears drag state", () => {
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    const stage = getStage();
     const viewport = screen.getByTestId("image-viewport");
 
-    fireEvent.mouseDown(viewport, { clientX: 50, clientY: 50 });
-    fireEvent.mouseMove(viewport, { clientX: 150, clientY: 150 });
+    fireEvent.mouseDown(stage, { clientX: 50, clientY: 50 });
+    fireEvent.mouseMove(stage, { clientX: 150, clientY: 150 });
     expect(screen.queryByTestId("ocr-drag-rect")).not.toBeNull();
 
     fireEvent.keyDown(viewport, { key: "Escape" });
     expect(screen.queryByTestId("ocr-drag-rect")).toBeNull();
+  });
+});
+
+// ── spec-21-A6 (#302): Konva Stage drag handlers + drag-preview Rect ─────────
+
+describe("PageImageCanvas — Konva Stage drag handlers (spec-21-A6, #302)", () => {
+  it("wrapping viewport div has cursor: crosshair in select mode (spec §9)", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    const viewport = screen.getByTestId("image-viewport");
+    expect(viewport.style.cursor).toBe("crosshair");
+  });
+
+  it("ocr-drag-rect sidecar mirrors the Konva drag-preview rect position", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    const stage = getStage();
+    fireEvent.mouseDown(stage, { clientX: 30, clientY: 40 });
+    fireEvent.mouseMove(stage, { clientX: 130, clientY: 110 });
+
+    const sidecar = screen.getByTestId("ocr-drag-rect");
+    expect(sidecar.style.left).toBe("30px");
+    expect(sidecar.style.top).toBe("40px");
+    expect(sidecar.style.width).toBe("100px");
+    expect(sidecar.style.height).toBe("70px");
+  });
+
+  it("drag-preview Konva Rect renders in the drag Layer with spec §9 stroke + dashed pattern", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    const stage = getStage();
+    fireEvent.mouseDown(stage, { clientX: 30, clientY: 40 });
+    fireEvent.mouseMove(stage, { clientX: 130, clientY: 110 });
+
+    const dragLayer = screen.getByTestId("konva-layer-drag");
+    const dragPreview = dragLayer.querySelector('[data-testid="konva-drag-preview"]');
+    expect(dragPreview).not.toBeNull();
+    expect(dragPreview?.getAttribute("data-stroke")).toBe("#2563eb"); // spec §9 blue-600
+    expect(dragPreview?.getAttribute("data-dash")).toBe("4,2"); // spec §9
+    expect(dragPreview?.getAttribute("data-x")).toBe("30");
+    expect(dragPreview?.getAttribute("data-y")).toBe("40");
+    expect(dragPreview?.getAttribute("data-width")).toBe("100");
+    expect(dragPreview?.getAttribute("data-height")).toBe("70");
+  });
+
+  it("mouseleave on the Konva Stage clears drag state (spec §13)", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    const stage = getStage();
+    fireEvent.mouseDown(stage, { clientX: 50, clientY: 50 });
+    fireEvent.mouseMove(stage, { clientX: 150, clientY: 150 });
+    expect(screen.queryByTestId("ocr-drag-rect")).not.toBeNull();
+
+    fireEvent.mouseLeave(stage);
+    expect(screen.queryByTestId("ocr-drag-rect")).toBeNull();
+  });
+
+  it("mouseleave on the Stage does NOT fire onBoxSelect (drag aborted)", () => {
+    const onBoxSelect = vi.fn();
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} onBoxSelect={onBoxSelect} />);
+    const stage = getStage();
+    fireEvent.mouseDown(stage, { clientX: 50, clientY: 50 });
+    fireEvent.mouseMove(stage, { clientX: 150, clientY: 150 });
+    fireEvent.mouseLeave(stage);
+
+    expect(onBoxSelect).not.toHaveBeenCalled();
   });
 });
 
@@ -338,8 +465,7 @@ describe("PageImageCanvas — Rebox mode (#198)", () => {
     const onRebox = vi.fn();
     viewportStore.setState({ mode: "rebox", pendingReboxTarget: { lineIndex: 0, wordIndex: 0 } });
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} onRebox={onRebox} />);
-    const viewport = screen.getByTestId("image-viewport");
-    simulateDrag(viewport, { x: 50, y: 50 }, { x: 150, y: 120 });
+    simulateDrag({ x: 50, y: 50 }, { x: 150, y: 120 });
 
     expect(onRebox).toHaveBeenCalledOnce();
     const rect = onRebox.mock.calls[0][0];
@@ -350,8 +476,7 @@ describe("PageImageCanvas — Rebox mode (#198)", () => {
     const onRebox = vi.fn();
     viewportStore.setState({ mode: "rebox", pendingReboxTarget: { lineIndex: 0, wordIndex: 0 } });
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} onRebox={onRebox} />);
-    const viewport = screen.getByTestId("image-viewport");
-    simulateDrag(viewport, { x: 50, y: 50 }, { x: 150, y: 120 });
+    simulateDrag({ x: 50, y: 50 }, { x: 150, y: 120 });
 
     expect(viewportStore.getState().mode).toBe("select");
   });
@@ -360,8 +485,7 @@ describe("PageImageCanvas — Rebox mode (#198)", () => {
     const onBoxSelect = vi.fn();
     viewportStore.setState({ mode: "rebox", pendingReboxTarget: null });
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} onBoxSelect={onBoxSelect} />);
-    const viewport = screen.getByTestId("image-viewport");
-    simulateDrag(viewport, { x: 50, y: 50 }, { x: 150, y: 120 });
+    simulateDrag({ x: 50, y: 50 }, { x: 150, y: 120 });
 
     expect(onBoxSelect).not.toHaveBeenCalled();
   });
@@ -378,8 +502,7 @@ describe("PageImageCanvas — Add Word mode (#198)", () => {
     const onAddWord = vi.fn();
     viewportStore.setState({ mode: "add-word", pendingReboxTarget: null });
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} onAddWord={onAddWord} />);
-    const viewport = screen.getByTestId("image-viewport");
-    simulateDrag(viewport, { x: 50, y: 50 }, { x: 150, y: 120 });
+    simulateDrag({ x: 50, y: 50 }, { x: 150, y: 120 });
 
     expect(onAddWord).toHaveBeenCalledOnce();
   });
@@ -388,8 +511,7 @@ describe("PageImageCanvas — Add Word mode (#198)", () => {
     const onAddWord = vi.fn();
     viewportStore.setState({ mode: "add-word", pendingReboxTarget: null });
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} onAddWord={onAddWord} />);
-    const viewport = screen.getByTestId("image-viewport");
-    simulateDrag(viewport, { x: 50, y: 50 }, { x: 150, y: 120 });
+    simulateDrag({ x: 50, y: 50 }, { x: 150, y: 120 });
 
     // Still in add-word mode for next drag
     expect(viewportStore.getState().mode).toBe("add-word");
@@ -409,8 +531,7 @@ describe("PageImageCanvas — Erase mode (#198)", () => {
     render(
       <PageImageCanvas imageUrl="/test.jpg" encoded={encoded} onErasePixels={onErasePixels} />,
     );
-    const viewport = screen.getByTestId("image-viewport");
-    simulateDrag(viewport, { x: 50, y: 50 }, { x: 150, y: 120 });
+    simulateDrag({ x: 50, y: 50 }, { x: 150, y: 120 });
 
     expect(onErasePixels).toHaveBeenCalledOnce();
   });
@@ -421,8 +542,7 @@ describe("PageImageCanvas — Erase mode (#198)", () => {
     render(
       <PageImageCanvas imageUrl="/test.jpg" encoded={encoded} onErasePixels={onErasePixels} />,
     );
-    const viewport = screen.getByTestId("image-viewport");
-    simulateDrag(viewport, { x: 50, y: 50 }, { x: 150, y: 120 });
+    simulateDrag({ x: 50, y: 50 }, { x: 150, y: 120 });
 
     expect(viewportStore.getState().mode).toBe("select");
   });
