@@ -1,0 +1,119 @@
+// BulkActions.test.tsx — Tests for Slice 23: bulk actions bar.
+// Spec: docs/specs/2026-05-15-hifi-redesign-plan.md Slice 23.
+
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BulkActions } from "./BulkActions";
+import { worklistStore } from "../../stores/worklist-store";
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+}
+
+function renderWithQuery(ui: React.ReactElement) {
+  const qc = makeQueryClient();
+  return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>);
+}
+
+describe("BulkActions (Slice 23)", () => {
+  beforeEach(() => {
+    worklistStore.reset();
+    vi.restoreAllMocks();
+  });
+
+  it("renders nothing when selectedIds is empty", () => {
+    renderWithQuery(<BulkActions projectId="p1" pageIndex={0} />);
+    expect(screen.queryByTestId("bulk-actions")).not.toBeInTheDocument();
+  });
+
+  it("renders the bar when selectedIds has items", () => {
+    worklistStore.selectAll([1, 2, 3]);
+    renderWithQuery(<BulkActions projectId="p1" pageIndex={0} />);
+    expect(screen.getByTestId("bulk-actions")).toBeInTheDocument();
+    expect(screen.getByTestId("bulk-actions-count")).toHaveTextContent("3 selected");
+  });
+
+  it("clear button empties selection", async () => {
+    const user = userEvent.setup();
+    worklistStore.selectAll([1, 2]);
+    const { rerender } = renderWithQuery(<BulkActions projectId="p1" pageIndex={0} />);
+    await user.click(screen.getByTestId("bulk-actions-clear"));
+    // After clear, store should have 0 selected ids.
+    expect(worklistStore.getState().selectedIds).toHaveLength(0);
+    // Re-render to confirm bar disappears.
+    const qc = makeQueryClient();
+    rerender(
+      <QueryClientProvider client={qc}>
+        <BulkActions projectId="p1" pageIndex={0} />
+      </QueryClientProvider>,
+    );
+    expect(screen.queryByTestId("bulk-actions")).not.toBeInTheDocument();
+  });
+
+  it("mark-reviewed button triggers fetch and clears selection on success", async () => {
+    const user = userEvent.setup();
+    worklistStore.selectAll([0, 1]);
+
+    // Mock fetch to succeed.
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+      text: async () => "",
+    } as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQuery(<BulkActions projectId="p1" pageIndex={0} />);
+    await user.click(screen.getByTestId("bulk-actions-mark-reviewed"));
+
+    // fetch was called with validate-batch url.
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("validate-batch"),
+      expect.objectContaining({ method: "POST" }),
+    );
+
+    // Selection cleared after success.
+    expect(worklistStore.getState().selectedIds).toHaveLength(0);
+  });
+
+  it("shows all three action buttons", () => {
+    worklistStore.selectAll([5]);
+    renderWithQuery(<BulkActions projectId="p1" pageIndex={0} />);
+    expect(screen.getByTestId("bulk-actions-mark-reviewed")).toBeInTheDocument();
+    expect(screen.getByTestId("bulk-actions-rerun-match")).toBeInTheDocument();
+    expect(screen.getByTestId("bulk-actions-export")).toBeInTheDocument();
+  });
+});
+
+describe("worklist-store bulk helpers (Slice 23)", () => {
+  beforeEach(() => {
+    worklistStore.reset();
+  });
+
+  it("selectAll sets selectedIds", () => {
+    worklistStore.selectAll([1, 2, 3]);
+    expect(worklistStore.getState().selectedIds).toEqual([1, 2, 3]);
+  });
+
+  it("clearBulk empties selectedIds", () => {
+    worklistStore.selectAll([1, 2]);
+    worklistStore.clearBulk();
+    expect(worklistStore.getState().selectedIds).toHaveLength(0);
+  });
+
+  it("toggle adds a new id", () => {
+    worklistStore.toggle(5);
+    expect(worklistStore.getState().selectedIds).toContain(5);
+  });
+
+  it("toggle removes an existing id", () => {
+    worklistStore.selectAll([3, 5, 7]);
+    worklistStore.toggle(5);
+    expect(worklistStore.getState().selectedIds).not.toContain(5);
+    expect(worklistStore.getState().selectedIds).toContain(3);
+    expect(worklistStore.getState().selectedIds).toContain(7);
+  });
+});
