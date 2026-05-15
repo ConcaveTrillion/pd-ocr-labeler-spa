@@ -1,5 +1,6 @@
 // Drawer.tsx — 260px drawer panel with Worklist / Hierarchy tabs and collapse.
 // Spec: docs/specs/2026-05-15-hifi-redesign-plan.md Slice 11–12.
+// Issue #324 (FO-8): use useUiPrefs.subscribe directly; no local bridge Set.
 //
 // - Header: tab strip "Worklist" | "Hierarchy" + collapse button.
 // - Body: mounts Worklist (Slice 11) or Hierarchy (Slice 12).
@@ -15,18 +16,7 @@ import type { WorklistProps } from "../drawer/Worklist";
 import { Hierarchy } from "../drawer/Hierarchy";
 import type { HierarchyProps } from "../drawer/Hierarchy";
 
-// ─── Subscriber bridge for useUiPrefs (mirrors Splitter/FilterToggle pattern) ─
-
-const uiPrefsSubscribers = new Set<() => void>();
-function notifyUiPrefs() {
-  uiPrefsSubscribers.forEach((fn) => fn());
-}
-function subscribeUiPrefs(cb: () => void): () => void {
-  uiPrefsSubscribers.add(cb);
-  return () => {
-    uiPrefsSubscribers.delete(cb);
-  };
-}
+// ─── Selectors (use useUiPrefs.subscribe directly — store already exposes it) ─
 
 function getDrawerOpen(): boolean {
   return useUiPrefs.getState().drawerOpen;
@@ -37,11 +27,9 @@ function getDrawerTab(): DrawerTab {
 
 function setDrawerOpen(open: boolean) {
   useUiPrefs.setState({ drawerOpen: open });
-  notifyUiPrefs();
 }
 function setDrawerTab(tab: DrawerTab) {
   useUiPrefs.setState({ drawerTab: tab });
-  notifyUiPrefs();
 }
 
 // ─── Tab config ──────────────────────────────────────────────────────────────
@@ -65,8 +53,8 @@ export interface DrawerProps extends WorklistProps, HierarchyProps {
 }
 
 export function Drawer({ lineMatches, page, className }: DrawerProps) {
-  const open = useSyncExternalStore(subscribeUiPrefs, getDrawerOpen, getDrawerOpen);
-  const activeTab = useSyncExternalStore(subscribeUiPrefs, getDrawerTab, getDrawerTab);
+  const open = useSyncExternalStore(useUiPrefs.subscribe, getDrawerOpen, getDrawerOpen);
+  const activeTab = useSyncExternalStore(useUiPrefs.subscribe, getDrawerTab, getDrawerTab);
 
   return (
     <div

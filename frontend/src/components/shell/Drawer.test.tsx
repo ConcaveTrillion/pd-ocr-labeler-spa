@@ -97,4 +97,25 @@ describe("Drawer (Slice 11)", () => {
     render(<Drawer />);
     expect(screen.getByTestId("worklist")).toBeInTheDocument();
   });
+
+  it("useSyncExternalStore bridge via useUiPrefs.subscribe re-renders on setState", async () => {
+    // Verifies #324: store.subscribe drives re-renders without a local bridge Set.
+    // We render the Drawer, then call setState externally and confirm the component
+    // reflects the new value — which only works if useSyncExternalStore is wired to
+    // the real store.subscribe (not a disconnected local Set).
+    const user = userEvent.setup();
+    render(<Drawer />);
+    expect(screen.getByTestId("drawer")).toHaveAttribute("data-open", "true");
+
+    // External setState — simulates another component collapsing the drawer.
+    useUiPrefs.setState({ drawerOpen: false });
+
+    // The expand button is only rendered when collapsed.
+    await screen.findByTestId("drawer-expand-btn");
+    expect(screen.getByTestId("drawer")).toHaveAttribute("data-open", "false");
+
+    // Restore via expand button.
+    await user.click(screen.getByTestId("drawer-expand-btn"));
+    expect(useUiPrefs.getState().drawerOpen).toBe(true);
+  });
 });
