@@ -121,24 +121,24 @@ describe("tailwind.config theme.extend", () => {
   describe("fontSize", () => {
     const fontSize = config.theme?.extend?.fontSize ?? {};
 
-    it("label font size is defined", () => {
-      expect(fontSize.label).toBeDefined();
+    it("fontSize.label", () => {
+      expect(fontSize.label).toStrictEqual(["9.5px", { lineHeight: "1.1" }]);
     });
 
-    it("hint font size is defined", () => {
-      expect(fontSize.hint).toBeDefined();
+    it("fontSize.hint", () => {
+      expect(fontSize.hint).toStrictEqual(["10px", { lineHeight: "1.2" }]);
     });
 
-    it("btn-sm font size is defined", () => {
-      expect(fontSize["btn-sm"]).toBeDefined();
+    it("fontSize['btn-sm']", () => {
+      expect(fontSize["btn-sm"]).toStrictEqual(["11px", { lineHeight: "1.2" }]);
     });
 
-    it("body font size is defined", () => {
-      expect(fontSize.body).toBeDefined();
+    it("fontSize.body", () => {
+      expect(fontSize.body).toStrictEqual(["12px", { lineHeight: "1.4" }]);
     });
 
-    it("heading font size is defined", () => {
-      expect(fontSize.heading).toBeDefined();
+    it("fontSize.heading", () => {
+      expect(fontSize.heading).toStrictEqual(["13px", { lineHeight: "1.3" }]);
     });
   });
 });
