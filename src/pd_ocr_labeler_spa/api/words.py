@@ -51,7 +51,7 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from ..core.models import BBox
 from ..core.persistence.lanes import LaneResolver
@@ -1076,8 +1076,8 @@ class CharRange(BaseModel):
     receipt, and the old positions are still meaningful as metadata).
     """
 
-    start: int
-    end: int
+    start: int = Field(ge=0)
+    end: int = Field(ge=0)
     styles: list[str]
 
 

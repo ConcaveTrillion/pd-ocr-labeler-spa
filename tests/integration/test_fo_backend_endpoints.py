@@ -243,7 +243,7 @@ def test_merge_lines_adjacent_404_for_bad_page(loaded_client: TestClient) -> Non
     assert resp.json()["error"] == "page_not_found"
 
 
-def test_merge_lines_adjacent_returns_200_stub_when_no_page_state(
+def test_merge_lines_returns_400_page_not_loaded_when_no_page_state(
     loaded_client: TestClient,
 ) -> None:
     """No PageState seeded → page_not_loaded 400 (page object absent)."""

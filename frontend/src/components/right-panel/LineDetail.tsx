@@ -153,6 +153,9 @@ function LineDetailInner({ line, projectId, pageIndex }: LineDetailInnerProps) {
               ↓ Merge next
             </button>
           </div>
+          {mergeLines.isError && (
+            <p className="text-[10px] text-red-500 italic px-3">Merge failed. Try again.</p>
+          )}
         </TabsContent>
 
         {/* Words tab: word list + density toggle */}
