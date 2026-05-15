@@ -1,11 +1,12 @@
 // WordDetail.tsx — Word detail editor (right panel, level="word").
-// Spec: docs/specs/2026-05-15-hifi-redesign-plan.md Slice 16 (scaffold), 17 (Rebox/Erase).
+// Spec: docs/specs/2026-05-15-hifi-redesign-plan.md Slice 16 (scaffold),
+//       17 (Rebox/Erase), 18 (Structure).
 //
 // Renders an Accordion with 6 items:
 //   1. Bounding Box  — wired (BBoxSection)
 //   2. Rebox         — wired (ReboxSection, tag="accent")   [Slice 17]
 //   3. Erase Pixels  — wired (ErasePixelsSection, tag="mismatch") [Slice 17]
-//   4. Structure     — stub (Slice 18)
+//   4. Structure     — wired (StructureSection)              [Slice 18]
 //   5. Char Ranges   — stub (Slice 19)
 //   6. Char Fixer    — stub (Slice 20)
 //
@@ -21,6 +22,7 @@ import { Accordion } from "../ui/accordion";
 import { BBoxSection } from "./sections/BBoxSection";
 import { ReboxSection } from "./sections/ReboxSection";
 import { ErasePixelsSection } from "./sections/ErasePixelsSection";
+import { StructureSection } from "./sections/StructureSection";
 import { selectionStore } from "../../stores/selection-store";
 import type { components } from "../../api/types";
 
@@ -130,7 +132,7 @@ export function WordDetail({ page, projectId, pageIndex }: WordDetailProps) {
         <Accordion.Item value="structure">
           <Accordion.Trigger>Structure</Accordion.Trigger>
           <Accordion.Content>
-            <StubContent label="Structure" />
+            <StructureSection word={word} page={page} projectId={projectId} pageIndex={pageIndex} />
           </Accordion.Content>
         </Accordion.Item>
 
