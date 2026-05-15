@@ -9,7 +9,7 @@
 //   /projects/:projectId/pages/index/:idx0         → redirect to pageno equivalent
 //   *                                              → 404 fallback (redirect to /)
 
-import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useMatch } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 
@@ -18,6 +18,10 @@ import RootPage from "./pages/RootPage";
 import ProjectPage from "./pages/ProjectPage";
 import { ROUTES } from "./lib/routes";
 import { useNotificationStream } from "./hooks/useNotificationStream";
+import { OCRConfigModal } from "./components/OCRConfigModal";
+import { ExportDialog } from "./components/ExportDialog";
+import { HotkeyHelpModal } from "./components/HotkeyHelpModal";
+import { dialogStore, useDialogStore } from "./stores/dialog-store";
 
 // One QueryClient for the app.
 // staleTime: 30 000 ms — spec §Server state.
@@ -44,9 +48,43 @@ function ProjectPageIndexRedirect() {
   return <Navigate to={`/projects/${projectId}/pages/pageno/${pageNo}`} replace />;
 }
 
+/** Read projectId + 0-based pageIndex from the URL (best effort).
+ *
+ * Returns `null` for projectId when no project route is active — the
+ * Export dialog uses this to short-circuit (it's mounted globally but
+ * only meaningful inside a project route).
+ */
+function useRouteProjectContext(): { projectId: string | null; pageIndex: number } {
+  const matchPageNo = useMatch("/projects/:projectId/pages/pageno/:pageNo");
+  const matchPageIdx = useMatch("/projects/:projectId/pages/index/:idx0");
+  const matchProject = useMatch("/projects/:projectId");
+
+  const projectId =
+    matchPageNo?.params.projectId ??
+    matchPageIdx?.params.projectId ??
+    matchProject?.params.projectId ??
+    null;
+
+  let pageIndex = 0;
+  if (matchPageNo?.params.pageNo) {
+    const n = parseInt(matchPageNo.params.pageNo, 10);
+    pageIndex = Number.isFinite(n) && n > 0 ? n - 1 : 0;
+  } else if (matchPageIdx?.params.idx0) {
+    const n = parseInt(matchPageIdx.params.idx0, 10);
+    pageIndex = Number.isFinite(n) && n >= 0 ? n : 0;
+  }
+
+  return { projectId, pageIndex };
+}
+
 /** Inner component so hooks (useNotificationStream) run inside providers. */
 function AppShell() {
   useNotificationStream();
+
+  // Dialog open-state slices — re-render only when these change.
+  const ocrConfigOpen = useDialogStore((s) => s.ocrConfig.open);
+  const exportOpen = useDialogStore((s) => s.export.open);
+  const { projectId, pageIndex } = useRouteProjectContext();
 
   return (
     <div data-testid="app-shell" className="flex flex-col h-screen">
@@ -83,6 +121,25 @@ function AppShell() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+
+      {/*
+       * Dialogs mounted at AppShell (spec 22 §3).
+       *
+       * `HotkeyHelpModal` subscribes to the dialog store itself (it also
+       * listens to the `?` key globally). `OCRConfigModal` + `ExportDialog`
+       * read their open-state via their `open` prop. Export dialog only
+       * shows when a project is loaded (no `projectId` → skip render).
+       */}
+      <OCRConfigModal open={ocrConfigOpen} onClose={() => dialogStore.close("ocrConfig")} />
+      {projectId && (
+        <ExportDialog
+          open={exportOpen}
+          projectId={projectId}
+          currentPageIndex={pageIndex}
+          onClose={() => dialogStore.close("export")}
+        />
+      )}
+      <HotkeyHelpModal />
     </div>
   );
 }

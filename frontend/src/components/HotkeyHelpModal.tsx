@@ -1,14 +1,16 @@
 // HotkeyHelpModal.tsx — ? help modal listing all registered hotkeys.
 // Spec: docs/specs/2026-05-12-hotkeys-a11y-design.md §Hotkey help modal
-// Issue #235
+//       specs/22-page-surface-wireup.md §5 (uses dialog store)
+// Issues: #235 (initial), #309 (spec-22-A — wire to dialog store)
 //
-// Opens when ? is pressed outside a form input.
+// Opens when ? is pressed outside a form input, OR when something calls
+// `dialogStore.open('hotkeyHelp')` (e.g. the HeaderBar trigger button).
 // Reads from HOTKEY_MAP — always in sync with registered keys.
 // testid: hotkey-help-dialog
 
-import { useState } from "react";
 import { HOTKEY_MAP, type Scope } from "../lib/hotkeyMap";
 import { useHotkey } from "../hooks/useHotkey";
+import { dialogStore, useDialogStore } from "../stores/dialog-store";
 
 const SCOPE_ORDER: Scope[] = [
   "global",
@@ -32,17 +34,21 @@ const SCOPE_LABELS: Record<Scope, string> = {
  * Hotkey help modal.
  *
  * Register this component once near the top of the component tree so the
- * `?` listener is always active.
+ * `?` listener is always active. Open-state lives in `useDialogStore` so
+ * other UI surfaces (HeaderBar trigger button, future programmatic
+ * callers) can open the same dialog without prop drilling.
  */
 export function HotkeyHelpModal() {
-  const [open, setOpen] = useState(false);
+  const open = useDialogStore((s) => s.hotkeyHelp.open);
 
   // ? key opens help outside inputs (enableOnFormTags: false is default)
-  useHotkey("?", () => setOpen(true));
-  // Esc closes
-  useHotkey("escape", () => setOpen(false), { enabled: open });
+  useHotkey("?", () => dialogStore.open("hotkeyHelp"));
+  // Esc closes when open
+  useHotkey("escape", () => dialogStore.close("hotkeyHelp"), { enabled: open });
 
   if (!open) return null;
+
+  const close = () => dialogStore.close("hotkeyHelp");
 
   return (
     <div
@@ -52,7 +58,7 @@ export function HotkeyHelpModal() {
       data-testid="hotkey-help-dialog"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onClick={(e) => {
-        if (e.target === e.currentTarget) setOpen(false);
+        if (e.target === e.currentTarget) close();
       }}
     >
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
@@ -61,7 +67,7 @@ export function HotkeyHelpModal() {
           <h2 className="text-base font-semibold">Keyboard Shortcuts</h2>
           <button
             data-testid="hotkey-help-close"
-            onClick={() => setOpen(false)}
+            onClick={close}
             className="text-gray-400 hover:text-gray-700 text-lg leading-none"
             aria-label="Close"
           >

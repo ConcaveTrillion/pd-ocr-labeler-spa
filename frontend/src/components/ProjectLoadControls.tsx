@@ -110,15 +110,10 @@ export default function ProjectLoadControls() {
         {/* FolderIcon placeholder — icon library added in a later milestone */}
         &#128193;
       </button>
-
-      <button
-        data-testid="ocr-config-trigger-button"
-        aria-label="OCR configuration"
-        className="px-2 py-1 text-sm border rounded"
-      >
-        {/* SlidersIcon placeholder — icon library added in a later milestone */}
-        &#9881;
-      </button>
+      {/*
+       * Note: `ocr-config-trigger-button` moved to HeaderBar (spec 22 §6,
+       * issue #309). All dialog-trigger buttons live on the HeaderBar now.
+       */}
     </div>
   );
 }
