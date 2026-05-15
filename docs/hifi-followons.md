@@ -9,7 +9,9 @@ picked up as a discrete future slice.
 
 ## Backend gaps (endpoints not yet in API schema)
 
-### FO-1 — `lines_paragraphs` PATCH endpoint missing
+### FO-1 — `lines_paragraphs` PATCH endpoint missing ✅ DONE
+**Shipped:** commit 018dee6 (2026-05-15). `PATCH .../paragraphs/{pi}` endpoint added
+to the FastAPI backend; `BlockDetail` wired to the generated mutation.
 **Surfaced in:** Slice 22 (BlockDetail layout-type save)
 **State:** `BlockDetail` renders the layout-type chip selector and "Accept suggestion"
 button, but the save path is a labelled no-op stub. The `lines_paragraphs` PATCH
@@ -17,7 +19,9 @@ route does not yet exist in the generated `frontend/src/api/types.ts`.
 **To fix:** Add the endpoint to the FastAPI backend, re-run `make openapi-export`,
 then wire `BlockDetail`'s `onLayoutSave` handler to the generated mutation.
 
-### FO-2 — Char-range positions not persisted to backend
+### FO-2 — Char-range positions not persisted to backend ✅ DONE
+**Shipped:** commit 018dee6 (2026-05-15). `POST .../words/{li}/{wi}/char-ranges`
+endpoint added; `CharRangesSection` switched to the new endpoint.
 **Surfaced in:** Slice 19 (CharRangesSection)
 **State:** `(start, end, styles[])` triples are stored in local component state.
 Only the style label is sent to the backend via `apply-style scope:"part"` — no
@@ -27,7 +31,9 @@ character positions. The backend `apply-style` endpoint accepts only
 `CharRangesSection`'s POST to the new endpoint. The UI shape and testids are
 already forward-compatible.
 
-### FO-3 — Merge-with-line affordance is disabled
+### FO-3 — Merge-with-line affordance is disabled ✅ DONE
+**Shipped:** commit 018dee6 (2026-05-15). `useMergeLines` hook added; "Merge with
+previous" / "Merge with next" buttons enabled in `LineDetail`.
 **Surfaced in:** Slice 21 (LineDetail)
 **State:** "Merge with previous" / "Merge with next" buttons are rendered but
 disabled; `useLineMutations` does not yet have a merge endpoint.
@@ -54,7 +60,9 @@ entries via `buildBridgedEntries()` — `comboToKeyCap` for display tokens,
 `scopeToGroup` for routing. `hotkey-registry.ts` seeds from the bridge at
 module load. 20 unit tests added.
 
-### FO-7 — Block-level sibling walk is a no-op
+### FO-7 — Block-level sibling walk is a no-op ✅ DONE
+**Shipped:** commit 018dee6 (2026-05-15). `block_index` field added to `LineMatch`;
+`selection-walk.ts` updated to walk blocks using the new field.
 **Surfaced in:** Slices 12, 15 (Hierarchy tab, selection-store)
 **State:** `path.blockId` is accepted as an opaque string, but `PagePayload` has
 no block layer. `nextSibling` at `level === "block"` returns the current path
@@ -72,7 +80,10 @@ update `selection-walk.ts` to walk blocks when the field exists.
 now uses `useSyncExternalStore(useUiPrefs.subscribe, ...)` directly. `useUiPrefs`
 already had `subscribe` — the bridge was redundant.
 
-### FO-9 — `ErasePixelsSection` Apply button permanently disabled
+### FO-9 — `ErasePixelsSection` Apply button permanently disabled ✅ DONE
+**Shipped:** commit d9053aa (2026-05-15). `useRefineAvailable` hook added;
+`WordDetail` wired to the hook so `backendAvailable` reflects a live capability
+check instead of a compile-time constant.
 **Surfaced in:** Slice 17 (ErasePixelsSection)
 **State:** `backendAvailable={false}` is hardcoded in `WordDetail.tsx`. The spec
 notes "disable with tooltip 'Backend not wired' if endpoint absent."
