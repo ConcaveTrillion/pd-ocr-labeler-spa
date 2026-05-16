@@ -61,7 +61,7 @@ import {
   useLoadPage,
   useRematchGt,
 } from "../hooks/usePageMutations";
-import { useUiPrefs, type MatchFilter } from "../stores/ui-prefs";
+import { useUiPrefs, type DrawerTab, type MatchFilter } from "../stores/ui-prefs";
 import { dialogStore, useDialogStore } from "../stores/dialog-store";
 import { selectionStore, type SelectionState } from "../stores/selection-store";
 import { viewportStore, toggleEraseMode } from "../stores/viewport-store";
@@ -469,7 +469,17 @@ export default function ProjectPage() {
 
   // IS-3: Drawer wired with real Drawer component.
   // lineMatches is already computed above; page is pagePayload.
-  const drawerSlot = <Drawer lineMatches={lines} page={pagePayload ?? undefined} />;
+  // Gap 18: tabCounts populated so count badges render in the drawer header.
+  const worklistCount = lines.filter(
+    (l) => l.overall_match_status !== "exact" || !l.is_fully_validated,
+  ).length;
+  const drawerTabCounts: Partial<Record<DrawerTab, number>> = {
+    worklist: worklistCount,
+    hierarchy: lines.length,
+  };
+  const drawerSlot = (
+    <Drawer lineMatches={lines} page={pagePayload ?? undefined} tabCounts={drawerTabCounts} />
+  );
 
   // IS-4: Canvas slot stripped to image-only layout.
   // ToolbarActionGrid, Splitter, TextTabs, WordMatchView removed from visible
