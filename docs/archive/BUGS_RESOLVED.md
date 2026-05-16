@@ -2346,3 +2346,36 @@ No new Q-A entries surfaced — none of B-67..B-71 are user-decision items.
 - **Resolution:** Change `_page_payload` to stamp `pstate.generation` (page-level).
   The generation guard in `save_page` is unchanged — genuinely stale generations
   still return 409. Only the counter alignment was wrong.
+
+## BUG-KBD-2 — `useGlobalHotkeys` hook never called — global save/nav hotkeys dead
+
+- **Status:** ✅ **Fixed in commit `dffc95c` (2026-05-16).** `useGlobalHotkeys` is
+  now called in `ProjectPage.tsx` with `onSavePage`, `onSaveProject`, `onLoadPage`,
+  `onRematchGt`, `onExport`, and navigate-based `onPrevPage`/`onNextPage`/`onFirstPage`/`onLastPage`
+  callbacks wired to the existing mutation hooks. Integration tests in
+  `frontend/src/pages/ProjectPage.test.tsx` verify Ctrl+S fires save and Ctrl+G fires
+  rematch-gt.
+- **Severity:** high
+- **Where:** `frontend/src/hooks/useGlobalHotkeys.ts` — no import in any `.tsx` file
+- **Issue:** `useGlobalHotkeys` exports `Mod+S`, `Mod+Shift+S`, `Mod+L`, `Mod+G`, `Mod+E`,
+  `Mod+ArrowLeft`, `Mod+ArrowRight`, `Mod+Home`, `Mod+End`. The hook had unit tests but was
+  never `import`ed or called from any component or page. The bindings were completely inactive.
+  `PageActions.tsx` called `useHotkey("mod+r", ...)` and `useHotkey("mod+shift+r", ...)` as
+  a separate island, but the rest of the global map was dead.
+- **Why it matters:** Save Page (`Mod+S`), page navigation (`Mod+Arrow*`), and Export (`Mod+E`)
+  all appeared in the help modal but silently did nothing when pressed.
+
+## BUG-KBD-3 — `useMatchesHotkeys` hook never called — J/K/V/U/D/R/M in matches list dead
+
+- **Status:** ✅ **Fixed in commit `dffc95c` (2026-05-16).** `useMatchesHotkeys` is
+  now called in `ProjectPage.tsx` with `onLineNav` wired to `worklistStore.setSelectedLineIndex`,
+  and `onValidate`/`onUnvalidate`/`onDelete`/`onMerge`/`onOcrToGt`/`onGtToOcr` wired to
+  the corresponding `useLineMutations` hooks. Integration tests verify J/K update
+  `worklistStore.selectedLineIndex`.
+- **Severity:** high
+- **Where:** `frontend/src/hooks/useMatchesHotkeys.ts` — no import in any `.tsx` file
+- **Issue:** `useMatchesHotkeys` exports J, K, V, U, D, R, Shift+R, M, O, G. The hook had unit
+  tests but was never called from `WordMatchView`, `TextTabs`, `ProjectPage`, or anywhere else.
+  All matches-list keyboard navigation and actions were inactive.
+- **Why it matters:** The matches panel is the primary review surface; keyboard-only users could not
+  navigate line cards or validate/merge words without a mouse.

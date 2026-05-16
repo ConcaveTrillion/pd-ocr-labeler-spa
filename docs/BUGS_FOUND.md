@@ -28,34 +28,6 @@ close time, then the entry moves to the archive.
 - **Suggested fix:** Add `useHotkey("mod+,", () => dialogStore.open("ocrConfig"))` inside
   `useGlobalHotkeys` (or directly in `AppShell`) alongside the `?` binding.
 
-## BUG-KBD-2 — `useGlobalHotkeys` hook never called — global save/nav hotkeys dead
-
-- **Status:** open
-- **Severity:** high
-- **Where:** `frontend/src/hooks/useGlobalHotkeys.ts` — no import in any `.tsx` file
-- **Issue:** `useGlobalHotkeys` exports `Mod+S`, `Mod+Shift+S`, `Mod+L`, `Mod+G`, `Mod+E`,
-  `Mod+ArrowLeft`, `Mod+ArrowRight`, `Mod+Home`, `Mod+End`. The hook has unit tests but is
-  never `import`ed or called from any component or page. The bindings are completely inactive.
-  `PageActions.tsx` does call `useHotkey("mod+r", ...)` and `useHotkey("mod+shift+r", ...)` as
-  a separate island, but the rest of the global map is dead.
-- **Why it matters:** Save Page (`Mod+S`), page navigation (`Mod+Arrow*`), and Export (`Mod+E`)
-  all appear in the help modal but silently do nothing when pressed.
-- **Suggested fix:** Call `useGlobalHotkeys({ onSavePage, onSaveProject, ... })` in `ProjectPage`
-  (or `AppShell`) wired to the appropriate mutation/navigation callbacks.
-
-## BUG-KBD-3 — `useMatchesHotkeys` hook never called — J/K/V/U/D/R/M in matches list dead
-
-- **Status:** open
-- **Severity:** high
-- **Where:** `frontend/src/hooks/useMatchesHotkeys.ts` — no import in any `.tsx` file
-- **Issue:** `useMatchesHotkeys` exports J, K, V, U, D, R, Shift+R, M, O, G. The hook has unit
-  tests but is never called from `WordMatchView`, `TextTabs`, `ProjectPage`, or anywhere else.
-  All matches-list keyboard navigation and actions are inactive.
-- **Why it matters:** The matches panel is the primary review surface; keyboard-only users cannot
-  navigate line cards or validate/merge words without a mouse.
-- **Suggested fix:** Call `useMatchesHotkeys({ onLineNav, onValidate, ... })` inside
-  `WordMatchView` (or its parent) wired to the existing line-mutation hooks.
-
 ## BUG-KBD-4 — `ConfirmDialog` has no keyboard bindings — Escape and Enter do nothing
 
 - **Status:** open
