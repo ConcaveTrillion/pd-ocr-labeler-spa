@@ -88,6 +88,70 @@ describe("BulkActions (Slice 23)", () => {
   });
 });
 
+describe("error toasts (Slice 23)", () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let toastErrorSpy: any;
+
+  beforeEach(async () => {
+    worklistStore.reset();
+    vi.restoreAllMocks();
+    const sonner = await import("sonner");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    toastErrorSpy = vi.spyOn(sonner.toast, "error").mockImplementation(() => "t1" as never);
+    worklistStore.selectAll([2]);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    worklistStore.clearBulk();
+  });
+
+  it("shows toast.error when mark-reviewed fails", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ detail: "Server error" }), { status: 500 }),
+        ),
+    );
+    renderWithQuery(<BulkActions projectId="p1" pageIndex={0} />);
+    await user.click(screen.getByTestId("bulk-actions-mark-reviewed"));
+    await vi.waitFor(() => expect(toastErrorSpy).toHaveBeenCalled());
+  });
+
+  it("shows toast.error when re-run-match fails", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ detail: "Server error" }), { status: 503 }),
+        ),
+    );
+    renderWithQuery(<BulkActions projectId="p1" pageIndex={0} />);
+    await user.click(screen.getByTestId("bulk-actions-rerun-match"));
+    await vi.waitFor(() => expect(toastErrorSpy).toHaveBeenCalled());
+  });
+
+  it("shows toast.error when export fails", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ detail: "Server error" }), { status: 500 }),
+        ),
+    );
+    renderWithQuery(<BulkActions projectId="p1" pageIndex={0} />);
+    await user.click(screen.getByTestId("bulk-actions-export"));
+    await vi.waitFor(() => expect(toastErrorSpy).toHaveBeenCalled());
+  });
+});
+
 describe("worklist-store bulk helpers (Slice 23)", () => {
   beforeEach(() => {
     worklistStore.reset();

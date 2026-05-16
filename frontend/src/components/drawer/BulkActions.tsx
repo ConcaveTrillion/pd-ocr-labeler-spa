@@ -15,6 +15,7 @@
 //   bulk-actions-export       — "Export filtered" button
 
 import { useSyncExternalStore, useState } from "react";
+import { toast } from "sonner";
 import { worklistStore } from "../../stores/worklist-store";
 import { useJobProgress } from "../../hooks/useJobProgress";
 import { cn } from "@/lib/utils";
@@ -84,8 +85,7 @@ export function BulkActions({ projectId, pageIndex }: BulkActionsProps) {
       );
       worklistStore.clearBulk();
     } catch (e) {
-      // Surface in production via toast; for now just log.
-      console.error("Mark reviewed failed:", e);
+      toast.error(e instanceof Error ? e.message : "Mark reviewed failed");
     }
   }
 
@@ -97,7 +97,7 @@ export function BulkActions({ projectId, pageIndex }: BulkActionsProps) {
       );
       setJobId(res.job_id);
     } catch (e) {
-      console.error("Re-run match failed:", e);
+      toast.error(e instanceof Error ? e.message : "Re-run match failed");
     }
   }
 
@@ -114,7 +114,7 @@ export function BulkActions({ projectId, pageIndex }: BulkActionsProps) {
       const res = await apiPost<{ job_id: string }>(`/api/projects/${projectId}/export`, body);
       setJobId(res.job_id);
     } catch (e) {
-      console.error("Export failed:", e);
+      toast.error(e instanceof Error ? e.message : "Export failed");
     }
   }
 
