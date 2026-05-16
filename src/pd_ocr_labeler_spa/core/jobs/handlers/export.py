@@ -342,6 +342,7 @@ async def handle_export(runner: JobRunner, job: Job) -> None:
 
     # --- iterate pages ---
     exported_count = 0
+    skipped_count = 0
     for page_num, (json_path, image_path) in enumerate(pages_to_export):
         # Cooperative cancel check.
         current_job = runner._jobs.get(job.job_id)
@@ -354,7 +355,8 @@ async def handle_export(runner: JobRunner, job: Job) -> None:
 
         page = _load_page_from_envelope_file(json_path)
         if page is None:
-            log.warning("export: could not load page from %s", json_path)
+            log.warning("export: could not load page from %s — skipping", json_path)
+            skipped_count += 1
             continue
 
         # Validation gate for all_validated scope.
@@ -393,10 +395,25 @@ async def handle_export(runner: JobRunner, job: Job) -> None:
         await asyncio.sleep(0)
 
     log.info(
-        "export complete: project=%s pages_exported=%d total=%d",
+        "export complete: project=%s pages_exported=%d skipped=%d total=%d",
         project_id,
         exported_count,
+        skipped_count,
         total_pages,
+    )
+
+    # Emit the terminal progress update so the completion message is surfaced
+    # in the SSE "complete" event (runner reads job.message when emitting).
+    if skipped_count > 0:
+        terminal_msg = f"Exported {exported_count} pages ({skipped_count} skipped due to load errors)"
+    else:
+        terminal_msg = f"Exported {exported_count} pages"
+
+    await runner.update_progress(
+        job.job_id,
+        current=total_pages,
+        total=total_pages,
+        message=terminal_msg,
     )
 
 

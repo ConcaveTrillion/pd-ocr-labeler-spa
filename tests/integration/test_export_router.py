@@ -299,3 +299,54 @@ def test_export_styles_returns_list(client: TestClient) -> None:
     """``GET /api/projects/{pid}/export/styles`` returns a JSON array."""
     resp = client.get("/api/projects/test-project/export/styles")
     assert isinstance(resp.json(), list)
+
+
+# ── Skipped-page count in terminal message (#task-7) ─────────────────────────
+
+
+def test_export_surfaces_skipped_pages(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """When pages fail to load during export, terminal message mentions skipped count.
+
+    Task 7 acceptance: "Exported N pages (M skipped due to load errors)" when M > 0.
+    """
+    import pd_ocr_labeler_spa.core.jobs.handlers.export as _export_mod
+
+    # Inject two fake pages into the scan list so the handler enters the load loop.
+    fake_json = tmp_path / "book_001.json"
+    fake_img = tmp_path / "book_001.png"
+    fake_json.write_text("{}", encoding="utf-8")
+    fake_img.write_bytes(b"")
+
+    monkeypatch.setattr(
+        _export_mod, "_scan_labeled_pages", lambda data_root, project_id: [fake_json, fake_json]
+    )
+    monkeypatch.setattr(_export_mod, "_resolve_image_path", lambda p: fake_img)
+    # Make every page fail to load — triggers the skipped_count path.
+    monkeypatch.setattr(_export_mod, "_load_page_from_envelope_file", lambda p: None)
+
+    settings = _make_settings(tmp_path)
+    app = build_app(settings)
+
+    terminal_message: str | None = None
+
+    with TestClient(app) as c:
+        resp = c.post("/api/projects/test-project/export", json={"scope": "all_validated"})
+        assert resp.status_code == 202, resp.text
+        job_id = resp.json()["job_id"]
+
+        terminal_events = {"complete", "error", "cancelled"}
+        with c.stream("GET", f"/api/jobs/{job_id}/events") as sse_resp:
+            assert sse_resp.status_code == 200
+            raw = b""
+            for chunk in sse_resp.iter_raw():
+                raw += chunk
+                parsed = _parse_sse_events(raw)
+                terminal = [e for e in parsed if e["event"] in terminal_events]
+                if terminal:
+                    terminal_message = terminal[0]["data"].get("message", "")
+                    break
+
+    assert terminal_message is not None, "SSE stream never delivered a terminal event"
+    assert "skip" in terminal_message.lower(), (
+        f"Expected 'skip' in completion message, got: {terminal_message!r}"
+    )
