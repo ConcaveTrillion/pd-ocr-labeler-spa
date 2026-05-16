@@ -7,26 +7,35 @@
 //   quick-search-input     — the <input> element
 //   quick-search-keycap    — the ⌘K keycap chip button
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
+import { useSyncExternalStore } from "react";
 import { Search } from "lucide-react";
 import { dialogStore } from "../../stores/dialog-store";
 import { worklistStore } from "../../stores/worklist-store";
+
+function subscribeWorklist(cb: () => void) {
+  return worklistStore.subscribe(cb);
+}
+function getWorklistSnapshot() {
+  return worklistStore.getState();
+}
 
 export function QuickSearch() {
   const openHotkeyHelp = useCallback(() => {
     dialogStore.open("hotkeyHelp");
   }, []);
-  const [query, setQuery] = useState("");
+  const { searchQuery } = useSyncExternalStore(
+    subscribeWorklist,
+    getWorklistSnapshot,
+    getWorklistSnapshot,
+  );
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value;
-    setQuery(val);
-    worklistStore.setSearchQuery(val);
+    worklistStore.setSearchQuery(e.target.value);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Escape") {
-      setQuery("");
       worklistStore.setSearchQuery("");
       e.currentTarget.blur();
     }
@@ -46,7 +55,7 @@ export function QuickSearch() {
       <input
         type="text"
         data-testid="quick-search-input"
-        value={query}
+        value={searchQuery}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder="Search…"
@@ -54,7 +63,6 @@ export function QuickSearch() {
         className="flex-1 bg-transparent text-[11px] text-ink-2 placeholder:text-ink-3 focus:outline-none cursor-text"
       />
 
-      {/* ⌘K keycap chip — opens the hotkey overlay */}
       <button
         type="button"
         data-testid="quick-search-keycap"

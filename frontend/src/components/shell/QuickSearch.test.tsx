@@ -56,17 +56,19 @@ describe("QuickSearch: keycap opens hotkey overlay (P1.c)", () => {
 
 describe("QuickSearch: search wiring (Task 5)", () => {
   it("typing in the input updates worklistStore.searchQuery", async () => {
+    const user = userEvent.setup();
     render(<QuickSearch />);
     const input = screen.getByTestId("quick-search-input");
-    await userEvent.type(input, "foo");
+    await user.type(input, "foo");
     expect(worklistStore.getState().searchQuery).toBe("foo");
   });
 
   it("pressing Escape clears the query and worklistStore", async () => {
+    const user = userEvent.setup();
     render(<QuickSearch />);
     const input = screen.getByTestId("quick-search-input");
-    await userEvent.type(input, "bar");
-    await userEvent.keyboard("{Escape}");
+    await user.type(input, "bar");
+    await user.keyboard("{Escape}");
     expect(input).toHaveValue("");
     expect(worklistStore.getState().searchQuery).toBe("");
   });
