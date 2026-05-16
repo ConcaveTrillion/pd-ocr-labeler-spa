@@ -249,7 +249,7 @@ const encoded = {
 
 // Reset stores and use-image state after each test
 afterEach(() => {
-  viewportStore.setState({ mode: "select", pendingReboxTarget: null, canvasZoom: 1.0 });
+  viewportStore.setState({ mode: "select", pendingReboxTarget: null, canvasZoom: 0 });
   selectionStore.setState({
     selectedParagraphs: [],
     selectedLines: [],

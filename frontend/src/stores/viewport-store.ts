@@ -53,7 +53,7 @@ function createReactiveStore<T>(initialState: T): Store<T> {
 export const viewportStore = createReactiveStore<ViewportStoreState>({
   mode: "select",
   pendingReboxTarget: null,
-  canvasZoom: 1.0,
+  canvasZoom: 0, // 0 = fit-to-container (default on page load)
 });
 
 /** Enter rebox mode for a specific word. */

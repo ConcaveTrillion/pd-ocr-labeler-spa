@@ -514,7 +514,7 @@ export default function PageImageCanvas({
   return (
     <div
       ref={wrapperRef}
-      className="page-image-canvas relative select-none outline-none focus-visible:ring-2 focus-visible:ring-accent overflow-auto"
+      className="page-image-canvas relative select-none outline-none focus-visible:ring-2 focus-visible:ring-accent"
       style={{
         width: "100%",
         height: "100%",
@@ -529,89 +529,96 @@ export default function PageImageCanvas({
       tabIndex={0}
       onKeyDown={handleKeyDown}
     >
-      {/* Sidecar div mirroring Stage geometry (spec §12 — Konva nodes
-          cannot themselves carry testids in jsdom or Playwright). */}
-      <div
-        data-testid="image-stage"
-        data-width={dims.width}
-        data-height={dims.height}
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 0,
-          pointerEvents: "none",
-          visibility: "hidden",
-        }}
-      />
+      {/* Inner scroll container — wraps Stage only so pinned overlays are
+          not clipped when the user scrolls in 100% zoom mode. */}
+      <div className="w-full h-full overflow-auto">
+        {/* Sidecar div mirroring Stage geometry (spec §12 — Konva nodes
+            cannot themselves carry testids in jsdom or Playwright). */}
+        <div
+          data-testid="image-stage"
+          data-width={dims.width}
+          data-height={dims.height}
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            visibility: "hidden",
+          }}
+        />
 
-      {/* Konva Stage + 6-layer skeleton from spec §4. Drag handlers live on
-          the Stage per spec §7; mousemove is rAF-throttled (spec §7 / #301).
-          P5.d: scaleX/scaleY drive zoom; Stage width/height are the scaled
-          visual dimensions; data-width/data-height on the sidecar retain the
-          unscaled natural size for driver inspection. */}
-      <Stage
-        width={dims.width * effectiveScale}
-        height={dims.height * effectiveScale}
-        scaleX={effectiveScale}
-        scaleY={effectiveScale}
-        onMouseDown={handleStageMouseDown}
-        onMouseMove={handleStageMouseMove}
-        onMouseUp={handleStageMouseUp}
-        onMouseLeave={handleStageMouseLeave}
-      >
-        <Layer name="image" listening={false}>
-          <PageImage url={imageUrl} width={dims.width} height={dims.height} />
-        </Layer>
-        <Layer name="overlay-paragraphs" listening={false} />
-        <Layer name="overlay-lines" listening={false} />
-        <Layer name="overlay-words" listening={false}>
-          {/* Issue #295: word bbox overlay with per-item dimming for mismatches filter */}
-          <BBoxOverlay
-            layer="words"
-            items={wordOverlayItems}
-            visible={useUiPrefs.getState().layerVisibility.word}
-          />
-        </Layer>
-        <Layer name="selection" listening={false}>
-          {/* Slice 13: active target layer renders full opacity; others dimmed.
-              "block" target maps to paragraph layer (closest available). */}
-          <BBoxOverlay
-            layer="selection-paragraphs"
-            items={expandedSelection.paragraphs}
-            dimmed={railTarget !== "block"}
-          />
-          <BBoxOverlay
-            layer="selection-lines"
-            items={expandedSelection.lines}
-            dimmed={railTarget !== "line"}
-          />
-          <BBoxOverlay
-            layer="selection-words"
-            items={expandedSelection.words}
-            dimmed={railTarget !== "word"}
-          />
-        </Layer>
-        <Layer name="drag">
-          {dragRect && (
-            <Rect
-              data-testid="konva-drag-preview"
-              x={dragRect.x}
-              y={dragRect.y}
-              width={dragRect.width}
-              height={dragRect.height}
-              stroke={modeRectColors[mode]}
-              fill={modeRectFills[mode]}
-              strokeWidth={2}
-              dash={[4, 2]}
-              listening={false}
-              perfectDrawEnabled={false}
+        {/* Konva Stage + 6-layer skeleton from spec §4. Drag handlers live on
+            the Stage per spec §7; mousemove is rAF-throttled (spec §7 / #301).
+            P5.d: scaleX/scaleY drive zoom; Stage width/height are the scaled
+            visual dimensions; data-width/data-height on the sidecar retain the
+            unscaled natural size for driver inspection. */}
+        <Stage
+          width={dims.width * effectiveScale}
+          height={dims.height * effectiveScale}
+          scaleX={effectiveScale}
+          scaleY={effectiveScale}
+          onMouseDown={handleStageMouseDown}
+          onMouseMove={handleStageMouseMove}
+          onMouseUp={handleStageMouseUp}
+          onMouseLeave={handleStageMouseLeave}
+        >
+          <Layer name="image" listening={false}>
+            <PageImage url={imageUrl} width={dims.width} height={dims.height} />
+          </Layer>
+          <Layer name="overlay-paragraphs" listening={false} />
+          <Layer name="overlay-lines" listening={false} />
+          <Layer name="overlay-words" listening={false}>
+            {/* Issue #295: word bbox overlay with per-item dimming for mismatches filter */}
+            <BBoxOverlay
+              layer="words"
+              items={wordOverlayItems}
+              visible={useUiPrefs.getState().layerVisibility.word}
             />
-          )}
-        </Layer>
-      </Stage>
+          </Layer>
+          <Layer name="selection" listening={false}>
+            {/* Slice 13: active target layer renders full opacity; others dimmed.
+              "block" target maps to paragraph layer (closest available). */}
+            <BBoxOverlay
+              layer="selection-paragraphs"
+              items={expandedSelection.paragraphs}
+              dimmed={railTarget !== "block"}
+            />
+            <BBoxOverlay
+              layer="selection-lines"
+              items={expandedSelection.lines}
+              dimmed={railTarget !== "line"}
+            />
+            <BBoxOverlay
+              layer="selection-words"
+              items={expandedSelection.words}
+              dimmed={railTarget !== "word"}
+            />
+          </Layer>
+          <Layer name="drag">
+            {dragRect && (
+              <Rect
+                data-testid="konva-drag-preview"
+                x={dragRect.x}
+                y={dragRect.y}
+                width={dragRect.width}
+                height={dragRect.height}
+                stroke={modeRectColors[mode]}
+                fill={modeRectFills[mode]}
+                strokeWidth={2}
+                dash={[4, 2]}
+                listening={false}
+                perfectDrawEnabled={false}
+              />
+            )}
+          </Layer>
+        </Stage>
+      </div>
+      {/* end inner scroll container */}
 
       {/* Drag-rect preview DOM sidecar (spec §12).
-          Mirrors the Konva <Rect>; Playwright needs a CSS selector. */}
+          Mirrors the Konva <Rect>; Playwright needs a CSS selector.
+          Lives outside the scroll container so it stays anchored to the
+          outer wrapper's coordinate space. */}
       {dragRect && (
         <div
           data-testid="ocr-drag-rect"
