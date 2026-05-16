@@ -353,3 +353,38 @@ def test_get_jobs_returns_list(bare_client: TestClient) -> None:
 def test_get_job_by_id_returns_404_for_unknown(bare_client: TestClient) -> None:
     resp = bare_client.get("/api/jobs/nonexistent")
     assert resp.status_code == 404
+
+
+def test_get_page_stamps_payload_error_on_corrupt_envelope(
+    tmp_path: Path,
+    projects_root: Path,
+    monkeypatch,
+) -> None:
+    """When envelope lift fails, GET /pages/{idx} returns 200 with payload_error set on page_record."""
+    from pd_ocr_labeler_spa.core.envelope_lift import EnvelopeLiftError
+
+    monkeypatch.setattr(
+        "pd_ocr_labeler_spa.api.pages.lift_envelope_to_page",
+        lambda payload: EnvelopeLiftError(
+            message="injected test failure",
+            cause=ValueError("injected"),
+        ),
+    )
+
+    settings = _make_settings(tmp_path, source_projects_root=projects_root)
+    app = build_app(settings)
+    with TestClient(app) as c:
+        c.post("/api/projects/load", json={"project_root": str(projects_root / "book1")})
+        # Load the page so pstate.page_record is set.
+        c.post("/api/projects/book1/pages/0/load", json={})
+        resp = c.get("/api/projects/book1/pages/0")
+
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["line_matches"] == []
+    pr = body.get("page_record")
+    if pr is not None:
+        assert pr.get("payload_error") is not None, (
+            "Expected payload_error to be stamped when lift fails, got None. "
+            f"page_record keys: {list(pr.keys())}"
+        )

@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from ..core import text_normalize
+from ..core.envelope_lift import EnvelopeLiftError, lift_envelope_to_page
 from ..core.ground_truth_matcher import rematch_page
 from ..core.jobs import JobRunner
 from ..core.models import EncodedDims, LineFilter, LineMatch, PageRecord, PageSource, Selection
@@ -543,55 +544,51 @@ def _page_payload(
             image_path = project.image_paths[page_index]
             page_source = PageSource(str(source)) if source else PageSource.OCR
 
-            # Labeled/cached lane lifting: when the outcome came from
-            # load_labeled or load_cached, payload_obj is a UserPageEnvelope
-            # (the envelope shape, NOT yet a Page).  Lift it via
-            # ``Page.from_dict(envelope.payload.page)`` so
-            # ``page_to_line_matches`` receives a proper Page object and can
-            # populate line_matches.  Without this lift the envelope lane
-            # returns page_record but empty line_matches (the
-            # ``page_to_line_matches`` comment at line 25 describes this gap).
-            # Guard: only attempt the lift when payload_obj has a ``.payload``
-            # attribute with a ``.page`` dict (UserPageEnvelope shape);
-            # plain ``Page`` objects fall through unmodified.
-            try:
-                envelope_payload = getattr(payload_obj, "payload", None)
-                if envelope_payload is not None:
-                    page_dict = getattr(envelope_payload, "page", None)
-                    if isinstance(page_dict, dict):
-                        import importlib as _imp
-
-                        _page_mod = _imp.import_module("pd_book_tools.ocr.page")
-                        payload_obj = _page_mod.Page.from_dict(page_dict)
-            except Exception:
-                log.debug(
-                    "_page_payload: envelope→Page lift failed for %s/%d — using raw payload",
+            # Lift UserPageEnvelope → Page (labeled/cached lanes).
+            # Plain Page objects (OCR lane) pass through unchanged.
+            # Returns EnvelopeLiftError (never raises) on failure.
+            lift_result = lift_envelope_to_page(payload_obj)
+            if isinstance(lift_result, EnvelopeLiftError):
+                log.warning(
+                    "_page_payload: envelope→Page lift failed for %s/%d: %s"
+                    " — stamping payload_error, line_matches will be empty",
                     project_id,
                     page_index,
-                    exc_info=True,
+                    lift_result.message,
+                    exc_info=lift_result.cause,
                 )
-
-            # Try lifting the Page object (OCR or envelope-lifted lane).
-            # ``page_to_line_matches`` tolerates non-Page objects gracefully
-            # (returns empty LineMatch list) so this is safe for any payload type.
-            # Pass ``fuzz_threshold`` from ``AppConfig`` (GAP-5); falls back to
-            # the module default (0.8) when no config is available (e.g. tests
-            # that call ``_page_payload`` without wiring ``app_config``).
-            _fuzz = app_config.fuzz_threshold if app_config is not None else 0.8
-            _char_bboxes_map = pstate.char_bboxes_map if pstate is not None else None
-            _char_ranges_map = pstate.char_ranges_map if pstate is not None else None
-            _rec, _lms = page_to_line_matches(
-                payload_obj,
-                page_index,
-                image_path,
-                source=page_source,
-                fuzz_threshold=_fuzz,
-                char_bboxes_map=_char_bboxes_map if _char_bboxes_map else None,
-                char_ranges_map=_char_ranges_map if _char_ranges_map else None,
-            )
-            if _lms or _rec is not None:
-                page_record = _rec
-                line_matches = _lms
+                page_record = PageRecord(
+                    page_index=page_index,
+                    page_number=page_index + 1,
+                    image_path=image_path,
+                    page_source=page_source,
+                    payload_error=lift_result.message,
+                )
+                # line_matches stays []
+            else:
+                payload_obj = lift_result
+                log.debug(
+                    "_page_payload: post-lift payload type=%s source=%s for %s/%d",
+                    type(payload_obj).__name__,
+                    source,
+                    project_id,
+                    page_index,
+                )
+                _fuzz = app_config.fuzz_threshold if app_config is not None else 0.8
+                _char_bboxes_map = pstate.char_bboxes_map if pstate is not None else None
+                _char_ranges_map = pstate.char_ranges_map if pstate is not None else None
+                _rec, _lms = page_to_line_matches(
+                    payload_obj,
+                    page_index,
+                    image_path,
+                    source=page_source,
+                    fuzz_threshold=_fuzz,
+                    char_bboxes_map=_char_bboxes_map if _char_bboxes_map else None,
+                    char_ranges_map=_char_ranges_map if _char_ranges_map else None,
+                )
+                if _lms or _rec is not None:
+                    page_record = _rec
+                    line_matches = _lms
 
     # GAP-1: stamp provenance_summary onto the page_record so the
     # frontend source badge can show a tooltip.  Done here (after
