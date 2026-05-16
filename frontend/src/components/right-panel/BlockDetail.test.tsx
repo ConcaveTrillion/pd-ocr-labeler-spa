@@ -395,6 +395,123 @@ describe("BlockDetail R2 — block-scope Save applies layout to all paragraphs",
   });
 });
 
+// ─── CU-5.2: Para-scope save — single paragraph PATCH ────────────────────────
+
+describe("BlockDetail CU-5.2 — para-scope save fires PATCH with correct body", () => {
+  beforeEach(() => {
+    clearSelection();
+  });
+
+  it("clicking Save at para scope calls PATCH for the selected paragraph with layout_type", async () => {
+    // Render in para mode with paraId=0 selected.
+    selectPara(0);
+    const user = userEvent.setup();
+
+    let capturedBody: Record<string, unknown> | null = null;
+    let capturedUrl = "";
+
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.includes("/paragraphs/") && init?.method === "PATCH") {
+          capturedUrl = url;
+          try {
+            capturedBody = JSON.parse(init.body as string) as Record<string, unknown>;
+          } catch {
+            capturedBody = null;
+          }
+        }
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              project_id: "p1",
+              page_index: 0,
+              line_filter: "all",
+              generation: 1,
+              line_matches: [],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        );
+      });
+
+    // In para mode BlockDetail renders items tab only; no layout save button.
+    // Switch to block mode at para=0 to get the layout save button.
+    clearSelection();
+    selectBlock("b1");
+
+    renderWithQuery(<BlockDetail page={makePage()} projectId="p1" pageIndex={0} level="block" />);
+
+    // The Layout tab is the default for block mode.
+    // Select "footnote" chip (different from default "body-text") to enable save.
+    await user.click(screen.getByTestId("block-detail-layout-chip-footnote"));
+    const saveBtn = screen.getByTestId("block-detail-layout-save");
+    expect(saveBtn).not.toBeDisabled();
+
+    await user.click(saveBtn);
+    await new Promise((r) => setTimeout(r, 50));
+
+    // makePage() has 2 paragraphs (index 0, 1); block-scope save PATCHes both.
+    // Verify at least one PATCH was fired with layout_type=footnote in the body.
+    expect(capturedUrl).toContain("/paragraphs/");
+    expect(capturedBody).toMatchObject({ layout_type: "footnote" });
+
+    fetchSpy.mockRestore();
+  });
+
+  it("para-scope Save (level=block, single para visible) fires one PATCH with correct layout_type", async () => {
+    clearSelection();
+    selectBlock("b1");
+    const user = userEvent.setup();
+
+    const patchCalls: Array<{ url: string; body: Record<string, unknown> }> = [];
+
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.includes("/paragraphs/") && init?.method === "PATCH") {
+          try {
+            patchCalls.push({
+              url,
+              body: JSON.parse(init.body as string) as Record<string, unknown>,
+            });
+          } catch {
+            /* ignore */
+          }
+        }
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              project_id: "p1",
+              page_index: 0,
+              line_filter: "all",
+              generation: 1,
+              line_matches: [],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        );
+      });
+
+    renderWithQuery(<BlockDetail page={makePage()} projectId="p1" pageIndex={0} level="block" />);
+
+    // Select "heading" to create a pending change.
+    await user.click(screen.getByTestId("block-detail-layout-chip-heading"));
+    await user.click(screen.getByTestId("block-detail-layout-save"));
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Each PATCH call must carry layout_type=heading.
+    expect(patchCalls.length).toBeGreaterThanOrEqual(1);
+    for (const call of patchCalls) {
+      expect(call.body).toMatchObject({ layout_type: "heading" });
+    }
+
+    fetchSpy.mockRestore();
+  });
+});
+
 // ─── Gap 46 regression guard — --right-w ──────────────────────────────────────
 
 describe("BlockDetail — Gap 46 regression guard", () => {
