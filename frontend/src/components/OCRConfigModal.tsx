@@ -172,14 +172,14 @@ export function OCRConfigModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[80vh] flex flex-col">
+      <div className="bg-bg-surface rounded-lg border border-border-2 max-w-lg w-full mx-4 max-h-[80vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900 text-base">OCR Configuration</h2>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border-1">
+          <h2 className="font-semibold text-ink-1 text-base">OCR Configuration</h2>
           <button
             type="button"
             aria-label="Close"
-            className="text-gray-400 hover:text-gray-600 rounded p-1"
+            className="text-ink-4 hover:text-ink-2 rounded p-1"
             onClick={onClose}
             data-testid="ocr-config-close-button"
           >
@@ -191,13 +191,17 @@ export function OCRConfigModal({
         <div className="px-4 py-4 overflow-y-auto flex-1">
           {/* Text normalization section */}
           <section aria-labelledby="normalize-section-heading">
-            <h3 id="normalize-section-heading" className="text-sm font-medium text-gray-700 mb-2">
+            <h3 id="normalize-section-heading" className="text-sm font-medium text-ink-2 mb-2">
               Text normalization
             </h3>
 
             {!normalizeAvailable && (
               <p
-                className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1 mb-3"
+                className="text-xs rounded px-2 py-1 mb-3"
+                style={{
+                  color: "var(--status-fuzzy)",
+                  background: "color-mix(in srgb, var(--status-fuzzy) 8%, var(--bg-surface))",
+                }}
                 data-testid="normalize-unavailable-message"
               >
                 Requires pd-book-tools with text.normalize module. Update pd-book-tools to enable
@@ -209,7 +213,7 @@ export function OCRConfigModal({
               {/* GT matching toggle */}
               <label
                 className={`flex items-center gap-2 text-sm ${
-                  normalizeAvailable ? "text-gray-800" : "text-gray-400"
+                  normalizeAvailable ? "text-ink-1" : "text-ink-4"
                 }`}
                 title={normalizeAvailable ? undefined : unavailableTitle}
               >
@@ -219,7 +223,7 @@ export function OCRConfigModal({
                   checked={settings.normalize_for_gt_matching}
                   disabled={!normalizeAvailable}
                   onChange={handleGtMatchingChange}
-                  className="accent-blue-600"
+                  className="accent-accent"
                 />
                 Normalize for GT matching (long-s, ligatures → ASCII)
               </label>
@@ -227,7 +231,7 @@ export function OCRConfigModal({
               {/* Plaintext tabs toggle */}
               <label
                 className={`flex items-center gap-2 text-sm ${
-                  normalizeAvailable ? "text-gray-800" : "text-gray-400"
+                  normalizeAvailable ? "text-ink-1" : "text-ink-4"
                 }`}
                 title={normalizeAvailable ? undefined : unavailableTitle}
               >
@@ -237,7 +241,7 @@ export function OCRConfigModal({
                   checked={settings.normalize_plaintext_tabs}
                   disabled={!normalizeAvailable}
                   onChange={handlePlaintextChange}
-                  className="accent-blue-600"
+                  className="accent-accent"
                 />
                 Normalize plaintext tab content
               </label>
@@ -245,7 +249,7 @@ export function OCRConfigModal({
               {/* Profile select — greyed out in v1 (only "ascii" available) */}
               <div
                 className={`flex items-center gap-2 text-sm ${
-                  normalizeAvailable ? "text-gray-800" : "text-gray-400"
+                  normalizeAvailable ? "text-ink-1" : "text-ink-4"
                 }`}
                 title={
                   normalizeAvailable ? "Only 'ascii' profile available in v1" : unavailableTitle
@@ -260,25 +264,29 @@ export function OCRConfigModal({
                   value={settings.normalize_profile}
                   disabled={true}
                   onChange={handleProfileChange}
-                  className="border border-gray-200 rounded text-xs px-1 py-0.5 bg-gray-50 cursor-not-allowed"
+                  className="border border-border-1 rounded text-xs px-1 py-0.5 bg-bg-sunk cursor-not-allowed"
                   aria-label="Normalization profile"
                 >
                   <option value="ascii">ascii</option>
                 </select>
-                <span className="text-xs text-gray-400">(v1: ascii only)</span>
+                <span className="text-xs text-ink-4">(v1: ascii only)</span>
               </div>
             </div>
           </section>
 
           {/* Auto-rotation section */}
           <section aria-labelledby="auto-rotate-section-heading" className="mt-4">
-            <h3 id="auto-rotate-section-heading" className="text-sm font-medium text-gray-700 mb-2">
+            <h3 id="auto-rotate-section-heading" className="text-sm font-medium text-ink-2 mb-2">
               Auto-rotation
             </h3>
 
             {!autoRotateAvailable && (
               <p
-                className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1 mb-3"
+                className="text-xs rounded px-2 py-1 mb-3"
+                style={{
+                  color: "var(--status-fuzzy)",
+                  background: "color-mix(in srgb, var(--status-fuzzy) 8%, var(--bg-surface))",
+                }}
                 data-testid="auto-rotate-unavailable-message"
               >
                 Requires pd-book-tools with rotation module. Update pd-book-tools to enable
@@ -290,7 +298,7 @@ export function OCRConfigModal({
               {/* Auto-rotate on load toggle */}
               <label
                 className={`flex items-center gap-2 text-sm ${
-                  autoRotateAvailable ? "text-gray-800" : "text-gray-400"
+                  autoRotateAvailable ? "text-ink-1" : "text-ink-4"
                 }`}
                 title={
                   autoRotateAvailable
@@ -304,7 +312,7 @@ export function OCRConfigModal({
                   checked={autoRotateOnLoad}
                   disabled={!autoRotateAvailable}
                   onChange={handleAutoRotateOnLoadChange}
-                  className="accent-blue-600"
+                  className="accent-accent"
                 />
                 Auto-rotate pages on load
               </label>
@@ -312,7 +320,7 @@ export function OCRConfigModal({
               {/* Method select */}
               <div
                 className={`flex items-center gap-2 text-sm ${
-                  autoRotateAvailable ? "text-gray-800" : "text-gray-400"
+                  autoRotateAvailable ? "text-ink-1" : "text-ink-4"
                 }`}
               >
                 <label htmlFor="auto-rotate-method-select" className="shrink-0">
@@ -324,11 +332,7 @@ export function OCRConfigModal({
                   value={autoRotateMethod}
                   disabled={!autoRotateAvailable || !autoRotateOnLoad}
                   onChange={handleAutoRotateMethodChange}
-                  className={`border border-gray-200 rounded text-xs px-1 py-0.5 ${
-                    autoRotateAvailable && autoRotateOnLoad
-                      ? "bg-white"
-                      : "bg-gray-50 cursor-not-allowed"
-                  }`}
+                  className="border border-border-1 rounded text-xs px-1 py-0.5 bg-bg-sunk"
                   aria-label="Auto-rotation method"
                 >
                   <option value="auto">auto</option>
@@ -380,11 +384,11 @@ export function OCRConfigModal({
             Apply
           </button>
         </div>
-        <div className="px-4 py-3 border-t border-gray-200 flex justify-end">
+        <div className="px-4 py-3 border-t border-border-1 flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded"
+            className="px-4 py-1.5 text-sm bg-bg-raised hover:opacity-80 rounded"
             data-testid="ocr-config-done-button"
           >
             Done

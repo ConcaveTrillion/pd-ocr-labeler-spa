@@ -227,17 +227,17 @@ export function ExportDialog({
       }}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 flex flex-col overflow-hidden max-h-[90vh]"
+        className="bg-bg-surface rounded-lg border border-border-2 w-full max-w-lg mx-4 flex flex-col overflow-hidden max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50 shrink-0">
-          <span className="text-sm font-semibold text-gray-800">Export Training Data</span>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border-1 bg-bg-raised shrink-0">
+          <span className="text-sm font-semibold text-ink-1">Export Training Data</span>
           <button
             onClick={onClose}
             disabled={running}
             aria-label="Close export dialog"
-            className="px-2 py-1.5 text-lg text-gray-500 hover:text-gray-800 hover:bg-gray-200 rounded transition-colors disabled:opacity-40"
+            className="px-2 py-1.5 text-lg text-ink-3 hover:text-ink-1 hover:bg-bg-raised rounded transition-colors disabled:opacity-40"
           >
             x
           </button>
@@ -246,9 +246,9 @@ export function ExportDialog({
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
           {/* Scope */}
           <fieldset>
-            <legend className="text-xs font-semibold text-gray-700 mb-1">Scope</legend>
+            <legend className="text-xs font-semibold text-ink-2 mb-1">Scope</legend>
             <div className="flex gap-4">
-              <label className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
+              <label className="flex items-center gap-1.5 text-sm text-ink-2 cursor-pointer">
                 <input
                   type="radio"
                   data-testid="export-scope-all"
@@ -259,7 +259,7 @@ export function ExportDialog({
                 />
                 All Validated Pages
               </label>
-              <label className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
+              <label className="flex items-center gap-1.5 text-sm text-ink-2 cursor-pointer">
                 <input
                   type="radio"
                   data-testid="export-scope-current"
@@ -276,14 +276,14 @@ export function ExportDialog({
           {/* Style filters */}
           {scope === "all_validated" && (
             <fieldset>
-              <legend className="text-xs font-semibold text-gray-700 mb-1">
+              <legend className="text-xs font-semibold text-ink-2 mb-1">
                 Style Filter
                 {stylesLoading && (
-                  <span className="ml-2 text-xs text-gray-400 font-normal">Loading...</span>
+                  <span className="ml-2 text-xs text-ink-4 font-normal">Loading...</span>
                 )}
               </legend>
               <div className="flex flex-wrap gap-x-4 gap-y-1">
-                <label className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
+                <label className="flex items-center gap-1.5 text-sm text-ink-2 cursor-pointer">
                   <input
                     type="checkbox"
                     data-testid="export-style-all-checkbox"
@@ -295,7 +295,7 @@ export function ExportDialog({
                 {availableStyles.map((style) => (
                   <label
                     key={style}
-                    className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer"
+                    className="flex items-center gap-1.5 text-sm text-ink-2 cursor-pointer"
                   >
                     <input
                       type="checkbox"
@@ -312,13 +312,11 @@ export function ExportDialog({
 
           {/* Component filter */}
           <div>
-            <label className="text-xs font-semibold text-gray-700 mb-1 block">
-              Component Filter
-            </label>
+            <label className="text-xs font-semibold text-ink-2 mb-1 block">Component Filter</label>
             <select
               value={componentFilter}
               onChange={(e) => setComponentFilter(e.target.value)}
-              className="text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700"
+              className="text-sm border border-border-1 rounded px-2 py-1 bg-bg-sunk text-ink-2"
             >
               {DEFAULT_COMPONENTS.map((c) => (
                 <option key={c} value={c}>
@@ -330,7 +328,7 @@ export function ExportDialog({
 
           {/* Output mode */}
           <fieldset>
-            <legend className="text-xs font-semibold text-gray-700 mb-1">Output Mode</legend>
+            <legend className="text-xs font-semibold text-ink-2 mb-1">Output Mode</legend>
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               {(
                 [
@@ -342,7 +340,7 @@ export function ExportDialog({
               ).map(([mode, label]) => (
                 <label
                   key={mode}
-                  className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer"
+                  className="flex items-center gap-1.5 text-sm text-ink-2 cursor-pointer"
                 >
                   <input
                     type="radio"
@@ -359,14 +357,22 @@ export function ExportDialog({
 
           {/* Error */}
           {error && (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+            <div
+              className="text-sm text-status-mismatch border border-status-mismatch/40 rounded px-3 py-2"
+              style={{
+                background: "color-mix(in srgb, var(--status-mismatch) 12%, var(--bg-surface))",
+              }}
+            >
               {error}
             </div>
           )}
 
           {/* Progress */}
           {progressMsg && (
-            <div className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded px-3 py-2">
+            <div
+              className="text-sm text-accent border border-accent/40 rounded px-3 py-2"
+              style={{ background: "color-mix(in srgb, var(--status-ocr) 8%, var(--bg-surface))" }}
+            >
               {progressMsg}
             </div>
           )}
@@ -374,23 +380,23 @@ export function ExportDialog({
           {/* Run history */}
           {history.length > 0 && (
             <div data-testid="export-results">
-              <div className="text-xs font-semibold text-gray-700 mb-1">Run History</div>
+              <div className="text-xs font-semibold text-ink-2 mb-1">Run History</div>
               <div className="flex flex-col gap-1">
                 {history.map((entry) => (
                   <div
                     key={entry.id}
-                    className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded px-2 py-1"
+                    className="text-xs text-ink-2 bg-bg-raised border border-border-1 rounded px-2 py-1"
                   >
                     <span className="font-medium">
                       {entry.scope === "current" ? "Current page" : "All validated"}
                     </span>
                     {entry.styleFilters.length > 0 && (
-                      <span className="ml-2 text-gray-500">
+                      <span className="ml-2 text-ink-3">
                         styles: {entry.styleFilters.join(", ")}
                       </span>
                     )}
-                    <span className="ml-2 text-gray-400">{entry.pagesExported} pages</span>
-                    <span className="ml-2 text-gray-400">{entry.timestamp}</span>
+                    <span className="ml-2 text-ink-4">{entry.pagesExported} pages</span>
+                    <span className="ml-2 text-ink-4">{entry.timestamp}</span>
                   </div>
                 ))}
               </div>
@@ -399,11 +405,11 @@ export function ExportDialog({
         </div>
 
         {/* Footer actions */}
-        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-gray-200 bg-gray-50 shrink-0">
+        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border-1 bg-bg-raised shrink-0">
           {running ? (
             <button
               onClick={handleCancel}
-              className="px-3 py-1.5 text-sm rounded border border-orange-300 bg-white text-orange-700 hover:bg-orange-50 transition-colors"
+              className="px-3 py-1.5 text-sm rounded border border-status-fuzzy bg-bg-surface text-status-fuzzy hover:bg-bg-raised transition-colors"
             >
               Cancel
             </button>
@@ -411,7 +417,7 @@ export function ExportDialog({
             <button
               data-testid="export-button"
               onClick={handleExport}
-              className="px-3 py-1.5 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              className="px-3 py-1.5 text-sm rounded bg-accent text-accent-ink hover:opacity-90 transition-opacity"
             >
               Export
             </button>
@@ -420,7 +426,7 @@ export function ExportDialog({
             data-testid="export-close-button"
             onClick={onClose}
             disabled={running}
-            className="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-40"
+            className="px-3 py-1.5 text-sm rounded border border-border-2 bg-bg-surface text-ink-2 hover:bg-bg-raised transition-colors disabled:opacity-40"
           >
             Close
           </button>

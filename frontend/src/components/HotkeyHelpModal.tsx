@@ -97,7 +97,7 @@ export function HotkeyHelpModal() {
         if (e.target === e.currentTarget) close();
       }}
     >
-      <div className="bg-bg-surface rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col border border-border-2">
+      <div className="bg-bg-surface rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col border border-border-2">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border-1">
           <h2 className="text-heading font-semibold text-ink-1">Keyboard Shortcuts</h2>

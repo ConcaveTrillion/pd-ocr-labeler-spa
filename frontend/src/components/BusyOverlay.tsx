@@ -69,10 +69,10 @@ export function BusyOverlay({ activeJob, isMutating = false, onCancel }: BusyOve
       aria-live="polite"
       aria-label="Operation in progress"
     >
-      <div className="bg-white rounded-lg shadow-xl p-6 flex flex-col items-center gap-4 min-w-64">
+      <div className="bg-bg-surface rounded-lg border border-border-2 p-6 flex flex-col items-center gap-4 min-w-64">
         {/* Spinner */}
         <svg
-          className="animate-spin h-8 w-8 text-indigo-600"
+          className="animate-spin h-8 w-8 text-accent"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
@@ -92,11 +92,11 @@ export function BusyOverlay({ activeJob, isMutating = false, onCancel }: BusyOve
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
           />
         </svg>
-        <p className="text-sm text-gray-700 text-center">{message}</p>
+        <p className="text-sm text-ink-2 text-center">{message}</p>
         {showCancel && (
           <button
             data-testid="busy-overlay-cancel"
-            className="px-3 py-1.5 text-sm rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+            className="px-3 py-1.5 text-sm rounded border border-border-2 hover:bg-bg-raised disabled:opacity-50"
             onClick={handleCancel}
             disabled={cancelMutation.isPending}
             title={isBestEffort ? "Cancel (best-effort — OCR may not stop immediately)" : undefined}
@@ -124,9 +124,9 @@ export function ProjectLoadingOverlay({ isLoading }: ProjectLoadingOverlayProps)
       aria-live="polite"
       aria-label="Loading project"
     >
-      <div className="bg-white rounded-lg shadow-xl p-6 flex flex-col items-center gap-3">
+      <div className="bg-bg-surface rounded-lg border border-border-2 p-6 flex flex-col items-center gap-3">
         <svg
-          className="animate-spin h-8 w-8 text-indigo-600"
+          className="animate-spin h-8 w-8 text-accent"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
@@ -146,7 +146,7 @@ export function ProjectLoadingOverlay({ isLoading }: ProjectLoadingOverlayProps)
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
           />
         </svg>
-        <p className="text-sm text-gray-700">Loading project…</p>
+        <p className="text-sm text-ink-2">Loading project…</p>
       </div>
     </div>
   );

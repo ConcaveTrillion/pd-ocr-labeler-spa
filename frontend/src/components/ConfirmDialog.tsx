@@ -54,21 +54,21 @@ export function ConfirmDialog({
         if (e.target === e.currentTarget) onCancel();
       }}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 p-5 space-y-4">
+      <div className="bg-bg-surface rounded-lg border border-border-2 max-w-sm w-full mx-4 p-5 space-y-4">
         <h2 className="text-base font-semibold">{title}</h2>
-        <p className="text-sm text-gray-700">{message}</p>
+        <p className="text-sm text-ink-2">{message}</p>
         <div className="flex justify-end gap-2">
           <button
             data-testid="confirm-dialog-cancel"
             onClick={onCancel}
-            className="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50"
+            className="px-3 py-1.5 text-sm rounded border border-border-2 bg-bg-surface hover:bg-bg-raised"
           >
             {cancelLabel}
           </button>
           <button
             data-testid="confirm-dialog-confirm"
             onClick={onConfirm}
-            className="px-3 py-1.5 text-sm rounded bg-red-600 text-white hover:bg-red-700"
+            className="px-3 py-1.5 text-sm rounded bg-status-mismatch text-accent-ink hover:opacity-90 transition-opacity"
             autoFocus
           >
             {confirmLabel}

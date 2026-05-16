@@ -120,7 +120,7 @@ export function Splitter({ direction, left, right, className }: SplitterProps) {
         style={{
           width: 6,
           cursor: "col-resize",
-          background: "rgba(0,0,0,0.08)",
+          background: "var(--border-1)",
           flex: "0 0 6px",
         }}
       />

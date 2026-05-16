@@ -65,7 +65,7 @@ export function TextTabs({
   return (
     <div data-testid="text-tabs" className="flex flex-col h-full">
       {/* Tab trigger row */}
-      <div className="flex border-b border-gray-200 bg-white shrink-0" role="tablist">
+      <div className="flex border-b border-border-1 bg-bg-surface shrink-0" role="tablist">
         <button
           role="tab"
           aria-selected={activeTab === "matches"}
@@ -75,8 +75,8 @@ export function TextTabs({
           className={[
             "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
             activeTab === "matches"
-              ? "border-blue-500 text-blue-600"
-              : "border-transparent text-gray-600 hover:text-gray-900",
+              ? "border-accent text-accent"
+              : "border-transparent text-ink-2 hover:text-ink-1",
           ].join(" ")}
         >
           Matches
@@ -90,8 +90,8 @@ export function TextTabs({
           className={[
             "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
             activeTab === "ground-truth"
-              ? "border-blue-500 text-blue-600"
-              : "border-transparent text-gray-600 hover:text-gray-900",
+              ? "border-accent text-accent"
+              : "border-transparent text-ink-2 hover:text-ink-1",
           ].join(" ")}
         >
           Ground Truth
@@ -105,8 +105,8 @@ export function TextTabs({
           className={[
             "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
             activeTab === "ocr"
-              ? "border-blue-500 text-blue-600"
-              : "border-transparent text-gray-600 hover:text-gray-900",
+              ? "border-accent text-accent"
+              : "border-transparent text-ink-2 hover:text-ink-1",
           ].join(" ")}
         >
           OCR
@@ -123,7 +123,7 @@ export function TextTabs({
         {/* Filter segmented control — only visible in the matches tab */}
         <div
           data-testid="match-filter-toggle"
-          className="flex gap-1 p-2 bg-gray-50 border-b border-gray-200 shrink-0"
+          className="flex gap-1 p-2 bg-bg-raised border-b border-border-1 shrink-0"
         >
           {FILTER_OPTIONS.map((opt) => (
             <button
@@ -134,8 +134,8 @@ export function TextTabs({
               className={[
                 "px-3 py-1 text-xs rounded font-medium transition-colors",
                 lineFilter === opt.value
-                  ? "bg-blue-500 text-white"
-                  : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-100",
+                  ? "bg-accent text-accent-ink"
+                  : "bg-bg-surface text-ink-2 border border-border-2 hover:bg-bg-raised",
               ].join(" ")}
             >
               {opt.label}
@@ -156,7 +156,7 @@ export function TextTabs({
           data-testid="text-panel-ground-truth"
           readOnly
           value={pageTextGt ?? ""}
-          className="flex-1 resize-none font-mono text-sm p-2 border border-gray-200 rounded bg-gray-50 focus:outline-none"
+          className="flex-1 resize-none font-mono text-sm p-2 border border-border-1 rounded bg-bg-sunk focus:outline-none"
           aria-label="Ground truth text"
         />
       </div>
@@ -172,7 +172,7 @@ export function TextTabs({
           data-testid="text-panel-ocr"
           readOnly
           value={pageTextOcr ?? ""}
-          className="flex-1 resize-none font-mono text-sm p-2 border border-gray-200 rounded bg-gray-50 focus:outline-none"
+          className="flex-1 resize-none font-mono text-sm p-2 border border-border-1 rounded bg-bg-sunk focus:outline-none"
           aria-label="OCR text"
         />
       </div>

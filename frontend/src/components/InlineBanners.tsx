@@ -14,6 +14,24 @@
 
 import React from "react";
 
+const variantStyles: Record<string, React.CSSProperties> = {
+  error: {
+    color: "var(--status-mismatch)",
+    background: "color-mix(in srgb, var(--status-mismatch) 8%, var(--bg-surface))",
+    borderColor: "color-mix(in srgb, var(--status-mismatch) 33%, transparent)",
+  },
+  warning: {
+    color: "var(--status-fuzzy)",
+    background: "color-mix(in srgb, var(--status-fuzzy) 8%, var(--bg-surface))",
+    borderColor: "color-mix(in srgb, var(--status-fuzzy) 33%, transparent)",
+  },
+  info: {
+    color: "var(--status-ocr)",
+    background: "color-mix(in srgb, var(--status-ocr) 8%, var(--bg-surface))",
+    borderColor: "color-mix(in srgb, var(--status-ocr) 33%, transparent)",
+  },
+};
+
 /** Icon — triangle warning. */
 function WarningIcon() {
   return (
@@ -40,16 +58,12 @@ interface AlertBannerProps {
 }
 
 function AlertBanner({ testId, variant = "error", children }: AlertBannerProps) {
-  const variantClasses: Record<string, string> = {
-    error: "bg-red-50 border-red-300 text-red-800",
-    warning: "bg-yellow-50 border-yellow-300 text-yellow-800",
-    info: "bg-blue-50 border-blue-300 text-blue-800",
-  };
   return (
     <div
       data-testid={testId}
       role="alert"
-      className={`flex items-start gap-2 rounded-md border px-4 py-3 text-sm ${variantClasses[variant]}`}
+      className="flex items-start gap-2 rounded-md border px-4 py-3 text-sm"
+      style={variantStyles[variant] ?? variantStyles.error}
     >
       <WarningIcon />
       <span>{children}</span>

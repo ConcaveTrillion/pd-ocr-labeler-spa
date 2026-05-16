@@ -43,10 +43,10 @@ const PAGE_SOURCE_LABELS: Record<PageSource, string> = {
 
 /** Tailwind color classes per source value. */
 const PAGE_SOURCE_COLORS: Record<PageSource, string> = {
-  ocr: "bg-blue-100 text-blue-800",
-  cached_ocr: "bg-purple-100 text-purple-800",
-  filesystem: "bg-green-100 text-green-800",
-  fallback: "bg-red-100 text-red-800",
+  ocr: "text-status-ocr",
+  cached_ocr: "text-ink-3",
+  filesystem: "text-status-exact",
+  fallback: "text-status-mismatch",
 };
 
 interface PageActionsProps {
@@ -127,7 +127,7 @@ export function PageActions({
   return (
     <div
       data-testid="page-actions-bar"
-      className="flex items-center gap-1 px-2 py-1 bg-gray-100 border-b border-gray-200 flex-wrap"
+      className="flex items-center gap-1 px-2 py-1 bg-bg-raised border-b border-border-1 flex-wrap"
     >
       {/* Left: action buttons */}
       <div className="flex items-center gap-1 flex-wrap">
@@ -224,7 +224,7 @@ export function PageActions({
         {pageName && (
           <span
             data-testid="page-name-label"
-            className="text-xs text-gray-600 font-mono"
+            className="text-xs text-ink-2 font-mono"
             title={pageName}
           >
             {pageName}
@@ -233,9 +233,10 @@ export function PageActions({
 
         <span
           data-testid="page-source-badge"
-          className={["px-2 py-0.5 text-xs font-semibold rounded", PAGE_SOURCE_COLORS[source]].join(
-            " ",
-          )}
+          className={[
+            "px-2 py-0.5 text-xs font-semibold rounded bg-bg-raised",
+            PAGE_SOURCE_COLORS[source],
+          ].join(" ")}
         >
           {PAGE_SOURCE_LABELS[source]}
         </span>
@@ -245,7 +246,13 @@ export function PageActions({
             Clicking auto badge reverts (fires onRotateRevert). */}
         <button
           data-testid="rotation-badge"
-          style={isRotated ? undefined : { display: "none" }}
+          style={
+            !isRotated
+              ? { display: "none" }
+              : rotationSource === "manual"
+                ? { background: "color-mix(in srgb, var(--status-ocr) 8%, var(--bg-surface))" }
+                : { background: "var(--bg-raised)" }
+          }
           onClick={rotationSource === "auto" ? onRotateRevert : undefined}
           disabled={rotationSource !== "auto" || isBusy}
           aria-label={
@@ -260,7 +267,7 @@ export function PageActions({
           }
           className={[
             "px-2 py-0.5 text-xs font-semibold rounded",
-            rotationSource === "manual" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800",
+            rotationSource === "manual" ? "text-accent" : "text-ink-3",
             "disabled:cursor-default",
           ].join(" ")}
         >
@@ -301,7 +308,7 @@ function ActionButton({
       title={title}
       aria-label={ariaLabel}
       style={style}
-      className="px-2 py-1 text-xs rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      className="px-2 py-1 text-xs rounded border border-border-2 bg-bg-surface hover:bg-bg-raised disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
     >
       {children}
     </button>
@@ -309,7 +316,7 @@ function ActionButton({
 }
 
 function Separator() {
-  return <div className="w-px h-5 bg-gray-300 mx-1" aria-hidden="true" />;
+  return <div className="w-px h-5 bg-border-2 mx-1" aria-hidden="true" />;
 }
 
 // ─── PageActionsCompact ────────────────────────────────────────────────────────

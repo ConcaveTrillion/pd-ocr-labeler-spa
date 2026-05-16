@@ -186,16 +186,16 @@ export function ToolbarActionGrid({
   return (
     <div
       data-testid="toolbar-action-grid"
-      className="flex flex-col gap-1 p-1 bg-gray-50 border-b border-gray-200 text-xs"
+      className="flex flex-col gap-1 p-1 bg-bg-raised border-b border-border-1 text-xs"
     >
       {/* 4 × 14 action grid */}
       <div className="grid" style={{ gridTemplateColumns: "4rem repeat(14, minmax(0, 1fr))" }}>
         {/* Column headers */}
-        <div className="px-1 py-0.5 text-gray-400 font-medium text-center" />
+        <div className="px-1 py-0.5 text-ink-4 font-medium text-center" />
         {ACTIONS.map((action) => (
           <div
             key={action}
-            className="px-0.5 py-0.5 text-gray-400 text-center truncate"
+            className="px-0.5 py-0.5 text-ink-4 text-center truncate"
             title={ACTION_LABELS[action]}
           >
             {ACTION_LABELS[action]}
@@ -209,7 +209,7 @@ export function ToolbarActionGrid({
             // Row label
             <div
               key={`${scope}-label`}
-              className="px-1 py-0.5 text-gray-600 font-medium capitalize self-center"
+              className="px-1 py-0.5 text-ink-2 font-medium capitalize self-center"
             >
               {scope}
             </div>,
@@ -237,8 +237,8 @@ export function ToolbarActionGrid({
                     isStub
                       ? "border-transparent bg-transparent text-transparent cursor-default"
                       : isEnabled
-                        ? "border-gray-300 bg-white hover:bg-blue-50 hover:border-blue-400 text-gray-700"
-                        : "border-gray-200 bg-gray-100 text-gray-300 cursor-default",
+                        ? "border-border-2 bg-bg-surface hover:bg-bg-raised hover:border-accent text-ink-2"
+                        : "border-border-1 bg-bg-raised text-ink-4 cursor-default",
                   ].join(" ")}
                 >
                   {isStub ? "·" : ACTION_LABELS[action]}
@@ -253,7 +253,7 @@ export function ToolbarActionGrid({
       <div className="flex items-center gap-2 px-1 py-0.5 flex-wrap">
         <select
           data-testid="apply-style-select"
-          className="text-xs border border-gray-300 rounded px-1 py-0.5 bg-white"
+          className="text-xs border border-border-2 rounded px-1 py-0.5 bg-bg-sunk"
           aria-label="Text style"
           defaultValue=""
         >
@@ -269,7 +269,7 @@ export function ToolbarActionGrid({
 
         <select
           data-testid="apply-scope-select"
-          className="text-xs border border-gray-300 rounded px-1 py-0.5 bg-white"
+          className="text-xs border border-border-2 rounded px-1 py-0.5 bg-bg-sunk"
           aria-label="Apply scope"
           defaultValue="whole"
         >
@@ -279,7 +279,7 @@ export function ToolbarActionGrid({
 
         <select
           data-testid="apply-component-select"
-          className="text-xs border border-gray-300 rounded px-1 py-0.5 bg-white"
+          className="text-xs border border-border-2 rounded px-1 py-0.5 bg-bg-sunk"
           aria-label="Word component"
           defaultValue=""
         >
@@ -296,7 +296,7 @@ export function ToolbarActionGrid({
         <button
           data-testid="apply-style-button"
           onClick={onApplyStyle}
-          className="px-2 py-0.5 text-xs rounded border border-gray-300 bg-white hover:bg-blue-50 hover:border-blue-400 text-gray-700 transition-colors"
+          className="px-2 py-0.5 text-xs rounded border border-border-2 bg-bg-surface hover:bg-bg-raised hover:border-accent text-ink-2 transition-colors"
         >
           Apply
         </button>
@@ -304,7 +304,7 @@ export function ToolbarActionGrid({
         <button
           data-testid="clear-style-button"
           onClick={onClearStyle}
-          className="px-2 py-0.5 text-xs rounded border border-gray-300 bg-white hover:bg-red-50 hover:border-red-400 text-gray-700 transition-colors"
+          className="px-2 py-0.5 text-xs rounded border border-border-2 bg-bg-surface hover:bg-bg-raised hover:border-status-mismatch text-ink-2 transition-colors"
         >
           Clear
         </button>
@@ -320,8 +320,8 @@ export function ToolbarActionGrid({
           className={[
             "px-2 py-0.5 text-xs rounded border transition-colors",
             addWordActive
-              ? "bg-green-500 text-white border-green-600 hover:bg-green-600"
-              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50",
+              ? "bg-accent text-accent-ink border-accent hover:opacity-90"
+              : "bg-bg-surface text-ink-2 border-border-2 hover:bg-bg-raised",
           ].join(" ")}
         >
           Add Word
