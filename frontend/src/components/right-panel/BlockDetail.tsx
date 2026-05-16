@@ -689,6 +689,16 @@ function BlockDetailInner({ page, level, paraId, projectId, pageIndex }: BlockDe
         paragraphIndex: paraId,
         layoutType: pendingLayout,
       });
+    } else {
+      // Block-scope: apply layout to all paragraphs in the current selection.
+      for (const key of paraGroups.keys()) {
+        if (key !== null) {
+          patchParagraph.mutate({
+            paragraphIndex: key,
+            layoutType: pendingLayout,
+          });
+        }
+      }
     }
   }
 
@@ -701,6 +711,16 @@ function BlockDetailInner({ page, level, paraId, projectId, pageIndex }: BlockDe
         paragraphIndex: paraId,
         layoutType: suggestedLayout,
       });
+    } else {
+      // Block-scope: apply suggestion to all paragraphs in the current selection.
+      for (const key of paraGroups.keys()) {
+        if (key !== null) {
+          patchParagraph.mutate({
+            paragraphIndex: key,
+            layoutType: suggestedLayout,
+          });
+        }
+      }
     }
   }
 

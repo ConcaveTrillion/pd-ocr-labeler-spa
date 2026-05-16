@@ -3,7 +3,7 @@
 // Gaps tested: 47 (glyph cards), 48 (model-suggest callout), 49 (preview),
 //              50 (Items View sub-toggle), 51 (Para layout tab).
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -336,6 +336,62 @@ describe("BlockDetail P5.g — Gap 51: Para layout tab + scope", () => {
     const { level: selLevel, path } = selectionStore.getState();
     expect(selLevel).toBe("para");
     expect(path.paraId).toBe(1);
+  });
+});
+
+// ─── R2: handleSaveLayout applies to all paragraphs at block scope ───────────
+
+describe("BlockDetail R2 — block-scope Save applies layout to all paragraphs", () => {
+  beforeEach(() => {
+    clearSelection();
+    selectBlock("b1");
+  });
+
+  it("clicking Save at block scope calls PATCH for every paragraph index in paraGroups", async () => {
+    const user = userEvent.setup();
+    const patchedParagraphs: number[] = [];
+
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.includes("/paragraphs/") && init?.method === "PATCH") {
+          const match = /\/paragraphs\/(\d+)/.exec(url);
+          if (match) patchedParagraphs.push(Number(match[1]));
+        }
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              project_id: "p1",
+              page_index: 0,
+              line_filter: "all",
+              generation: 1,
+              line_matches: [],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        );
+      });
+
+    renderWithQuery(<BlockDetail page={makePage()} projectId="p1" pageIndex={0} level="block" />);
+
+    // Select a layout different from the default (body-text) so save is enabled.
+    await user.click(screen.getByTestId("block-detail-layout-chip-heading"));
+    const saveBtn = screen.getByTestId("block-detail-layout-save");
+    expect(saveBtn).not.toBeDisabled();
+
+    await user.click(saveBtn);
+
+    // Wait for async mutations to fire.
+    await new Promise((r) => setTimeout(r, 50));
+
+    // makePage() has two distinct paragraph_index values: 0 and 1.
+    // Both paragraphs must be patched.
+    expect(patchedParagraphs).toContain(0);
+    expect(patchedParagraphs).toContain(1);
+    expect(patchedParagraphs).toHaveLength(2);
+
+    fetchSpy.mockRestore();
   });
 });
 
