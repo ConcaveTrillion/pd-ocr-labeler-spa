@@ -796,7 +796,7 @@ function BlockDetailInner({ page, level, paraId, projectId, pageIndex }: BlockDe
 
               {/* Save error */}
               {patchParagraph.isError && (
-                <p className="text-[10px] text-red-500 italic">
+                <p className="text-[10px] text-status-mismatch italic">
                   Failed to save layout type. Try again.
                 </p>
               )}

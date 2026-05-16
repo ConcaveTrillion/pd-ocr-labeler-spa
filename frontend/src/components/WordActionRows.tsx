@@ -68,10 +68,10 @@ function ActionBtn({
       className={[
         "px-2 py-1 text-xs rounded border transition-colors",
         disabled
-          ? "border-gray-200 bg-gray-50 text-gray-300 cursor-default"
+          ? "border-border-1 bg-bg-raised text-ink-4 cursor-default"
           : danger
-            ? "border-red-300 bg-white text-red-600 hover:bg-red-50"
-            : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
+            ? "border-status-mismatch bg-bg-surface text-status-mismatch hover:bg-bg-raised"
+            : "border-border-2 bg-bg-surface text-ink-2 hover:bg-bg-raised",
       ].join(" ")}
     >
       {label}
@@ -84,7 +84,7 @@ function ActionBtn({
 // ---------------------------------------------------------------------------
 
 function RowLabel({ label }: { label: string }) {
-  return <span className="text-xs text-gray-500 w-14 shrink-0 font-medium">{label}</span>;
+  return <span className="text-xs text-ink-3 w-14 shrink-0 font-medium">{label}</span>;
 }
 
 // ---------------------------------------------------------------------------
@@ -114,7 +114,7 @@ export function WordActionRows({
   }
 
   return (
-    <div className="flex flex-col gap-1.5 w-full pt-1 border-t border-gray-100">
+    <div className="flex flex-col gap-1.5 w-full pt-1 border-t border-border-1">
       {/* Merge row */}
       <div className="flex items-center gap-1.5">
         <RowLabel label="Merge" />
@@ -147,7 +147,7 @@ export function WordActionRows({
           disabled={busy !== null}
           onClick={() => run("split-v", () => onSplit?.(splitFraction, "v") ?? Promise.resolve())}
         />
-        <span className="text-xs text-gray-400 ml-1">at {Math.round(splitFraction * 100)}%</span>
+        <span className="text-xs text-ink-4 ml-1">at {Math.round(splitFraction * 100)}%</span>
       </div>
 
       {/* Delete row */}
@@ -195,7 +195,7 @@ export function WordActionRows({
             run("crop-right", () => onCrop?.("right", cropPadding) ?? Promise.resolve())
           }
         />
-        <label className="flex items-center gap-1 text-xs text-gray-500">
+        <label className="flex items-center gap-1 text-xs text-ink-3">
           pad
           <input
             data-testid="dialog-crop-padding-input"

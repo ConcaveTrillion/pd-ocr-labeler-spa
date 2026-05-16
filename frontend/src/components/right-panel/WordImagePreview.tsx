@@ -76,7 +76,7 @@ export function WordImagePreview({ word, imageUrl }: WordImagePreviewProps) {
       <div
         data-testid="word-image-preview-box"
         className="w-full h-[76px] rounded border border-border-2 overflow-hidden flex items-center justify-center"
-        style={{ background: "rgb(253, 251, 246)" }}
+        style={{ background: "var(--bg-sunk)" }}
       >
         {imageUrl ? (
           /* When a real image URL is available, show it */

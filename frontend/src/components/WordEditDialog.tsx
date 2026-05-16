@@ -158,12 +158,12 @@ export function WordEditDialog({
       }}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 flex flex-col overflow-hidden"
+        className="bg-bg-surface rounded-lg border border-border-2 w-full max-w-2xl mx-4 flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50 shrink-0">
-          <span data-testid="dialog-header-label" className="text-sm font-semibold text-gray-800">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border-1 bg-bg-raised shrink-0">
+          <span data-testid="dialog-header-label" className="text-sm font-semibold text-ink-1">
             Edit Line {lineIndex}, Word {wordIndex}
           </span>
           <div className="flex items-center gap-2">
@@ -171,7 +171,7 @@ export function WordEditDialog({
               data-testid="dialog-apply-close-button"
               onClick={handleApplyClose}
               title="Apply changes and close (Shift+Enter)"
-              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded bg-accent text-accent-ink hover:opacity-90 transition-opacity"
             >
               <span aria-hidden="true">✓</span>
               Apply &amp; Close
@@ -181,7 +181,7 @@ export function WordEditDialog({
               onClick={onClose}
               title="Discard changes and close"
               aria-label="Close dialog"
-              className="px-2 py-1.5 text-lg text-gray-500 hover:text-gray-800 hover:bg-gray-200 rounded transition-colors"
+              className="px-2 py-1.5 text-lg text-ink-3 hover:text-ink-1 hover:bg-bg-raised rounded transition-colors"
             >
               ×
             </button>
@@ -189,7 +189,7 @@ export function WordEditDialog({
         </div>
 
         {/* 3-column preview row */}
-        <div className="flex items-stretch gap-2 px-4 py-3 border-b border-gray-200 shrink-0">
+        <div className="flex items-stretch gap-2 px-4 py-3 border-b border-border-1 shrink-0">
           {/* Prev word */}
           <div className="flex flex-col items-center gap-1 flex-1">
             <button
@@ -200,8 +200,8 @@ export function WordEditDialog({
               className={[
                 "px-2 py-1 text-xs rounded border transition-colors",
                 hasPrev
-                  ? "border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
-                  : "border-gray-200 bg-gray-50 text-gray-300 cursor-default",
+                  ? "border-border-2 bg-bg-surface hover:bg-bg-raised text-ink-2"
+                  : "border-border-1 bg-bg-raised text-ink-4 cursor-default",
               ].join(" ")}
             >
               ← Prev
@@ -210,7 +210,7 @@ export function WordEditDialog({
               data-testid="dialog-prev-word"
               className={[
                 "w-full min-h-[3rem] flex items-center justify-center rounded border p-2 text-sm font-mono",
-                "bg-gray-50 text-gray-500 border-gray-200",
+                "bg-bg-raised text-ink-3 border-border-1",
                 !hasPrev ? "opacity-30" : "",
               ].join(" ")}
             >
@@ -220,10 +220,11 @@ export function WordEditDialog({
 
           {/* Current word (highlighted) */}
           <div className="flex flex-col items-center gap-1 flex-[2]">
-            <div className="text-xs text-gray-400 font-medium">Current</div>
+            <div className="text-xs text-ink-4 font-medium">Current</div>
             <div
               data-testid="dialog-current-word"
-              className="w-full min-h-[3rem] flex items-center justify-center rounded border-2 border-blue-500 bg-blue-50 p-2 text-sm font-mono font-semibold text-blue-900 shadow-sm"
+              className="w-full min-h-[3rem] flex items-center justify-center rounded border-2 border-accent p-2 text-sm font-mono font-semibold text-ink-1"
+              style={{ background: "color-mix(in srgb, var(--status-ocr) 8%, var(--bg-surface))" }}
             >
               {currentWord}
             </div>
@@ -239,8 +240,8 @@ export function WordEditDialog({
               className={[
                 "px-2 py-1 text-xs rounded border transition-colors",
                 hasNext
-                  ? "border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
-                  : "border-gray-200 bg-gray-50 text-gray-300 cursor-default",
+                  ? "border-border-2 bg-bg-surface hover:bg-bg-raised text-ink-2"
+                  : "border-border-1 bg-bg-raised text-ink-4 cursor-default",
               ].join(" ")}
             >
               Next →
@@ -249,7 +250,7 @@ export function WordEditDialog({
               data-testid="dialog-next-word"
               className={[
                 "w-full min-h-[3rem] flex items-center justify-center rounded border p-2 text-sm font-mono",
-                "bg-gray-50 text-gray-500 border-gray-200",
+                "bg-bg-raised text-ink-3 border-border-1",
                 !hasNext ? "opacity-30" : "",
               ].join(" ")}
             >

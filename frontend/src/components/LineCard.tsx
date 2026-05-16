@@ -23,32 +23,35 @@
 //   count-chip-exact / count-chip-fuzzy / count-chip-mismatch /
 //   count-chip-unmatched_gt / count-chip-unmatched_ocr
 
+import type React from "react";
 import type { components } from "../api/types";
 
 type LineMatch = components["schemas"]["LineMatch"];
 type MatchStatus = components["schemas"]["MatchStatus"];
 
-const STATUS_BG: Record<MatchStatus, string> = {
-  exact: "bg-green-100",
-  fuzzy: "bg-yellow-100",
-  mismatch: "bg-red-100",
-  unmatched_ocr: "bg-gray-100",
-  unmatched_gt: "bg-blue-100",
+const STATUS_BG_STYLE: Record<MatchStatus, React.CSSProperties> = {
+  exact: { background: "color-mix(in srgb, var(--status-exact) 12%, var(--bg-surface))" },
+  fuzzy: { background: "color-mix(in srgb, var(--status-fuzzy) 12%, var(--bg-surface))" },
+  mismatch: { background: "color-mix(in srgb, var(--status-mismatch) 12%, var(--bg-surface))" },
+  unmatched_ocr: { background: "var(--bg-raised)" },
+  unmatched_gt: { background: "color-mix(in srgb, var(--status-ocr) 8%, var(--bg-surface))" },
 };
 
 interface CountChipProps {
   kind: "exact" | "fuzzy" | "mismatch" | "unmatched_gt" | "unmatched_ocr";
   count: number;
   label: string;
-  colorClass: string;
+  chipStyle: React.CSSProperties;
+  textClass: string;
 }
 
-function CountChip({ kind, count, label, colorClass }: CountChipProps) {
+function CountChip({ kind, count, label, chipStyle, textClass }: CountChipProps) {
   if (count === 0) return null;
   return (
     <span
       data-testid={`count-chip-${kind}`}
-      className={`px-1.5 py-0.5 text-xs font-medium rounded ${colorClass}`}
+      className={`px-1.5 py-0.5 text-xs font-medium rounded ${textClass}`}
+      style={chipStyle}
       title={`${count} ${label}`}
     >
       {count}
@@ -82,18 +85,19 @@ export function LineCard({
   onCopyOcrToGt,
   onDelete,
 }: LineCardProps) {
-  const bgClass = STATUS_BG[line.overall_match_status] ?? "bg-gray-50";
+  const bgStyle = STATUS_BG_STYLE[line.overall_match_status] ?? { background: "var(--bg-raised)" };
   const isExact = line.overall_match_status === "exact";
 
   return (
     <div
       data-testid={`line-card-${line.line_index}`}
-      className="border border-gray-200 rounded mb-1 overflow-hidden"
+      className="border border-border-1 rounded mb-1 overflow-hidden"
     >
       {/* Header */}
       <div
         data-testid={`line-card-${line.line_index}-header`}
-        className={`flex items-center gap-1 px-2 py-1 ${bgClass}`}
+        className="flex items-center gap-1 px-2 py-1"
+        style={bgStyle}
       >
         {/* Count chips */}
         <div className="flex items-center gap-0.5 flex-1">
@@ -101,31 +105,44 @@ export function LineCard({
             kind="exact"
             count={line.exact_count}
             label="exact"
-            colorClass="bg-green-200 text-green-800"
+            chipStyle={{
+              background: "color-mix(in srgb, var(--status-exact) 20%, var(--bg-surface))",
+            }}
+            textClass="text-status-exact"
           />
           <CountChip
             kind="fuzzy"
             count={line.fuzzy_count}
             label="fuzzy"
-            colorClass="bg-yellow-200 text-yellow-800"
+            chipStyle={{
+              background: "color-mix(in srgb, var(--status-fuzzy) 20%, var(--bg-surface))",
+            }}
+            textClass="text-status-fuzzy"
           />
           <CountChip
             kind="mismatch"
             count={line.mismatch_count}
             label="mismatch"
-            colorClass="bg-red-200 text-red-800"
+            chipStyle={{
+              background: "color-mix(in srgb, var(--status-mismatch) 20%, var(--bg-surface))",
+            }}
+            textClass="text-status-mismatch"
           />
           <CountChip
             kind="unmatched_gt"
             count={line.unmatched_gt_count}
             label="unmatched GT"
-            colorClass="bg-blue-200 text-blue-800"
+            chipStyle={{
+              background: "color-mix(in srgb, var(--status-ocr) 20%, var(--bg-surface))",
+            }}
+            textClass="text-status-ocr"
           />
           <CountChip
             kind="unmatched_ocr"
             count={line.unmatched_ocr_count}
             label="unmatched OCR"
-            colorClass="bg-gray-200 text-gray-800"
+            chipStyle={{ background: "var(--bg-raised)" }}
+            textClass="text-ink-2"
           />
         </div>
 
@@ -136,7 +153,7 @@ export function LineCard({
             <>
               <button
                 data-testid={`line-gt-to-ocr-button-${line.line_index}`}
-                className="px-1.5 py-0.5 text-xs border border-gray-300 rounded bg-white hover:bg-gray-50"
+                className="px-1.5 py-0.5 text-xs border border-border-2 rounded bg-bg-surface hover:bg-bg-raised"
                 onClick={() => onCopyGtToOcr?.(line.line_index)}
                 title="Copy GT to OCR"
               >
@@ -144,7 +161,7 @@ export function LineCard({
               </button>
               <button
                 data-testid={`line-ocr-to-gt-button-${line.line_index}`}
-                className="px-1.5 py-0.5 text-xs border border-gray-300 rounded bg-white hover:bg-gray-50"
+                className="px-1.5 py-0.5 text-xs border border-border-2 rounded bg-bg-surface hover:bg-bg-raised"
                 onClick={() => onCopyOcrToGt?.(line.line_index)}
                 title="Copy OCR to GT"
               >
@@ -155,7 +172,7 @@ export function LineCard({
 
           <button
             data-testid={`line-validate-button-${line.line_index}`}
-            className="px-1.5 py-0.5 text-xs border border-gray-300 rounded bg-white hover:bg-gray-50"
+            className="px-1.5 py-0.5 text-xs border border-border-2 rounded bg-bg-surface hover:bg-bg-raised"
             onClick={() => onValidate?.(line.line_index, !line.is_fully_validated)}
           >
             {line.is_fully_validated ? "Unvalidate" : "Validate"}
@@ -163,7 +180,7 @@ export function LineCard({
 
           <button
             data-testid={`line-delete-button-${line.line_index}`}
-            className="px-1.5 py-0.5 text-xs border border-red-300 text-red-600 rounded bg-white hover:bg-red-50"
+            className="px-1.5 py-0.5 text-xs border border-status-mismatch/50 text-status-mismatch rounded bg-bg-surface hover:bg-bg-raised"
             onClick={() => onDelete?.(line.line_index)}
             title="Delete line"
           >
@@ -173,8 +190,8 @@ export function LineCard({
       </div>
 
       {/* OCR text preview */}
-      <div className="px-2 py-1 text-xs font-mono text-gray-600 bg-white truncate">
-        {line.ocr_line_text || <span className="text-gray-400 italic">(empty)</span>}
+      <div className="px-2 py-1 text-xs font-mono text-ink-2 bg-bg-surface truncate">
+        {line.ocr_line_text || <span className="text-ink-4 italic">(empty)</span>}
       </div>
     </div>
   );

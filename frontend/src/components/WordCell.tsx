@@ -37,11 +37,11 @@ const STATUS_ICON: Record<MatchStatus, string> = {
 };
 
 const STATUS_COLOR: Record<MatchStatus, string> = {
-  exact: "text-green-600",
-  fuzzy: "text-yellow-600",
-  mismatch: "text-red-600",
-  unmatched_ocr: "text-gray-500",
-  unmatched_gt: "text-blue-500",
+  exact: "text-status-exact",
+  fuzzy: "text-status-fuzzy",
+  mismatch: "text-status-mismatch",
+  unmatched_ocr: "text-ink-3",
+  unmatched_gt: "text-status-ocr",
 };
 
 export interface WordCellProps {
@@ -85,7 +85,7 @@ export function WordCell({ word, onCommitGt }: WordCellProps) {
     }
   }
 
-  const statusColor = STATUS_COLOR[word.match_status] ?? "text-gray-500";
+  const statusColor = STATUS_COLOR[word.match_status] ?? "text-ink-3";
   const statusIcon = STATUS_ICON[word.match_status] ?? "?";
   const l = word.line_index;
   const w = word.word_index ?? 0;
@@ -94,7 +94,7 @@ export function WordCell({ word, onCommitGt }: WordCellProps) {
     <div
       data-testid={`word-cell-${wordId}`}
       data-testid-alias={`word-image-cell-${l}-${w}`}
-      className="border border-gray-100 rounded p-1 flex flex-col gap-0.5 min-w-16 max-w-32"
+      className="border border-border-1 rounded p-1 flex flex-col gap-0.5 min-w-16 max-w-32"
     >
       {/* Row 1: status icon + validated indicator + edit button stub */}
       <div className="flex items-center justify-between">
@@ -108,7 +108,7 @@ export function WordCell({ word, onCommitGt }: WordCellProps) {
         </span>
         <div className="flex items-center gap-0.5">
           {word.is_validated && (
-            <span className="text-xs text-green-600" title="Validated" aria-label="Validated">
+            <span className="text-xs text-status-exact" title="Validated" aria-label="Validated">
               ✔
             </span>
           )}
@@ -116,7 +116,7 @@ export function WordCell({ word, onCommitGt }: WordCellProps) {
           <button
             data-testid={`edit-word-button-${l}-${w}`}
             aria-label={`Edit word ${w} in line ${l}`}
-            className="text-[10px] text-gray-400 hover:text-gray-700 px-0.5 leading-none"
+            className="text-[10px] text-ink-4 hover:text-ink-1 px-0.5 leading-none"
             title="Edit word"
           >
             ✎
@@ -127,10 +127,10 @@ export function WordCell({ word, onCommitGt }: WordCellProps) {
       {/* Row 3: OCR text */}
       <div
         data-testid={`ocr-text-label-${l}-${w}`}
-        className="text-xs font-mono text-gray-700 truncate"
+        className="text-xs font-mono text-ink-2 truncate"
         title={word.ocr_text}
       >
-        {word.ocr_text || <span className="text-gray-300 italic">∅</span>}
+        {word.ocr_text || <span className="text-ink-4 italic">∅</span>}
       </div>
 
       {/* Tag chips: style labels (blue tint) + component labels (green tint) */}
@@ -141,7 +141,7 @@ export function WordCell({ word, onCommitGt }: WordCellProps) {
               key={`style-${label}`}
               data-testid={`word-tag-chip-${l}-${w}-${label}`}
               className="word-tag-chip px-1 py-0 text-[10px] rounded"
-              style={{ backgroundColor: "#e7f0ff" }}
+              style={{ background: "color-mix(in srgb, var(--status-ocr) 12%, var(--bg-raised))" }}
               title={`Style: ${label}`}
             >
               {label}
@@ -152,7 +152,9 @@ export function WordCell({ word, onCommitGt }: WordCellProps) {
               key={`comp-${comp}`}
               data-testid={`word-tag-chip-${l}-${w}-${comp}`}
               className="word-tag-chip px-1 py-0 text-[10px] rounded"
-              style={{ backgroundColor: "#e7f8ee" }}
+              style={{
+                background: "color-mix(in srgb, var(--status-exact) 12%, var(--bg-raised))",
+              }}
               title={`Component: ${comp}`}
             >
               {comp}
@@ -169,13 +171,13 @@ export function WordCell({ word, onCommitGt }: WordCellProps) {
         value={gtValue}
         onChange={(e) => setGtValue(e.target.value)}
         onBlur={handleBlur}
-        className="w-full text-xs border border-gray-200 rounded px-1 py-0.5 font-mono focus:outline-none focus:border-blue-400"
+        className="w-full text-xs border border-border-1 rounded px-1 py-0.5 font-mono focus:outline-none focus:border-accent"
         aria-label={`Ground truth for "${word.ocr_text}"`}
       />
 
       {/* Row 5: fuzz score (shown only for fuzzy matches) */}
       {word.match_status === "fuzzy" && word.fuzz_score != null && (
-        <div className="text-[10px] text-gray-400 text-right">
+        <div className="text-[10px] text-ink-4 text-right">
           {Math.round(word.fuzz_score * 100)}%
         </div>
       )}

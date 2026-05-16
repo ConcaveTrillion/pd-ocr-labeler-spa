@@ -85,10 +85,10 @@ function SmallBtn({
       className={[
         "px-2 py-1 text-xs rounded border transition-colors",
         disabled
-          ? "border-gray-200 bg-gray-50 text-gray-300 cursor-default"
+          ? "border-border-1 bg-bg-raised text-ink-4 cursor-default"
           : danger
-            ? "border-red-300 bg-white text-red-600 hover:bg-red-50"
-            : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
+            ? "border-status-mismatch/50 bg-bg-surface text-status-mismatch hover:bg-bg-raised"
+            : "border-border-2 bg-bg-surface text-ink-2 hover:bg-bg-raised",
       ].join(" ")}
     >
       {label}
@@ -97,7 +97,7 @@ function SmallBtn({
 }
 
 function RowLabel({ label }: { label: string }) {
-  return <span className="text-xs text-gray-500 w-14 shrink-0 font-medium">{label}</span>;
+  return <span className="text-xs text-ink-3 w-14 shrink-0 font-medium">{label}</span>;
 }
 
 // ---------------------------------------------------------------------------
@@ -202,7 +202,7 @@ export const WordRefineNudgeRows = forwardRef<WordRefineNudgeRowsHandle, WordRef
                 label="L+"
                 onClick={() => addNudge("left", step)}
               />
-              <span className="px-1 text-xs text-gray-300 self-center">·</span>
+              <span className="px-1 text-xs text-ink-4 self-center">·</span>
               <SmallBtn
                 testId="dialog-nudge-right-minus"
                 label="R−"
@@ -230,7 +230,7 @@ export const WordRefineNudgeRows = forwardRef<WordRefineNudgeRowsHandle, WordRef
             {/* Delta display */}
             <div
               data-testid="dialog-nudge-display"
-              className="text-xs text-gray-500 text-center font-mono"
+              className="text-xs text-ink-3 text-center font-mono"
             >
               L:{pending.left} R:{pending.right} T:{pending.top} B:{pending.bottom}
             </div>

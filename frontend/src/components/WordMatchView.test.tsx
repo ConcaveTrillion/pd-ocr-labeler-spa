@@ -107,20 +107,27 @@ describe("WordMatchView", () => {
 // ─── LineCard ─────────────────────────────────────────────────────────────
 
 describe("LineCard", () => {
-  const STATUS_COLORS: Record<MatchStatus, string> = {
-    exact: "bg-green-100",
-    fuzzy: "bg-yellow-100",
-    mismatch: "bg-red-100",
-    unmatched_ocr: "bg-gray-100",
-    unmatched_gt: "bg-blue-100",
+  // Status backgrounds are now applied via inline style (color-mix tokens) rather than CSS classes.
+  // We verify the header renders with a background style attribute for each status.
+  const STATUS_STYLE_KEYWORDS: Record<MatchStatus, string> = {
+    exact: "status-exact",
+    fuzzy: "status-fuzzy",
+    mismatch: "status-mismatch",
+    unmatched_ocr: "bg-raised",
+    unmatched_gt: "status-ocr",
   };
 
-  for (const [status, expectedClass] of Object.entries(STATUS_COLORS) as [MatchStatus, string][]) {
-    it(`renders header with ${expectedClass} for status=${status}`, () => {
+  for (const [status, keyword] of Object.entries(STATUS_STYLE_KEYWORDS) as [
+    MatchStatus,
+    string,
+  ][]) {
+    it(`renders header with ${keyword} token for status=${status}`, () => {
       const line = makeLineMatch({ line_index: 5, overall_match_status: status });
       render(<LineCard line={line} />);
       const header = screen.getByTestId("line-card-5-header");
-      expect(header).toHaveClass(expectedClass);
+      // Header must have a style attribute containing the token or background property
+      const style = header.getAttribute("style") ?? "";
+      expect(style).toContain(keyword);
     });
   }
 
