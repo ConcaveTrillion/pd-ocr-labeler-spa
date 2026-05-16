@@ -1514,7 +1514,7 @@ removed.
 
 **Implications.**
 
-- `specs/21-konva-renderer.md` is the implementation spec; it
+- [`../docs/architecture/21-konva-renderer.md`](../docs/architecture/21-konva-renderer.md) is the implementation spec; it
   replaces `04-image-viewport.md` §0 ("research spike at M4 start").
 - `OPEN_QUESTIONS.md` Q-A14 is resolved: the spike is unnecessary.
   Move Q-A14 to `docs/archive/QUESTIONS_RESOLVED.md` in the same

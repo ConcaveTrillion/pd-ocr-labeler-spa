@@ -133,6 +133,14 @@ Specs are split into two trees as of 2026-05-14:
 | [`15-deployment-dev.md`](docs/architecture/15-deployment-dev.md) | Build, devcontainer, install |
 | [`18-text-normalization.md`](docs/architecture/18-text-normalization.md) | Long-S / ligature normalization |
 | [`19-auto-rotation.md`](docs/architecture/19-auto-rotation.md) | Manual + auto page rotation |
+| [`21-konva-renderer.md`](docs/architecture/21-konva-renderer.md) | Konva renderer for `PageImageCanvas` + `BBoxOverlay` |
+| [`22-page-surface-wireup.md`](docs/architecture/22-page-surface-wireup.md) | `ProjectPage` real labeling surface assembly |
+| [`23-page-payload-backend.md`](docs/architecture/23-page-payload-backend.md) | Real backend page payload + 19 mutation endpoints |
+| [`24-shell-layout.md`](docs/architecture/24-shell-layout.md) | Studio shell — Rail, Drawer, Breadcrumb, QuickSearch |
+| [`25-drawer-worklist.md`](docs/architecture/25-drawer-worklist.md) | Drawer — Worklist, Hierarchy, BulkActions |
+| [`26-right-panel-detail.md`](docs/architecture/26-right-panel-detail.md) | Right-panel detail views — Word / Line / Block |
+| [`27-right-panel-sections.md`](docs/architecture/27-right-panel-sections.md) | Right-panel action sections — BBox / Rebox / Erase / CharRanges / CharFixer / Structure |
+| [`28-palettes-pickers.md`](docs/architecture/28-palettes-pickers.md) | StylePalette, ComponentPalette, UnicodePicker, useLayerColors |
 
 ## Quick start (just run the labeler)
 

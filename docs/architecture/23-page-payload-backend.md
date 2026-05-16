@@ -1,7 +1,7 @@
 # 23 — Backend page payload + mutation endpoints
 
-> **Status**: Draft.
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#TBD
+> **Status**: Active (shipped — all spec-23-* child issues closed 2026-05-15).
+> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#291
 > **Depends on**: M3 OCR loader (shipped); `core/page_state.ensure_page_model`
 > dispatcher (shipped); `persist_page_to_file` (shipped #284).
 > **Last updated**: 2026-05-14
@@ -9,7 +9,7 @@
 Replaces the 501 stubs in `api/pages.py`, `api/words.py`,
 `api/lines_paragraphs.py` with real handlers. The frontend cannot
 operate until these return real data; the audit
-[`docs/PARITY_GAPS_2026_05_14.md` §2.3](../docs/PARITY_GAPS_2026_05_14.md)
+[`../PARITY_GAPS_2026_05_14.md` §2.3](../PARITY_GAPS_2026_05_14.md)
 shows that this is one of the two P0 backend-side gaps.
 
 ---
@@ -160,7 +160,7 @@ Wired in `_HANDLERS` dict in `runner.py:279`.
 wrapper over `pd_book_tools.matching` calls already used during
 initial OCR). Replaces `page.line_matches` with freshly-matched
 results; per-word GT edits are discarded (legacy semantics, per
-[`how-to-label-a-page.md`](../../pd-ocr-labeler/docs/usage/how-to-label-a-page.md)
+[`how-to-label-a-page.md`](../../../pd-ocr-labeler/docs/usage/how-to-label-a-page.md)
 §10).
 
 Body is empty (`RematchGtRequest` is intentionally empty).
@@ -353,10 +353,10 @@ A → B can run in parallel. C/D/E can run in parallel after A lands
 
 ## 17. Refs
 
-- Audit: [`docs/PARITY_GAPS_2026_05_14.md`](../docs/PARITY_GAPS_2026_05_14.md)
+- Audit: [`../PARITY_GAPS_2026_05_14.md`](../PARITY_GAPS_2026_05_14.md)
 - Existing helpers: `core/page_state.py`, `core/persistence/cached_envelope.py`,
   `core/persistence/ground_truth.py`, `core/jobs/runner.py`.
-- Spec 02 (backend): [`docs/architecture/02-backend.md`](../docs/architecture/02-backend.md) §5
-- Spec 09 (persistence): [`docs/architecture/09-persistence.md`](../docs/architecture/09-persistence.md)
-- Spec 11 (notifications): [`docs/architecture/11-notifications.md`](../docs/architecture/11-notifications.md)
+- Spec 02 (backend): [`02-backend.md`](02-backend.md) §5
+- Spec 09 (persistence): [`09-persistence.md`](09-persistence.md)
+- Spec 11 (notifications): [`11-notifications.md`](11-notifications.md)
 - pd-book-tools: `Word`, `Line`, `Page` mutation methods (delegated).

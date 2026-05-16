@@ -23,9 +23,6 @@ Specs are now organized into two trees:
 | 16 | [`16-milestones.md`](16-milestones.md) | M0…M9 milestone breakdown — living roadmap |
 | 17 | [`17-decisions.md`](17-decisions.md) | ADRs / decisions log — append-only |
 | 20 | [`20-glyph-annotations.md`](20-glyph-annotations.md) | Glyph-level annotations (open issues #267–#270, blocked on `pd-book-tools` upstream) |
-| 21 | [`21-konva-renderer.md`](21-konva-renderer.md) | Konva renderer for `PageImageCanvas` + `BBoxOverlay` (supersedes D-020 via D-043) |
-| 22 | [`22-page-surface-wireup.md`](22-page-surface-wireup.md) | Mount the real labeling surface in `ProjectPage` |
-| 23 | [`23-page-payload-backend.md`](23-page-payload-backend.md) | Real handlers for `GET /pages/{idx}` + 19 mutation endpoints |
 
 ## Implemented specs (under `docs/architecture/`)
 
@@ -49,6 +46,14 @@ Specs are now organized into two trees:
 | 15 | [`../docs/architecture/15-deployment-dev.md`](../docs/architecture/15-deployment-dev.md) | Build, devcontainer, install |
 | 18 | [`../docs/architecture/18-text-normalization.md`](../docs/architecture/18-text-normalization.md) | Long-S / ligature normalization (D-025) |
 | 19 | [`../docs/architecture/19-auto-rotation.md`](../docs/architecture/19-auto-rotation.md) | Manual + auto page rotation (D-029) |
+| 21 | [`../docs/architecture/21-konva-renderer.md`](../docs/architecture/21-konva-renderer.md) | Konva renderer for `PageImageCanvas` + `BBoxOverlay` (supersedes D-020 via D-043) |
+| 22 | [`../docs/architecture/22-page-surface-wireup.md`](../docs/architecture/22-page-surface-wireup.md) | Mount the real labeling surface in `ProjectPage` |
+| 23 | [`../docs/architecture/23-page-payload-backend.md`](../docs/architecture/23-page-payload-backend.md) | Real handlers for `GET /pages/{idx}` + 19 mutation endpoints |
+| 24 | [`../docs/architecture/24-shell-layout.md`](../docs/architecture/24-shell-layout.md) | Studio shell — 5-zone grid, Rail, Drawer, Breadcrumb, QuickSearch |
+| 25 | [`../docs/architecture/25-drawer-worklist.md`](../docs/architecture/25-drawer-worklist.md) | Drawer — Worklist, Hierarchy, BulkActions |
+| 26 | [`../docs/architecture/26-right-panel-detail.md`](../docs/architecture/26-right-panel-detail.md) | Right-panel detail views — WordDetail, LineDetail, BlockDetail |
+| 27 | [`../docs/architecture/27-right-panel-sections.md`](../docs/architecture/27-right-panel-sections.md) | Right-panel action sections — BBox / Rebox / Erase / CharRanges / CharFixer / Structure |
+| 28 | [`../docs/architecture/28-palettes-pickers.md`](../docs/architecture/28-palettes-pickers.md) | StylePalette, ComponentPalette, UnicodePicker, useLayerColors |
 
 ## Conventions in these specs
 

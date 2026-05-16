@@ -1,16 +1,16 @@
 # 22 — ProjectPage wireup — mount the real labeling surface
 
-> **Status**: Draft.
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#TBD
-> **Depends on**: [`specs/21-konva-renderer.md`](21-konva-renderer.md)
-> (real `PageImageCanvas` available), [`specs/23-page-payload-backend.md`](23-page-payload-backend.md)
+> **Status**: Active (shipped — all spec-22-* child issues closed 2026-05-15).
+> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#290
+> **Depends on**: [`21-konva-renderer.md`](21-konva-renderer.md)
+> (real `PageImageCanvas` available), [`23-page-payload-backend.md`](23-page-payload-backend.md)
 > (real `GET .../pages/{idx}` payload).
 > **Last updated**: 2026-05-14
 
 Replaces the 76-line `ProjectPage.tsx` stub with the full labeling
 surface — image viewport on the left, text tabs on the right, page
 actions on top, dialogs wired to launchers. The components all exist
-(see audit `docs/PARITY_GAPS_2026_05_14.md` §2); this spec assembles
+(see audit [`../PARITY_GAPS_2026_05_14.md`](../PARITY_GAPS_2026_05_14.md) §2); this spec assembles
 them.
 
 ---
@@ -174,7 +174,7 @@ their own slice.
 ## 6. Header trigger buttons (new in HeaderBar)
 
 The legacy header layout (see
-[`pd-ocr-labeler/docs/architecture/ui-action-buttons.md`](../../pd-ocr-labeler/docs/architecture/ui-action-buttons.md))
+[`pd-ocr-labeler/docs/architecture/ui-action-buttons.md`](../../../pd-ocr-labeler/docs/architecture/ui-action-buttons.md))
 shows OCR config (#109) next to the project load controls. SPA mirrors:
 
 ```tsx
@@ -307,9 +307,9 @@ Land in order A → B → C. A and B can also run in parallel.
 
 ## 14. Refs
 
-- Audit: [`docs/PARITY_GAPS_2026_05_14.md`](../docs/PARITY_GAPS_2026_05_14.md)
-- Spec 21 (Konva): [`specs/21-konva-renderer.md`](21-konva-renderer.md)
-- Spec 23 (backend payload): [`specs/23-page-payload-backend.md`](23-page-payload-backend.md)
-- Spec 03 (frontend shell): [`docs/architecture/03-frontend.md`](../docs/architecture/03-frontend.md)
-- Spec 04 (image viewport): [`docs/architecture/04-image-viewport.md`](../docs/architecture/04-image-viewport.md)
-- Legacy `page_view.py`: [`pd-ocr-labeler/pd_ocr_labeler/views/projects/pages/page_view.py`](../../pd-ocr-labeler/pd_ocr_labeler/views/projects/pages/page_view.py)
+- Audit: [`../PARITY_GAPS_2026_05_14.md`](../PARITY_GAPS_2026_05_14.md)
+- Spec 21 (Konva): [`21-konva-renderer.md`](21-konva-renderer.md)
+- Spec 23 (backend payload): [`23-page-payload-backend.md`](23-page-payload-backend.md)
+- Spec 03 (frontend shell): [`03-frontend.md`](03-frontend.md)
+- Spec 04 (image viewport): [`04-image-viewport.md`](04-image-viewport.md)
+- Legacy `page_view.py`: [`pd-ocr-labeler/pd_ocr_labeler/views/projects/pages/page_view.py`](../../../pd-ocr-labeler/pd_ocr_labeler/views/projects/pages/page_view.py)

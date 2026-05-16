@@ -14,6 +14,14 @@ use `docs/archive/<file>.md#<anchor>` links.
   from [`../../OPEN_QUESTIONS.md`](../../OPEN_QUESTIONS.md), each with the
   user's resolution and a link to the landing ADR in `specs/17-decisions.md`.
   Includes the canonical Resolution-log table.
+- **[`specs/`](specs/)** — predecessor brainstorm / design docs that produced
+  the canonical architecture specs under `../architecture/`. The `2026-05-12-*`
+  set is the original `spec-from-issue` output that became
+  `00-overview.md` through `19-auto-rotation.md` (and `20-glyph-annotations.md`
+  in `specs/`). Kept here as historical reference only — `docs/architecture/`
+  is the source of truth for shipped behavior.
+- **[`plans/`](plans/)** — historical implementation execution plans
+  (no longer driving open work).
 
 ## Convention — "archive on close"
 

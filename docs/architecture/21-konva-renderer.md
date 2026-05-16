@@ -1,15 +1,15 @@
 # 21 — Konva renderer for the image viewport
 
-> **Status**: Draft — supersedes D-020 deferral via D-043.
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#TBD
-> **Replaces**: `docs/architecture/04-image-viewport.md` §0
+> **Status**: Active (shipped — supersedes D-020 deferral via D-043).
+> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#289
+> **Replaces**: `04-image-viewport.md` §0
 > **Last updated**: 2026-05-14
 
 Replaces the DOM-stub `PageImageCanvas` and the no-op `BBoxOverlay`
 with a real Konva renderer. The component shape from
-`docs/architecture/04-image-viewport.md` stands; this spec fills in
+[`04-image-viewport.md`](04-image-viewport.md) stands; this spec fills in
 the bodies. The `WordImageCanvas` Konva implementation
-([`frontend/src/components/WordImageCanvas.tsx:236-330`](../frontend/src/components/WordImageCanvas.tsx))
+([`frontend/src/components/WordImageCanvas.tsx:236-330`](../../frontend/src/components/WordImageCanvas.tsx))
 is the reference for `react-konva` patterns, hover guides, drag
 preview, and image loading; this spec lifts those patterns up to the
 full page viewport scale.
@@ -266,7 +266,7 @@ Vitest fixtures.
 When `selectionMode` is `paragraph` (legacy default for "paragraph"
 mode), drag-rect intersection is computed against paragraph bboxes;
 ditto for line / word. The legacy implements this in
-`_apply_box_selection` ([`image_tabs.py:678-737`](../../pd-ocr-labeler/pd_ocr_labeler/views/projects/pages/image_tabs.py)).
+`_apply_box_selection` ([`image_tabs.py:678-737`](../../../pd-ocr-labeler/pd_ocr_labeler/views/projects/pages/image_tabs.py)).
 
 Selection-mode types must align with the legacy:
 `paragraph | line | word`. The current SPA mismatch
@@ -406,7 +406,7 @@ This spec lands as **3 issues**:
    60 Hz benchmark passes.
 
 Issues 21-A and 21-B can run in parallel; 21-C depends on both. All
-three land before any work on `specs/22-page-surface-wireup.md`
+three land before any work on [`22-page-surface-wireup.md`](22-page-surface-wireup.md)
 because spec 22 mounts `PageImageCanvas` in `ProjectPage`.
 
 ---
@@ -414,13 +414,13 @@ because spec 22 mounts `PageImageCanvas` in `ProjectPage`.
 ## 16. Refs
 
 - Component contract that this spec implements:
-  [`docs/architecture/04-image-viewport.md`](../docs/architecture/04-image-viewport.md).
+  [`04-image-viewport.md`](04-image-viewport.md).
 - Konva commitment:
-  [`17-decisions.md` D-043](17-decisions.md#d-043--konva-renderer-commitment-supersedes-d-020).
+  [`../../specs/17-decisions.md` D-043](../../specs/17-decisions.md#d-043--konva-renderer-commitment-supersedes-d-020).
 - Superseded:
-  [`17-decisions.md` D-020](17-decisions.md#d-020--defer-konva-vs-canvas-decision-to-m4-with-research-subagent).
+  [`../../specs/17-decisions.md` D-020](../../specs/17-decisions.md#d-020--defer-konva-vs-canvas-decision-to-m4-with-research-subagent).
 - Legacy renderer:
-  [`pd-ocr-labeler/pd_ocr_labeler/views/projects/pages/image_tabs.py:230-470`](../../pd-ocr-labeler/pd_ocr_labeler/views/projects/pages/image_tabs.py).
+  [`pd-ocr-labeler/pd_ocr_labeler/views/projects/pages/image_tabs.py:230-470`](../../../pd-ocr-labeler/pd_ocr_labeler/views/projects/pages/image_tabs.py).
 - WordImageCanvas reference:
-  [`frontend/src/components/WordImageCanvas.tsx`](../frontend/src/components/WordImageCanvas.tsx).
+  [`frontend/src/components/WordImageCanvas.tsx`](../../frontend/src/components/WordImageCanvas.tsx).
 - `react-konva` + `use-image` docs.

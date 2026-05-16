@@ -310,9 +310,14 @@ session. If a milestone is too big, split it.
 | Text normalization | `18-text-normalization.md` |
 | Auto-rotation (M9.1/M9.2) | `19-auto-rotation.md` |
 | Glyph annotations (M11) | `../../specs/20-glyph-annotations.md` |
-| Konva renderer impl | `../../specs/21-konva-renderer.md` |
-| Page surface wire-up | `../../specs/22-page-surface-wireup.md` |
-| Page payload backend impl | `../../specs/23-page-payload-backend.md` |
+| Konva renderer impl | `21-konva-renderer.md` |
+| Page surface wire-up | `22-page-surface-wireup.md` |
+| Page payload backend impl | `23-page-payload-backend.md` |
+| Shell / Studio layout | `24-shell-layout.md` |
+| Drawer (Worklist / Hierarchy / Bulk) | `25-drawer-worklist.md` |
+| Right-panel detail views | `26-right-panel-detail.md` |
+| Right-panel action sections | `27-right-panel-sections.md` |
+| Palettes and pickers | `28-palettes-pickers.md` |
 
 If a question isn't answered by the linked spec, **stop and add it to
 [`OPEN_QUESTIONS.md`](../../OPEN_QUESTIONS.md)** rather than guessing.

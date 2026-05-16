@@ -114,8 +114,8 @@ paragraph-mode radio is permanently `false` due to a hardcoded
 spec's `paragraph | line | word`.
 
 **Spec.** This gap is comprehensively re-specced in
-[`specs/21-konva-renderer.md`](../specs/21-konva-renderer.md) (this
-commit). Resolves Q-A14. Supersedes D-020.
+[`docs/architecture/21-konva-renderer.md`](architecture/21-konva-renderer.md) (this
+commit; moved from `specs/` to `docs/architecture/` after shipping). Resolves Q-A14. Supersedes D-020.
 
 [lg-overlay]: ../../pd-ocr-labeler/pd_ocr_labeler/views/projects/pages/image_tabs.py
 
@@ -138,7 +138,7 @@ to satisfy `test_driver_contract.py`. None of the real components
 **Gap.** **P0 — Project page has no real UI.** The driver-contract
 test passes because the stub testids exist; the conformance check
 doesn't care that the surrounding UI doesn't function. New spec:
-[`specs/22-page-surface-wireup.md`](../specs/22-page-surface-wireup.md).
+[`docs/architecture/22-page-surface-wireup.md`](architecture/22-page-surface-wireup.md).
 
 ### 2.3 Per-page backend stubs
 
@@ -165,7 +165,7 @@ matches, selection) on demand from `PageStateOperations`.
 
 **Gap.** **P0 — No domain data flows.** The frontend cannot fetch a
 page payload, so any wired component would still see nothing. New
-spec: [`specs/23-page-payload-backend.md`](../specs/23-page-payload-backend.md).
+spec: [`docs/architecture/23-page-payload-backend.md`](architecture/23-page-payload-backend.md).
 
 ### 2.4 Word match list — WordMatchView
 
@@ -442,7 +442,7 @@ filter cycler, or M9.2 auto-rotate UI exposure.
 - Legacy UI inventory: [`pd-ocr-labeler/docs/architecture/ui-action-buttons.md`](../../pd-ocr-labeler/docs/architecture/ui-action-buttons.md)
 - Legacy usage docs: [`pd-ocr-labeler/docs/usage/how-to-label-a-page.md`](../../pd-ocr-labeler/docs/usage/how-to-label-a-page.md)
 - SPA image viewport spec: [`docs/architecture/04-image-viewport.md`](architecture/04-image-viewport.md)
-- New Konva spec: [`specs/21-konva-renderer.md`](../specs/21-konva-renderer.md)
-- New page wireup spec: [`specs/22-page-surface-wireup.md`](../specs/22-page-surface-wireup.md)
-- New backend payload spec: [`specs/23-page-payload-backend.md`](../specs/23-page-payload-backend.md)
+- Konva spec: [`docs/architecture/21-konva-renderer.md`](architecture/21-konva-renderer.md)
+- Page wireup spec: [`docs/architecture/22-page-surface-wireup.md`](architecture/22-page-surface-wireup.md)
+- Backend payload spec: [`docs/architecture/23-page-payload-backend.md`](architecture/23-page-payload-backend.md)
 - ADR D-043: [`specs/17-decisions.md`](../specs/17-decisions.md#d-043)

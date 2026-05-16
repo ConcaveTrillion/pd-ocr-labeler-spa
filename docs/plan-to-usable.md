@@ -111,6 +111,6 @@ retiring the legacy `pd-ocr-labeler`:
 - `docs/architecture/02-backend.md`, `09-persistence.md`,
   `04-image-viewport.md` — the three specs the blockers touch.
 - `specs/16-milestones.md` — milestone roadmap.
-- `specs/23-page-payload-backend.md` — page-payload contract.
+- `docs/architecture/23-page-payload-backend.md` — page-payload contract.
 - `OPEN_QUESTIONS.md` — Q-A7 is the only remaining open question;
   it does not block the cut-over.

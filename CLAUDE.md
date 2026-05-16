@@ -76,8 +76,9 @@ Per-slice history is preserved in git log and GitHub closed milestones.
 
 Active specs live in `specs/` (milestones, ADR log, glyph-annotations).
 Implemented specs are under `docs/architecture/` (`00-overview.md` through
-`19-auto-rotation.md`, minus 16/17/20). All are canonical source of truth.
-Milestone acceptance gates: `specs/16-milestones.md`.
+`28-palettes-pickers.md`, minus 16/17/20 which remain active in `specs/`).
+All are canonical source of truth. Milestone acceptance gates:
+`specs/16-milestones.md`.
 
 ## Sibling repos
 
