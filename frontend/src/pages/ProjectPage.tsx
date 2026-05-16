@@ -61,10 +61,20 @@ import {
   useLoadPage,
   useRematchGt,
 } from "../hooks/usePageMutations";
+import {
+  useValidateLine,
+  useCopyLineGt,
+  useDeleteLine,
+  useMergeLines,
+} from "../hooks/useLineMutations";
+import { useGlobalHotkeys } from "../hooks/useGlobalHotkeys";
+import { useMatchesHotkeys } from "../hooks/useMatchesHotkeys";
 import { useUiPrefs, type DrawerTab, type MatchFilter } from "../stores/ui-prefs";
 import { dialogStore, useDialogStore } from "../stores/dialog-store";
 import { selectionStore, type SelectionState } from "../stores/selection-store";
 import { viewportStore, toggleEraseMode } from "../stores/viewport-store";
+import { worklistStore } from "../stores/worklist-store";
+import { pageNoUrl } from "../lib/routes";
 
 import { PageActions } from "../components/PageActions";
 import { Drawer } from "../components/shell/Drawer";
@@ -264,6 +274,12 @@ export default function ProjectPage() {
   const loadPage = useLoadPage(pid, idx0);
   const rematchGt = useRematchGt(pid, idx0);
 
+  // ── Line mutations for useMatchesHotkeys (BUG-KBD-3) ──────────────────
+  const validateLine = useValidateLine(pid, idx0);
+  const copyLineGt = useCopyLineGt(pid, idx0);
+  const deleteLine = useDeleteLine(pid, idx0);
+  const mergeLines = useMergeLines(pid, idx0);
+
   // ── Derived view state ─────────────────────────────────────────────────
   const pagePayload = pageQ.data ?? null;
   const pageRecord = pagePayload?.page_record ?? null;
@@ -272,6 +288,92 @@ export default function ProjectPage() {
   // ── Breadcrumb / hierarchy hotkeys (Alt+arrows) ────────────────────────
   // Registered at the page level so they work anywhere on the project page.
   useBreadcrumbHotkeys({ page: pagePayload ?? undefined });
+
+  // ── Global hotkeys (BUG-KBD-2) ─────────────────────────────────────────
+  // Wired here at the page level so Mod+S, Mod+ArrowLeft/Right, etc. are
+  // active whenever the project page is mounted. Page-navigation handlers
+  // read projectQ.data so they stay current without needing state.
+  // `isAnyMutationPending` is computed here (before isMutating below) from
+  // the already-declared mutation hooks so useGlobalHotkeys receives a value
+  // in the same render pass.
+  const isAnyMutationPending =
+    reloadOcr.isPending ||
+    reloadOcrEdited.isPending ||
+    savePage.isPending ||
+    saveProject.isPending ||
+    loadPage.isPending ||
+    rematchGt.isPending;
+  const totalPages = projectQ.data?.image_paths?.length ?? 0;
+  const currentPageNo = idx0 + 1;
+  useGlobalHotkeys({
+    disabled: isAnyMutationPending,
+    onSavePage: handleSavePage,
+    onSaveProject: handleSaveProject,
+    onLoadPage: handleLoadPage,
+    onRematchGt: handleRematchGt,
+    onExport: handleExport,
+    onPrevPage: () => {
+      if (projectId && currentPageNo > 1) navigate(pageNoUrl(projectId, currentPageNo - 1));
+    },
+    onNextPage: () => {
+      if (projectId && currentPageNo < totalPages)
+        navigate(pageNoUrl(projectId, currentPageNo + 1));
+    },
+    onFirstPage: () => {
+      if (projectId && totalPages > 0 && currentPageNo !== 1) navigate(pageNoUrl(projectId, 1));
+    },
+    onLastPage: () => {
+      if (projectId && totalPages > 0 && currentPageNo !== totalPages)
+        navigate(pageNoUrl(projectId, totalPages));
+    },
+  });
+
+  // ── Matches hotkeys (BUG-KBD-3) ─────────────────────────────────────────
+  // Wired at the page level — operates on worklistStore.selectedLineIndex to
+  // know which line is "current" for all action hotkeys (V/U/D/O/G/M/R).
+  useMatchesHotkeys({
+    onLineNav: (delta) => {
+      const { selectedLineIndex } = worklistStore.getState();
+      const nextIdx = (selectedLineIndex ?? -1) + delta;
+      const clampedIdx = Math.max(0, Math.min(lines.length - 1, nextIdx));
+      worklistStore.setSelectedLineIndex(clampedIdx);
+    },
+    onValidate: () => {
+      const { selectedLineIndex } = worklistStore.getState();
+      if (selectedLineIndex !== null)
+        validateLine.mutate({ lineIndex: selectedLineIndex, validated: true });
+    },
+    onUnvalidate: () => {
+      const { selectedLineIndex } = worklistStore.getState();
+      if (selectedLineIndex !== null)
+        validateLine.mutate({ lineIndex: selectedLineIndex, validated: false });
+    },
+    onDelete: () => {
+      const { selectedLineIndex } = worklistStore.getState();
+      if (selectedLineIndex !== null) deleteLine.mutate({ lineIndex: selectedLineIndex });
+    },
+    onRefine: () => {
+      // Refine is not yet a line-level mutation; no-op placeholder.
+    },
+    onExpandRefine: () => {
+      // Expand+refine is not yet a line-level mutation; no-op placeholder.
+    },
+    onMerge: () => {
+      const { selectedLineIndex } = worklistStore.getState();
+      if (selectedLineIndex !== null && selectedLineIndex > 0)
+        mergeLines.mutate({ lineIndex: selectedLineIndex, direction: "prev" });
+    },
+    onOcrToGt: () => {
+      const { selectedLineIndex } = worklistStore.getState();
+      if (selectedLineIndex !== null)
+        copyLineGt.mutate({ lineIndex: selectedLineIndex, direction: "ocr_to_gt" });
+    },
+    onGtToOcr: () => {
+      const { selectedLineIndex } = worklistStore.getState();
+      if (selectedLineIndex !== null)
+        copyLineGt.mutate({ lineIndex: selectedLineIndex, direction: "gt_to_ocr" });
+    },
+  });
 
   // Project not found vs other errors — only the 404 case triggers the redirect.
   const projectStatus = (projectQ.error as { status?: number } | null)?.status;

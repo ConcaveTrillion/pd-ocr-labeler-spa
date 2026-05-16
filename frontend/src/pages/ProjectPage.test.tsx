@@ -451,4 +451,80 @@ describe("ProjectPage — real shell (spec 22 §3, #314)", () => {
     expect(lastCall.projectId).toBe("p1");
     expect(lastCall.body).toEqual({ page_index: 0 });
   });
+
+  // ── BUG-KBD-2: useGlobalHotkeys wired in ProjectPage ──────────────────────
+
+  describe("BUG-KBD-2: useGlobalHotkeys wired (Ctrl+S fires save-page)", () => {
+    it("Ctrl+S fires POST /save (save-page mutation)", async () => {
+      const saveCalls: unknown[] = [];
+      server.use(
+        http.post("/api/projects/:pid/pages/:idx/save", async ({ request }) => {
+          saveCalls.push(await request.text());
+          return HttpResponse.json({});
+        }),
+      );
+      renderProjectPage();
+      await screen.findByTestId("project-page");
+      // Wait for data to settle so isMutating=false and hotkeys are active.
+      await screen.findByTestId("save-page-button");
+
+      fireEvent.keyDown(document, { key: "s", ctrlKey: true, bubbles: true });
+      await waitFor(() => {
+        expect(saveCalls.length).toBeGreaterThanOrEqual(1);
+      });
+    });
+
+    it("Ctrl+G fires POST /rematch-gt (rematch-gt mutation)", async () => {
+      // Ctrl+ArrowRight/Left/Home/End rely on keyCode mapping in hotkeys-js
+      // which doesn't fire reliably in jsdom — tested by E2E (#242).
+      // Instead, verify Ctrl+G (rematch-gt) which uses a plain letter key.
+      const rematchCalls: unknown[] = [];
+      server.use(
+        http.post("/api/projects/:pid/pages/:idx/rematch-gt", async ({ request }) => {
+          rematchCalls.push(await request.text());
+          return HttpResponse.json({});
+        }),
+      );
+      renderProjectPage();
+      await screen.findByTestId("project-page");
+
+      fireEvent.keyDown(document, { key: "g", ctrlKey: true, bubbles: true });
+      await waitFor(() => {
+        expect(rematchCalls.length).toBeGreaterThanOrEqual(1);
+      });
+    });
+  });
+
+  // ── BUG-KBD-3: useMatchesHotkeys wired in ProjectPage ─────────────────────
+
+  describe("BUG-KBD-3: useMatchesHotkeys wired (J/K navigate worklist)", () => {
+    it("J key advances worklistStore.selectedLineIndex by 1", async () => {
+      // This import is inside the test so the store is reset between test runs.
+      const { worklistStore: wl } = await import("../stores/worklist-store");
+      wl.setSelectedLineIndex(null);
+
+      renderProjectPage();
+      await screen.findByTestId("project-page");
+
+      fireEvent.keyDown(document, { key: "j", bubbles: true });
+      await waitFor(() => {
+        // null → null + 1 = 0 (clamped to 0 since lines=[]).
+        expect(wl.getState().selectedLineIndex).toBe(0);
+      });
+    });
+
+    it("K key decrements worklistStore.selectedLineIndex (does not go below 0)", async () => {
+      const { worklistStore: wl } = await import("../stores/worklist-store");
+      wl.setSelectedLineIndex(null);
+
+      renderProjectPage();
+      await screen.findByTestId("project-page");
+
+      // K from null → clamped to 0.
+      fireEvent.keyDown(document, { key: "k", bubbles: true });
+      await waitFor(() => {
+        expect(wl.getState().selectedLineIndex).toBe(0);
+      });
+    });
+  });
 });
