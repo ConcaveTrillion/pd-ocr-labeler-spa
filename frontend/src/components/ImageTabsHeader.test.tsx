@@ -1,6 +1,7 @@
 // ImageTabsHeader.test.tsx — tests for viewport header (layer checkboxes, mode radio, erase).
 // Spec: docs/specs/2026-05-12-image-viewport-design.md §ImageTabsHeader
 // Issue #196
+// Issue #295: Mismatches-only toggle (mismatches-only-toggle)
 //
 // Acceptance:
 //   - Renders layer checkboxes with correct data-testids
@@ -9,6 +10,10 @@
 //   - onLayerToggle fires with layer name when checkbox clicked
 //   - onSelectionModeChange fires with mode when radio clicked
 //   - onEraseToggle fires when erase button clicked
+//   - Renders mismatches-only-toggle with correct testid (#295)
+//   - Toggle shows active state when matchFilterMode is "mismatches_only"
+//   - onMatchFilterModeToggle fires when clicked
+//   - Clicking again calls onMatchFilterModeToggle (caller manages toggle logic)
 
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -327,5 +332,119 @@ describe("ImageTabsHeader (#196)", () => {
     );
     fireEvent.click(screen.getByTestId("zoom-100-button"));
     expect(onZoom100).toHaveBeenCalledOnce();
+  });
+
+  // ── Issue #295: Mismatches-only toggle ──────────────────────────────────────
+
+  it("#295: renders mismatches-only-toggle with correct testid", () => {
+    render(
+      <ImageTabsHeader
+        layerVisibility={defaultVisibility}
+        selectionMode="paragraph"
+        eraseActive={false}
+        onLayerToggle={vi.fn()}
+        onSelectionModeChange={vi.fn()}
+        onEraseToggle={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("mismatches-only-toggle")).toBeInTheDocument();
+  });
+
+  it("#295: toggle is not active when matchFilterMode is 'all' (default)", () => {
+    render(
+      <ImageTabsHeader
+        layerVisibility={defaultVisibility}
+        selectionMode="paragraph"
+        eraseActive={false}
+        onLayerToggle={vi.fn()}
+        onSelectionModeChange={vi.fn()}
+        onEraseToggle={vi.fn()}
+        matchFilterMode="all"
+      />,
+    );
+    expect(screen.getByTestId("mismatches-only-toggle")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("#295: toggle shows active state when matchFilterMode is 'mismatches_only'", () => {
+    render(
+      <ImageTabsHeader
+        layerVisibility={defaultVisibility}
+        selectionMode="paragraph"
+        eraseActive={false}
+        onLayerToggle={vi.fn()}
+        onSelectionModeChange={vi.fn()}
+        onEraseToggle={vi.fn()}
+        matchFilterMode="mismatches_only"
+      />,
+    );
+    expect(screen.getByTestId("mismatches-only-toggle")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("#295: active toggle uses accent color class", () => {
+    render(
+      <ImageTabsHeader
+        layerVisibility={defaultVisibility}
+        selectionMode="paragraph"
+        eraseActive={false}
+        onLayerToggle={vi.fn()}
+        onSelectionModeChange={vi.fn()}
+        onEraseToggle={vi.fn()}
+        matchFilterMode="mismatches_only"
+      />,
+    );
+    const btn = screen.getByTestId("mismatches-only-toggle");
+    expect(btn.className).toContain("bg-accent");
+  });
+
+  it("#295: inactive toggle uses raised background class", () => {
+    render(
+      <ImageTabsHeader
+        layerVisibility={defaultVisibility}
+        selectionMode="paragraph"
+        eraseActive={false}
+        onLayerToggle={vi.fn()}
+        onSelectionModeChange={vi.fn()}
+        onEraseToggle={vi.fn()}
+        matchFilterMode="all"
+      />,
+    );
+    const btn = screen.getByTestId("mismatches-only-toggle");
+    expect(btn.className).toContain("bg-bg-raised");
+  });
+
+  it("#295: onMatchFilterModeToggle fires when toggle clicked", () => {
+    const onMatchFilterModeToggle = vi.fn();
+    render(
+      <ImageTabsHeader
+        layerVisibility={defaultVisibility}
+        selectionMode="paragraph"
+        eraseActive={false}
+        onLayerToggle={vi.fn()}
+        onSelectionModeChange={vi.fn()}
+        onEraseToggle={vi.fn()}
+        matchFilterMode="all"
+        onMatchFilterModeToggle={onMatchFilterModeToggle}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("mismatches-only-toggle"));
+    expect(onMatchFilterModeToggle).toHaveBeenCalledOnce();
+  });
+
+  it("#295: onMatchFilterModeToggle fires when active toggle clicked (returns to 'all')", () => {
+    const onMatchFilterModeToggle = vi.fn();
+    render(
+      <ImageTabsHeader
+        layerVisibility={defaultVisibility}
+        selectionMode="paragraph"
+        eraseActive={false}
+        onLayerToggle={vi.fn()}
+        onSelectionModeChange={vi.fn()}
+        onEraseToggle={vi.fn()}
+        matchFilterMode="mismatches_only"
+        onMatchFilterModeToggle={onMatchFilterModeToggle}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("mismatches-only-toggle"));
+    expect(onMatchFilterModeToggle).toHaveBeenCalledOnce();
   });
 });

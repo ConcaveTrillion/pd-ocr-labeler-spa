@@ -151,6 +151,7 @@ Hotkey: `Enter` on `nav-page-input` triggers `Go To`.
 | `selection-mode-line` | Radio: Line |
 | `selection-mode-word` | Radio: Word |
 | `erase-pixels-button` | Erase Pixels mode toggle |
+| `mismatches-only-toggle` | Toggle: dim exact/validated word bboxes (Issue #295) |
 | `image-viewport` | The Konva `<Stage>`'s outer wrapper div |
 
 Drag rectangle CSS class: `.ocr-drag-rect` (legacy CSS class

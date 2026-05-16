@@ -39,6 +39,12 @@
 // Modifier keys captured at mousedown: plain = replace, Shift = remove,
 // Ctrl/Cmd = toggle. Rebox + erase reset to "select" on a successful drag;
 // add-word stays active for multi-add.
+//
+// Issue #295 (Option C): Mismatches-only word bbox overlay.
+// When matchFilterMode is "mismatches_only" (read from useUiPrefs), the
+// overlay-words Layer shows all word bboxes but dims exact/validated words
+// to MISMATCH_DIM_OPACITY (0.2) via BBoxItem.dimmed. Mismatch/fuzzy/
+// unmatched/unvalidated words remain at full opacity.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KonvaEventObject } from "konva/lib/Node";
@@ -226,6 +232,17 @@ export default function PageImageCanvas({
     return selectionStore.subscribe((s) => setSelectedWordCount(s.selectedWords.length));
   }, []);
 
+  // Subscribe to matchFilterMode from useUiPrefs (Issue #295).
+  // Triggers a re-render when the user toggles the Mismatches-only filter.
+  const [matchFilterMode, setMatchFilterModeState] = useState(
+    () => useUiPrefs.getState().matchFilterMode,
+  );
+  useEffect(() => {
+    return useUiPrefs.subscribe(() => {
+      setMatchFilterModeState(useUiPrefs.getState().matchFilterMode);
+    });
+  }, []);
+
   // Focus the wrapper on mount so keyboard hotkeys (Esc / Shift+…) work
   // immediately without an explicit click. The Stage cannot itself receive
   // focus, so the wrapping div carries tabIndex=0 + focus-visible:ring-2
@@ -260,6 +277,28 @@ export default function PageImageCanvas({
       words: markSelected(e.words),
     };
   }, [page]);
+
+  // Issue #295: Word bbox overlay items for the overlay-words Layer.
+  // Builds BBoxItems from page.line_matches, applying per-item `dimmed`
+  // when matchFilterMode is "mismatches_only". Exact + validated words
+  // are dimmed; mismatch/fuzzy/unmatched/unvalidated words stay at full opacity.
+  const wordOverlayItems = useMemo<BBoxItem[]>(() => {
+    const lineMatches = page?.line_matches ?? [];
+    const isMismatchOnly = matchFilterMode === "mismatches_only";
+    const items: BBoxItem[] = [];
+    for (const line of lineMatches) {
+      for (const word of line.word_matches) {
+        if (word.word_index === null) continue;
+        const isExactAndValidated = word.match_status === "exact" && word.is_validated;
+        items.push({
+          id: `${line.line_index}-${word.word_index}`,
+          bbox: word.bbox,
+          dimmed: isMismatchOnly ? isExactAndValidated : false,
+        });
+      }
+    }
+    return items;
+  }, [page, matchFilterMode]);
 
   useViewportHotkeys({
     enabled: true,
@@ -443,7 +482,14 @@ export default function PageImageCanvas({
         </Layer>
         <Layer name="overlay-paragraphs" listening={false} />
         <Layer name="overlay-lines" listening={false} />
-        <Layer name="overlay-words" listening={false} />
+        <Layer name="overlay-words" listening={false}>
+          {/* Issue #295: word bbox overlay with per-item dimming for mismatches filter */}
+          <BBoxOverlay
+            layer="words"
+            items={wordOverlayItems}
+            visible={useUiPrefs.getState().layerVisibility.word}
+          />
+        </Layer>
         <Layer name="selection" listening={false}>
           {/* Slice 13: active target layer renders full opacity; others dimmed.
               "block" target maps to paragraph layer (closest available). */}

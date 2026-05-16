@@ -112,6 +112,12 @@ export interface BBoxItem {
   id: string;
   bbox: BBox;
   selected?: boolean;
+  /**
+   * When true, this individual item is rendered at MISMATCH_DIM_OPACITY (0.2)
+   * to visually de-emphasise it. Takes priority over the layer-level `dimmed`
+   * prop. Used by the Mismatches-only overlay filter (Issue #295).
+   */
+  dimmed?: boolean;
 }
 
 interface BBoxOverlayProps {
@@ -143,6 +149,13 @@ interface BBoxOverlayProps {
  */
 /** Opacity applied to each Rect when the layer is dimmed (inactive target). */
 const DIMMED_OPACITY = 0.3;
+
+/**
+ * Opacity applied to a per-item dimmed Rect (Mismatches-only filter, Issue #295).
+ * Distinct from DIMMED_OPACITY (layer-level) so the two concepts compose:
+ * a mismatch-filter-dimmed item at 0.2 is clearly de-emphasised vs 0.3.
+ */
+export const MISMATCH_DIM_OPACITY = 0.2;
 
 /**
  * Derive a LayerColorSpec from a LayerColors object for a given LayerName.
@@ -187,25 +200,30 @@ function BBoxOverlayInner({ layer, items, visible = true, dimmed = false }: BBox
   // an `env` global), so we read it through a local narrow cast.
   const mode = (import.meta as unknown as { env?: { MODE?: string } }).env?.MODE;
   const isDevOrTest = mode !== "production";
-  const opacity = dimmed ? DIMMED_OPACITY : 1;
+  const layerOpacity = dimmed ? DIMMED_OPACITY : 1;
 
   return (
     <>
-      {items.map((item) => (
-        <Rect
-          key={item.id}
-          x={item.bbox.x}
-          y={item.bbox.y}
-          width={item.bbox.width}
-          height={item.bbox.height}
-          fill={colors.fill}
-          stroke={colors.stroke}
-          strokeWidth={item.selected ? SELECTION_STROKE_WIDTH : colors.strokeWidth}
-          opacity={opacity}
-          listening={false}
-          perfectDrawEnabled={false}
-        />
-      ))}
+      {items.map((item) => {
+        // Per-item dimming (Mismatches-only filter, Issue #295) overrides
+        // layer-level dimming. If neither applies, use full opacity.
+        const opacity = item.dimmed ? MISMATCH_DIM_OPACITY : layerOpacity;
+        return (
+          <Rect
+            key={item.id}
+            x={item.bbox.x}
+            y={item.bbox.y}
+            width={item.bbox.width}
+            height={item.bbox.height}
+            fill={colors.fill}
+            stroke={colors.stroke}
+            strokeWidth={item.selected ? SELECTION_STROKE_WIDTH : colors.strokeWidth}
+            opacity={opacity}
+            listening={false}
+            perfectDrawEnabled={false}
+          />
+        );
+      })}
       {isDevOrTest && (
         <div
           data-testid={`bbox-overlay-${layer}`}

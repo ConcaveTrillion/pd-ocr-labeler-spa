@@ -1,9 +1,10 @@
 // ui-prefs.ts — UI preferences store (line filter, layer visibility,
-// splitter ratio, selection mode, match filter, theme).
+// splitter ratio, selection mode, match filter, theme, match filter mode).
 //
 // Spec: specs/22-page-surface-wireup.md §8 (FilterToggle), §9 (Splitter),
 //       D-021 (UI prefs).
 //       docs/specs/2026-05-15-hifi-redesign-plan.md Slice 24 (theme toggle).
+//       Issue #295 (matchFilterMode — Mismatches-only bbox overlay toggle).
 // `splitterRatio` is the canonical field name (matches spec 22). The
 // legacy alias `splitterPosition` was renamed; no production callers
 // exist yet — only the store + this test relied on the old name.
@@ -67,6 +68,14 @@ export interface UiPrefsState {
   rightPanelOpen: boolean;
   /** Theme preference — Slice 24. Default: "system". */
   theme: ThemePreference;
+  /**
+   * Bbox overlay filter mode — Issue #295 (Option C).
+   *
+   * When "mismatches_only", the word bbox overlay dims exact/validated words
+   * to 20% opacity so mismatch/fuzzy/unvalidated words stand out.
+   * Default: "all" (no filtering).
+   */
+  matchFilterMode: "all" | "mismatches_only";
 }
 
 type SetStateArg<T> = Partial<T> | ((state: T) => Partial<T>);
@@ -84,6 +93,8 @@ interface Store<T> {
   cycleMatchFilter: () => void;
   /** Set the theme preference — applies to documentElement immediately. */
   setTheme: (theme: ThemePreference) => void;
+  /** Set the bbox overlay filter mode — Issue #295. */
+  setMatchFilterMode: (mode: "all" | "mismatches_only") => void;
 }
 
 /** Clamp the splitter ratio to the spec-22 §9 range [0.2, 0.8]. */
@@ -197,6 +208,9 @@ function createStore<T extends object>(initialState: T): Store<T> {
       setupSystemListener(theme);
       applyTheme(theme);
     },
+    setMatchFilterMode: (mode: "all" | "mismatches_only") => {
+      setState({ matchFilterMode: mode } as unknown as SetStateArg<T>);
+    },
   };
 }
 
@@ -214,6 +228,7 @@ export const useUiPrefs = createStore<UiPrefsState>({
   drawerTab: "worklist",
   rightPanelOpen: true,
   theme: readPersistedTheme(),
+  matchFilterMode: "all",
 });
 
 // Apply initial theme on module load.

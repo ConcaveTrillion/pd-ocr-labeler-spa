@@ -2,12 +2,14 @@
 // Spec: docs/specs/2026-05-12-image-viewport-design.md §ImageTabsHeader
 // Issue #196
 // P5.d (Gap 24): added Fit and 100% zoom buttons.
+// Issue #295: added Mismatches-only toggle (mismatches-only-toggle).
 //
 // data-testids (driver-contract invariants):
 //   layer-paragraphs-checkbox, layer-lines-checkbox, layer-words-checkbox
 //   selection-mode-paragraph, selection-mode-line, selection-mode-word
 //   erase-pixels-button
 //   zoom-fit-button, zoom-100-button (P5.d)
+//   mismatches-only-toggle (#295)
 
 export interface LayerVisibility {
   paragraph: boolean;
@@ -38,6 +40,13 @@ interface ImageTabsHeaderProps {
   onZoomFit?: () => void;
   /** Called when the 100% zoom button is clicked (P5.d). */
   onZoom100?: () => void;
+  /**
+   * Current bbox overlay filter mode — Issue #295.
+   * When "mismatches_only", the word bbox overlay dims exact/validated words.
+   */
+  matchFilterMode?: "all" | "mismatches_only";
+  /** Called when the Mismatches-only toggle is clicked — Issue #295. */
+  onMatchFilterModeToggle?: () => void;
 }
 
 /**
@@ -55,6 +64,8 @@ export function ImageTabsHeader({
   onEraseToggle,
   onZoomFit,
   onZoom100,
+  matchFilterMode = "all",
+  onMatchFilterModeToggle,
 }: ImageTabsHeaderProps) {
   return (
     <div
@@ -161,6 +172,22 @@ export function ImageTabsHeader({
         ].join(" ")}
       >
         Erase
+      </button>
+
+      {/* Mismatches-only bbox overlay toggle (Issue #295, Option C) */}
+      <button
+        data-testid="mismatches-only-toggle"
+        aria-pressed={matchFilterMode === "mismatches_only"}
+        onClick={onMatchFilterModeToggle}
+        title="Show mismatches only — dims exact/validated word bboxes"
+        className={[
+          "px-2 py-0.5 text-xs rounded border transition-colors",
+          matchFilterMode === "mismatches_only"
+            ? "bg-accent text-ink-1 border-accent hover:opacity-90"
+            : "bg-bg-raised text-ink-2 border-border-2 hover:bg-bg-raised/80",
+        ].join(" ")}
+      >
+        Mismatches
       </button>
 
       {/* Zoom buttons (P5.d, Gap 24) */}

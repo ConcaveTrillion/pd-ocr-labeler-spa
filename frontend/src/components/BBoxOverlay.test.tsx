@@ -2,7 +2,8 @@
 //
 // Spec: specs/21-konva-renderer.md §6 (overlay rendering), §12 (testids)
 // Issues: #196 (LAYER_COLORS, original RGBA constants), #298 (spec-21-A3),
-//         #328 (FO-4: migrate to useLayerColors CSS vars)
+//         #328 (FO-4: migrate to useLayerColors CSS vars),
+//         #295 (per-item dimmed for Mismatches-only filter)
 //
 // Acceptance for #298:
 //   - Given N items, the wrapping Stage contains N <Rect> nodes (located via
@@ -17,6 +18,11 @@
 //   - BBoxOverlay reads colors from useLayerColors() (mocked here) rather than
 //     hardcoded LAYER_COLORS constants.
 //   - LAYER_COLORS constants are still exported for legend/UI callers (#196 coverage kept).
+//
+// Acceptance for #295 (per-item dimming):
+//   - BBoxItem.dimmed=true renders Rect at MISMATCH_DIM_OPACITY (0.2).
+//   - BBoxItem.dimmed=false (or undefined) renders Rect at layer-level opacity.
+//   - Layer-level dimmed=true still applies to items without per-item dimming.
 //
 // LAYER_COLORS RGBA constants (#196) — retained from prior coverage.
 
@@ -71,6 +77,7 @@ vi.mock("react-konva", () => ({
     fill,
     stroke,
     strokeWidth,
+    opacity,
     listening,
     perfectDrawEnabled,
   }: {
@@ -81,6 +88,7 @@ vi.mock("react-konva", () => ({
     fill?: string;
     stroke?: string;
     strokeWidth?: number;
+    opacity?: number;
     listening?: boolean;
     perfectDrawEnabled?: boolean;
   }) => {
@@ -95,6 +103,7 @@ vi.mock("react-konva", () => ({
         data-fill={fill}
         data-stroke={stroke}
         data-stroke-width={strokeWidth}
+        data-opacity={opacity}
         data-listening={listening === undefined ? undefined : String(listening)}
         data-perfect-draw={
           perfectDrawEnabled === undefined ? undefined : String(perfectDrawEnabled)
@@ -105,7 +114,13 @@ vi.mock("react-konva", () => ({
 }));
 
 import { Layer, Stage } from "react-konva";
-import { BBoxOverlay, LAYER_COLORS, SELECTION_STROKE_WIDTH, type BBoxItem } from "./BBoxOverlay";
+import {
+  BBoxOverlay,
+  LAYER_COLORS,
+  SELECTION_STROKE_WIDTH,
+  MISMATCH_DIM_OPACITY,
+  type BBoxItem,
+} from "./BBoxOverlay";
 import { hexToRgba, LAYER_FILL_ALPHA, LAYER_STROKE_ALPHA } from "../hooks/useLayerColors";
 
 function mkItems(n: number, selected = false): BBoxItem[] {
@@ -399,6 +414,118 @@ describe("BBoxOverlay sidecar div (#298, spec §12)", () => {
       </Stage>,
     );
     expect(getW("bbox-overlay-words").getAttribute("data-item-count")).toBe("3");
+  });
+});
+
+// ── Per-item dimming (#295 — Mismatches-only filter) ─────────────────────────
+//
+// BBoxItem.dimmed=true renders at MISMATCH_DIM_OPACITY (0.2).
+// BBoxItem.dimmed=false/undefined renders at full opacity (1.0) when layer
+// dimmed=false, or DIMMED_OPACITY (0.3) when layer dimmed=true.
+
+describe("BBoxOverlay per-item dimming (#295)", () => {
+  it("item with dimmed=true renders at MISMATCH_DIM_OPACITY (0.2)", () => {
+    const items: BBoxItem[] = [
+      { id: "a", bbox: { x: 0, y: 0, width: 5, height: 5 }, dimmed: true },
+    ];
+    const { getAllByTestId } = render(
+      <Stage>
+        <Layer>
+          <BBoxOverlay layer="words" items={items} />
+        </Layer>
+      </Stage>,
+    );
+    const rect = getAllByTestId("konva-rect")[0];
+    expect(Number(rect.getAttribute("data-opacity"))).toBeCloseTo(MISMATCH_DIM_OPACITY);
+  });
+
+  it("item with dimmed=false renders at full opacity (1.0)", () => {
+    const items: BBoxItem[] = [
+      { id: "a", bbox: { x: 0, y: 0, width: 5, height: 5 }, dimmed: false },
+    ];
+    const { getAllByTestId } = render(
+      <Stage>
+        <Layer>
+          <BBoxOverlay layer="words" items={items} />
+        </Layer>
+      </Stage>,
+    );
+    const rect = getAllByTestId("konva-rect")[0];
+    expect(Number(rect.getAttribute("data-opacity"))).toBeCloseTo(1);
+  });
+
+  it("item without dimmed prop renders at full opacity (1.0)", () => {
+    const items: BBoxItem[] = [{ id: "a", bbox: { x: 0, y: 0, width: 5, height: 5 } }];
+    const { getAllByTestId } = render(
+      <Stage>
+        <Layer>
+          <BBoxOverlay layer="words" items={items} />
+        </Layer>
+      </Stage>,
+    );
+    const rect = getAllByTestId("konva-rect")[0];
+    expect(Number(rect.getAttribute("data-opacity"))).toBeCloseTo(1);
+  });
+
+  it("per-item dimmed overrides layer-level full opacity", () => {
+    const items: BBoxItem[] = [
+      { id: "a", bbox: { x: 0, y: 0, width: 5, height: 5 }, dimmed: true },
+      { id: "b", bbox: { x: 10, y: 0, width: 5, height: 5 }, dimmed: false },
+    ];
+    const { getAllByTestId } = render(
+      <Stage>
+        <Layer>
+          <BBoxOverlay layer="words" items={items} />
+        </Layer>
+      </Stage>,
+    );
+    const rects = getAllByTestId("konva-rect");
+    // Item a: dimmed=true → MISMATCH_DIM_OPACITY
+    expect(Number(rects[0].getAttribute("data-opacity"))).toBeCloseTo(MISMATCH_DIM_OPACITY);
+    // Item b: dimmed=false → full opacity
+    expect(Number(rects[1].getAttribute("data-opacity"))).toBeCloseTo(1);
+  });
+
+  it("in matchFilterMode='all', all items render at full opacity (no per-item dimming)", () => {
+    // Simulates caller passing all items without dimmed prop
+    const items: BBoxItem[] = [
+      { id: "a", bbox: { x: 0, y: 0, width: 5, height: 5 } },
+      { id: "b", bbox: { x: 10, y: 0, width: 5, height: 5 } },
+    ];
+    const { getAllByTestId } = render(
+      <Stage>
+        <Layer>
+          <BBoxOverlay layer="words" items={items} />
+        </Layer>
+      </Stage>,
+    );
+    const rects = getAllByTestId("konva-rect");
+    rects.forEach((rect) => {
+      expect(Number(rect.getAttribute("data-opacity"))).toBeCloseTo(1);
+    });
+  });
+
+  it("in matchFilterMode='mismatches_only', exact+validated items are dimmed", () => {
+    // Simulates caller passing items with dimmed=true for exact+validated words
+    const items: BBoxItem[] = [
+      // exact+validated → dimmed
+      { id: "0-0", bbox: { x: 0, y: 0, width: 5, height: 5 }, dimmed: true },
+      // mismatch → not dimmed
+      { id: "0-1", bbox: { x: 10, y: 0, width: 5, height: 5 }, dimmed: false },
+      // fuzzy → not dimmed
+      { id: "1-0", bbox: { x: 20, y: 0, width: 5, height: 5 }, dimmed: false },
+    ];
+    const { getAllByTestId } = render(
+      <Stage>
+        <Layer>
+          <BBoxOverlay layer="words" items={items} />
+        </Layer>
+      </Stage>,
+    );
+    const rects = getAllByTestId("konva-rect");
+    expect(Number(rects[0].getAttribute("data-opacity"))).toBeCloseTo(MISMATCH_DIM_OPACITY);
+    expect(Number(rects[1].getAttribute("data-opacity"))).toBeCloseTo(1);
+    expect(Number(rects[2].getAttribute("data-opacity"))).toBeCloseTo(1);
   });
 });
 

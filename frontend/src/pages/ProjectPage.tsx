@@ -466,6 +466,13 @@ export default function ProjectPage() {
         onEraseToggle={() => {
           /* erase toggle wired by PageImageCanvas modes; no-op here */
         }}
+        matchFilterMode={uiPrefs.matchFilterMode}
+        onMatchFilterModeToggle={() => {
+          useUiPrefs.setMatchFilterMode(
+            uiPrefs.matchFilterMode === "all" ? "mismatches_only" : "all",
+          );
+          notifyUiPrefs();
+        }}
       />
       <div data-testid="image-pane" className="relative flex-1 min-h-0">
         <BusyOverlay activeJob={activeJob} isMutating={isMutating} />
