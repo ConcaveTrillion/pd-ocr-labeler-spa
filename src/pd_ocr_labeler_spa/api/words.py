@@ -291,12 +291,55 @@ def _resolve_page_object(pstate: PageState | None) -> Any | None:
     """Pull the ``Page``-like object out of ``PageState.page_record``.
 
     The page record (``PageLoadOutcome``) carries the loaded Page in
-    its ``payload`` field. Returns ``None`` when no record is cached
+    its ``payload`` field.  Returns ``None`` when no record is cached
     yet — callers map that to a 400 ``page_not_loaded`` envelope.
+
+    BUG-SMOKE-1 fix: labeled/cached lanes store a ``UserPageEnvelope``
+    in ``payload`` (not a ``Page``).  ``UserPageEnvelope`` has no
+    ``.lines`` attribute, so ``_resolve_word`` would see ``lines=None``
+    and return ``None`` for every word → 404 ``word_not_found``.
+
+    We mirror the envelope→Page lift already present in
+    ``api/pages.py:_page_payload``: if ``payload`` has a
+    ``.payload.page`` dict (the ``UserPageEnvelope`` shape), materialise
+    a ``Page`` via ``Page.from_dict`` before returning.  A plain ``Page``
+    (OCR lane) falls through unmodified.  On any import/parse failure we
+    return the raw payload and let the caller surface a 404 as before —
+    the envelope was malformed, which is a legitimate not-found condition.
+
+    NOTE: the lifted ``Page`` is **not** written back to
+    ``pstate.page_record.payload`` because ``PageLoadOutcome`` is a
+    frozen dataclass.  Word mutations hold the per-page lock and operate
+    on the returned ``Page`` object in-memory; any subsequent
+    ``_page_payload`` call performs its own independent lift from the
+    same envelope dict.  This is safe because the lifted ``Page`` is
+    mutated in place (pd-book-tools ``Word`` / ``Line`` objects carry
+    state by reference) and the envelope's ``payload.page`` dict is not
+    re-read for the in-process lifetime of the request.
     """
     if pstate is None or pstate.page_record is None:
         return None
-    return getattr(pstate.page_record, "payload", None)
+    payload_obj = getattr(pstate.page_record, "payload", None)
+    if payload_obj is None:
+        return None
+
+    # Lift UserPageEnvelope → Page if the payload has the envelope shape.
+    try:
+        envelope_payload = getattr(payload_obj, "payload", None)
+        if envelope_payload is not None:
+            page_dict = getattr(envelope_payload, "page", None)
+            if isinstance(page_dict, dict):
+                import importlib as _imp
+
+                _page_mod = _imp.import_module("pd_book_tools.ocr.page")
+                payload_obj = _page_mod.Page.from_dict(page_dict)
+    except Exception:
+        log.debug(
+            "_resolve_page_object: envelope→Page lift failed — returning raw payload",
+            exc_info=True,
+        )
+
+    return payload_obj
 
 
 def _resolve_word(page: Any, line_index: int, word_index: int) -> Any | None:
