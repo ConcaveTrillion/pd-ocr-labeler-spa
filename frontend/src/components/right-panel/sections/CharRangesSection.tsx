@@ -436,7 +436,7 @@ export function CharRangesSection({ word, projectId, pageIndex }: CharRangesSect
                 data-testid={`char-range-${i}`}
                 className={[
                   "flex flex-col gap-2 rounded border bg-sunk p-2 text-[11px]",
-                  isOverlapping ? "border-amber-500/70" : "border-border-2",
+                  isOverlapping ? "border-status-fuzzy" : "border-border-2",
                 ].join(" ")}
               >
                 {/* Row 1: glyph + positions + kind + actions */}
@@ -471,7 +471,7 @@ export function CharRangesSection({ word, projectId, pageIndex }: CharRangesSect
                     {isOverlapping && (
                       <span
                         data-testid={`char-range-${i}-overlap-warning`}
-                        className="text-[9px] font-semibold text-amber-500 uppercase tracking-wide border border-amber-500/50 rounded px-1 py-0.5"
+                        className="text-[9px] font-semibold text-status-fuzzy uppercase tracking-wide border border-status-fuzzy rounded px-1 py-0.5"
                       >
                         overlap
                       </span>

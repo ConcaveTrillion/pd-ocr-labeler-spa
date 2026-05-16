@@ -17,6 +17,7 @@
 
 import { Image as KonvaImage, Rect } from "react-konva";
 import useImage from "use-image";
+import { readCssToken } from "../hooks/useLayerColors";
 
 export interface PageImageProps {
   /** URL to load; passed through to use-image. */
@@ -27,11 +28,8 @@ export interface PageImageProps {
   height: number;
 }
 
-/** Fallback fill colour for the loading / failed-load state (Tailwind gray-100). */
-const FALLBACK_FILL = "#f3f4f6";
-
 /**
- * PageImage — Konva <Image> with a grey loading/failure fallback Rect.
+ * PageImage — Konva <Image> with a theme-aware loading/failure fallback Rect.
  *
  * Must be rendered inside a parent react-konva <Layer>. Renders nothing
  * outside Konva's scene graph; safe to drop in alongside overlay rects.
@@ -39,8 +37,9 @@ const FALLBACK_FILL = "#f3f4f6";
 export function PageImage({ url, width, height }: PageImageProps) {
   const [img] = useImage(url, "anonymous");
   if (!img) {
+    const fallbackFill = readCssToken("--bg-raised", "#1d1d24");
     return (
-      <Rect data-testid="page-image-fallback" width={width} height={height} fill={FALLBACK_FILL} />
+      <Rect data-testid="page-image-fallback" width={width} height={height} fill={fallbackFill} />
     );
   }
   return <KonvaImage data-testid="page-image" image={img} width={width} height={height} />;

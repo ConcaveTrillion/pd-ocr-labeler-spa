@@ -508,7 +508,7 @@ describe("PageImageCanvas — Konva Stage drag handlers (spec-21-A6, #302)", () 
     const dragLayer = screen.getByTestId("konva-layer-drag");
     const dragPreview = dragLayer.querySelector('[data-testid="konva-drag-preview"]');
     expect(dragPreview).not.toBeNull();
-    expect(dragPreview?.getAttribute("data-stroke")).toBe("#2563eb"); // spec §9 blue-600
+    expect(dragPreview?.getAttribute("data-stroke")).toBe("#5d9fdf"); // spec §9 --status-ocr fallback
     expect(dragPreview?.getAttribute("data-dash")).toBe("4,2"); // spec §9
     expect(dragPreview?.getAttribute("data-x")).toBe("30");
     expect(dragPreview?.getAttribute("data-y")).toBe("40");
@@ -561,7 +561,7 @@ describe("PageImageCanvas — per-mode cursors (spec-21-A7, #303, spec §9)", ()
   });
 });
 
-describe("PageImageCanvas — per-mode drag-preview stroke (spec-21-A7, #303, spec §9)", () => {
+describe("PageImageCanvas — per-mode drag-preview stroke (spec-21-A7, #303, spec §9, CSS token fallbacks)", () => {
   function dragPreviewStroke(mode: "rebox" | "add-word" | "erase"): string | null {
     viewportStore.setState({ mode, pendingReboxTarget: null });
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
@@ -575,21 +575,21 @@ describe("PageImageCanvas — per-mode drag-preview stroke (spec-21-A7, #303, sp
     );
   }
 
-  it("rebox stroke is #16a34a (green-600)", () => {
-    expect(dragPreviewStroke("rebox")).toBe("#16a34a");
+  it("rebox stroke is --status-exact fallback (#5fbf6a)", () => {
+    expect(dragPreviewStroke("rebox")).toBe("#5fbf6a");
   });
 
-  it("add-word stroke is #9333ea (purple-600)", () => {
-    expect(dragPreviewStroke("add-word")).toBe("#9333ea");
+  it("add-word stroke is --status-gt fallback (#a888d4)", () => {
+    expect(dragPreviewStroke("add-word")).toBe("#a888d4");
   });
 
-  it("erase stroke is #dc2626 (red-600)", () => {
-    expect(dragPreviewStroke("erase")).toBe("#dc2626");
+  it("erase stroke is --status-mismatch fallback (#dc6555)", () => {
+    expect(dragPreviewStroke("erase")).toBe("#dc6555");
   });
 });
 
-describe("PageImageCanvas — erase drag-preview fill (spec-21-A7, #303, spec §9)", () => {
-  it("erase mode drag-preview Rect has rgba(220,38,38,0.20) fill", () => {
+describe("PageImageCanvas — erase drag-preview fill (spec-21-A7, #303, spec §9, CSS token fallbacks)", () => {
+  it("erase mode drag-preview Rect has --status-mismatch fallback fill", () => {
     viewportStore.setState({ mode: "erase", pendingReboxTarget: null });
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
     const stage = getStage();
@@ -598,7 +598,7 @@ describe("PageImageCanvas — erase drag-preview fill (spec-21-A7, #303, spec §
 
     const dragLayer = screen.getByTestId("konva-layer-drag");
     const dragPreview = dragLayer.querySelector('[data-testid="konva-drag-preview"]');
-    expect(dragPreview?.getAttribute("data-fill")).toBe("rgba(220,38,38,0.20)");
+    expect(dragPreview?.getAttribute("data-fill")).toBe("rgba(220,101,85,0.2)"); // hexToRgba("#dc6555", 0.20)
   });
 
   it("non-erase modes have no fill on the drag-preview Rect", () => {

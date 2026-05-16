@@ -50,6 +50,7 @@ import { expandSelection } from "../lib/selection-expand";
 import { BBoxOverlay, type BBoxItem } from "./BBoxOverlay";
 import { PageImage } from "./PageImage";
 import { scheduleDragUpdate } from "../lib/rafSchedule";
+import { readCssToken, hexToRgba } from "../hooks/useLayerColors";
 import { setDragRect, clearSelection, selectionStore } from "../stores/selection-store";
 import {
   viewportStore,
@@ -147,22 +148,27 @@ const MODE_LABELS: Record<ViewportMode, string> = {
   erase: "ERASE",
 };
 
-/** Drag-rect border color per mode. */
-const MODE_RECT_COLORS: Record<ViewportMode, string> = {
-  select: "#2563eb", // blue-600
-  rebox: "#16a34a", // green-600
-  "add-word": "#9333ea", // purple-600
-  erase: "#dc2626", // red-600
-};
+/** Drag-rect border color per mode — reads CSS tokens at render time. */
+function buildModeRectColors(): Record<ViewportMode, string> {
+  return {
+    select: readCssToken("--status-ocr", "#5d9fdf"),
+    rebox: readCssToken("--status-exact", "#5fbf6a"),
+    "add-word": readCssToken("--status-gt", "#a888d4"),
+    erase: readCssToken("--status-mismatch", "#dc6555"),
+  };
+}
 
 /**
  * Drag-rect fill per mode (spec §9). Only erase fills its preview rect —
  * the other modes use stroke-only so the page image stays visible
  * underneath the dashed outline.
  */
-const MODE_RECT_FILLS: Partial<Record<ViewportMode, string>> = {
-  erase: "rgba(220,38,38,0.20)", // red-600 @ 20%
-};
+function buildModeRectFills(): Partial<Record<ViewportMode, string>> {
+  const mismatch = readCssToken("--status-mismatch", "#dc6555");
+  return {
+    erase: hexToRgba(mismatch, 0.2),
+  };
+}
 
 /**
  * Image viewport canvas — Konva Stage host with four interaction modes.
@@ -194,6 +200,10 @@ export default function PageImageCanvas({
   const [dragRect, setLocalDragRect] = useState<BBox | null>(null);
   const [mode, setMode] = useState<ViewportMode>(viewportStore.getState().mode);
   const [railTarget, setRailTarget] = useState<RailTarget>(railStore.getState().target);
+
+  // Build per-mode color maps from CSS tokens (called once per render).
+  const modeRectColors = buildModeRectColors();
+  const modeRectFills = buildModeRectFills();
 
   // Subscribe to viewport store mode changes
   useEffect(() => {
@@ -388,7 +398,7 @@ export default function PageImageCanvas({
   return (
     <div
       ref={wrapperRef}
-      className="page-image-canvas relative select-none outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      className="page-image-canvas relative select-none outline-none focus-visible:ring-2 focus-visible:ring-accent"
       style={{
         width: dims.width,
         height: dims.height,
@@ -461,8 +471,8 @@ export default function PageImageCanvas({
               y={dragRect.y}
               width={dragRect.width}
               height={dragRect.height}
-              stroke={MODE_RECT_COLORS[mode]}
-              fill={MODE_RECT_FILLS[mode]}
+              stroke={modeRectColors[mode]}
+              fill={modeRectFills[mode]}
               strokeWidth={2}
               dash={[4, 2]}
               listening={false}
@@ -483,8 +493,8 @@ export default function PageImageCanvas({
             top: dragRect.y,
             width: dragRect.width,
             height: dragRect.height,
-            border: `2px dashed ${MODE_RECT_COLORS[mode]}`,
-            backgroundColor: MODE_RECT_FILLS[mode] ?? "transparent",
+            border: `2px dashed ${modeRectColors[mode]}`,
+            backgroundColor: modeRectFills[mode] ?? "transparent",
           }}
         />
       )}
@@ -494,15 +504,15 @@ export default function PageImageCanvas({
         data-testid="canvas-mode-pill"
         className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold pointer-events-none select-none"
         style={{
-          backgroundColor: `${MODE_RECT_COLORS[mode]}22`,
-          border: `1px solid ${MODE_RECT_COLORS[mode]}88`,
-          color: MODE_RECT_COLORS[mode],
+          backgroundColor: `${modeRectColors[mode]}22`,
+          border: `1px solid ${modeRectColors[mode]}88`,
+          color: modeRectColors[mode],
         }}
         aria-label={`Canvas mode: ${MODE_LABELS[mode]}`}
       >
         <span
           className="w-[6px] h-[6px] rounded-full flex-shrink-0"
-          style={{ backgroundColor: MODE_RECT_COLORS[mode] }}
+          style={{ backgroundColor: modeRectColors[mode] }}
         />
         {MODE_LABELS[mode]}
       </div>

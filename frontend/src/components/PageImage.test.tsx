@@ -81,7 +81,7 @@ describe("PageImage (#296)", () => {
     render(<PageImage url="/image-cache/page-001.png" width={800} height={600} />);
 
     const rect = screen.getByTestId("page-image-fallback");
-    expect(rect.getAttribute("data-fill")).toBe("#f3f4f6");
+    expect(rect.getAttribute("data-fill")).toBe("#1d1d24");
     expect(Number(rect.getAttribute("data-width"))).toBe(800);
     expect(Number(rect.getAttribute("data-height"))).toBe(600);
     expect(screen.queryByTestId("page-image")).toBeNull();
@@ -109,7 +109,7 @@ describe("PageImage (#296)", () => {
     render(<PageImage url="/image-cache/page-001.png" width={800} height={600} />);
 
     const rect = screen.getByTestId("page-image-fallback");
-    expect(rect.getAttribute("data-fill")).toBe("#f3f4f6");
+    expect(rect.getAttribute("data-fill")).toBe("#1d1d24");
     expect(Number(rect.getAttribute("data-width"))).toBe(800);
     expect(Number(rect.getAttribute("data-height"))).toBe(600);
     expect(screen.queryByTestId("page-image")).toBeNull();

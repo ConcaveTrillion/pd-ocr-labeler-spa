@@ -29,6 +29,7 @@ import { useCallback, useMemo } from "react";
 import { Layer, Rect, Stage } from "react-konva";
 import type Konva from "konva";
 import type { components } from "../../../api/types";
+import { readCssToken, hexToRgba } from "../../../hooks/useLayerColors";
 
 type BBox = components["schemas"]["BBox"];
 
@@ -62,19 +63,27 @@ const CANVAS_WIDTH = 240;
 const CANVAS_HEIGHT = 120;
 /** Side length (px) of each drag handle. */
 const HANDLE_SIZE = 8;
-/** Token-rotation palette for range rectangles (stroke + fill pairs). */
-const RANGE_PALETTE: Array<{ stroke: string; fill: string }> = [
-  { stroke: "#5b8ff9", fill: "rgba(91, 143, 249, 0.18)" },
-  { stroke: "#16a34a", fill: "rgba(22, 163, 74, 0.18)" },
-  { stroke: "#dc2626", fill: "rgba(220, 38, 38, 0.18)" },
-  { stroke: "#9333ea", fill: "rgba(147, 51, 234, 0.18)" },
-  { stroke: "#f59e0b", fill: "rgba(245, 158, 11, 0.18)" },
-  { stroke: "#0891b2", fill: "rgba(8, 145, 178, 0.18)" },
-];
 const SELECTED_STROKE_WIDTH = 2.5;
 const UNSELECTED_STROKE_WIDTH = 1.25;
-const HANDLE_FILL = "#1f2937";
-const HANDLE_STROKE = "#ffffff";
+
+function buildRangePalette(): Array<{ stroke: string; fill: string }> {
+  const tokens = [
+    readCssToken("--status-ocr", "#5d9fdf"),
+    readCssToken("--status-exact", "#5fbf6a"),
+    readCssToken("--status-mismatch", "#dc6555"),
+    readCssToken("--status-gt", "#a888d4"),
+    readCssToken("--status-fuzzy", "#e8a83a"),
+    readCssToken("--layer-line", "#d088a8"),
+  ];
+  return tokens.map((stroke) => ({ stroke, fill: hexToRgba(stroke, 0.18) }));
+}
+
+function buildHandleColors() {
+  return {
+    fill: readCssToken("--bg-sunk", "#08080c"),
+    stroke: readCssToken("--ink-1", "#f0f0f2"),
+  };
+}
 
 type HandlePos = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 
@@ -154,6 +163,9 @@ export function CharFixerCanvas({
   onSelect,
   onChange,
 }: CharFixerCanvasProps) {
+  const rangePalette = buildRangePalette();
+  const handleColors = buildHandleColors();
+
   // Fit the *word* bbox into the canvas. Sizing around the parent bbox keeps
   // the visible scale stable as the user nudges per-char bboxes around.
   const fit = useMemo(() => {
@@ -220,7 +232,7 @@ export function CharFixerCanvas({
               y={0}
               width={CANVAS_WIDTH}
               height={CANVAS_HEIGHT}
-              fill="#f3f4f6"
+              fill={readCssToken("--bg-raised", "#1d1d24")}
               listening={false}
               data-testid="charfixer-canvas-background"
             />
@@ -228,7 +240,7 @@ export function CharFixerCanvas({
         </Layer>
         <Layer>
           {charBboxes.map((cb, i) => {
-            const palette = RANGE_PALETTE[i % RANGE_PALETTE.length];
+            const palette = rangePalette[i % rangePalette.length];
             const tl = toCanvas(cb.bbox.x, cb.bbox.y);
             const br = toCanvas(cb.bbox.x + cb.bbox.width, cb.bbox.y + cb.bbox.height);
             const overlayX = Math.min(tl.x, br.x);
@@ -270,8 +282,8 @@ export function CharFixerCanvas({
                   y={can.y - HANDLE_SIZE / 2}
                   width={HANDLE_SIZE}
                   height={HANDLE_SIZE}
-                  fill={HANDLE_FILL}
-                  stroke={HANDLE_STROKE}
+                  fill={handleColors.fill}
+                  stroke={handleColors.stroke}
                   strokeWidth={1}
                   draggable
                   onDragMove={handleHandleDragMove(selectedIndex, h.pos)}

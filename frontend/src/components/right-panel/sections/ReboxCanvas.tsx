@@ -26,6 +26,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Layer, Rect, Stage } from "react-konva";
 import type Konva from "konva";
 import type { components } from "../../../api/types";
+import { readCssToken, hexToRgba } from "../../../hooks/useLayerColors";
 
 type BBox = components["schemas"]["BBox"];
 
@@ -51,11 +52,18 @@ const CANVAS_WIDTH = 240;
 const CANVAS_HEIGHT = 120;
 /** Side length (px) of each drag handle. */
 const HANDLE_SIZE = 8;
-/** Visual style. */
-const BBOX_STROKE = "#5b8ff9"; // soft accent
-const BBOX_FILL = "rgba(91, 143, 249, 0.12)";
-const HANDLE_FILL = "#1f2937";
-const HANDLE_STROKE = "#ffffff";
+
+function buildCanvasColors() {
+  const accent = readCssToken("--accent", "#d6925a");
+  const bgSunk = readCssToken("--bg-sunk", "#08080c");
+  const ink1 = readCssToken("--ink-1", "#f0f0f2");
+  return {
+    bboxStroke: accent,
+    bboxFill: hexToRgba(accent, 0.12),
+    handleFill: bgSunk,
+    handleStroke: ink1,
+  };
+}
 
 type HandlePos = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 
@@ -137,6 +145,8 @@ export function ReboxCanvas({
   zoom,
   imageUrl,
 }: ReboxCanvasProps) {
+  const canvasColors = buildCanvasColors();
+
   // Fit the *original* bbox into the canvas. We size around the original so
   // the visible scale doesn't change as the user drags the bbox around.
   const fit = useMemo(() => {
@@ -280,7 +290,7 @@ export function ReboxCanvas({
             y={0}
             width={CANVAS_WIDTH}
             height={CANVAS_HEIGHT}
-            fill={imageUrl ? undefined : "#f3f4f6"}
+            fill={imageUrl ? undefined : readCssToken("--bg-raised", "#1d1d24")}
             data-testid="rebox-canvas-background"
           />
         </Layer>
@@ -292,9 +302,9 @@ export function ReboxCanvas({
             y={overlayY}
             width={overlayW}
             height={overlayH}
-            stroke={BBOX_STROKE}
+            stroke={canvasColors.bboxStroke}
             strokeWidth={1.5}
-            fill={BBOX_FILL}
+            fill={canvasColors.bboxFill}
             dash={drawing ? [4, 2] : undefined}
           />
           {/* Drag handles — only when not in the middle of drawing. */}
@@ -310,8 +320,8 @@ export function ReboxCanvas({
                   y={can.y - HANDLE_SIZE / 2}
                   width={HANDLE_SIZE}
                   height={HANDLE_SIZE}
-                  fill={HANDLE_FILL}
-                  stroke={HANDLE_STROKE}
+                  fill={canvasColors.handleFill}
+                  stroke={canvasColors.handleStroke}
                   strokeWidth={1}
                   draggable
                   onDragMove={handleHandleDragMove(h.pos)}

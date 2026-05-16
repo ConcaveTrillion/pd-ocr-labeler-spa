@@ -21,6 +21,7 @@
 import { useCallback, useRef, useState } from "react";
 import { Layer, Rect, Stage } from "react-konva";
 import type Konva from "konva";
+import { readCssToken, hexToRgba } from "../hooks/useLayerColors";
 
 // useRef is used below in ImageLayer (not the main component).
 // The eslint no-unused-vars rule is satisfied by the Layer/Stage/Rect imports above.
@@ -70,10 +71,19 @@ const ZOOM_LEVELS: ZoomLevel[] = [1, 2, 5, 10];
 const BASE_WIDTH = 200;
 const BASE_HEIGHT = 80;
 const MARKER_RADIUS = 5;
-const GUIDE_STROKE = "#3b82f6"; // blue-500
-const MARKER_FILL = "#2563eb"; // blue-600
-const ERASE_FILL = "rgba(220,38,38,0.35)"; // red semi-transparent
 const GUIDE_STROKE_WIDTH = 1;
+
+function buildWordCanvasColors() {
+  const ocr = readCssToken("--status-ocr", "#5d9fdf");
+  const accent = readCssToken("--accent", "#d6925a");
+  const mismatch = readCssToken("--status-mismatch", "#dc6555");
+  return {
+    guideStroke: ocr,
+    markerFill: accent,
+    eraseFill: hexToRgba(mismatch, 0.35),
+    eraseStroke: mismatch,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -86,6 +96,7 @@ export function WordImageCanvas({
   onEraseRectAdd,
   onMarkerPlace,
 }: WordImageCanvasProps) {
+  const wordCanvasColors = buildWordCanvasColors();
   const [zoom, setZoom] = useState<ZoomLevel>(1);
   const [marker, setMarker] = useState<MarkerPoint | null>(null);
   const [guide, setGuide] = useState<{ x: number; y: number } | null>(null);
@@ -211,7 +222,7 @@ export function WordImageCanvas({
     <div className="flex flex-col items-center gap-2">
       {/* Zoom selector */}
       <div className="flex items-center gap-1">
-        <span className="text-xs text-gray-500 mr-1">Zoom:</span>
+        <span className="text-xs text-ink-3 mr-1">Zoom:</span>
         {ZOOM_LEVELS.map((z) => (
           <button
             key={z}
@@ -222,19 +233,21 @@ export function WordImageCanvas({
             className={[
               "px-2 py-0.5 text-xs rounded border transition-colors",
               zoom === z
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50",
+                ? "bg-accent text-accent-ink border-accent"
+                : "bg-bg-surface text-ink-2 border-border-2 hover:bg-bg-raised",
             ].join(" ")}
           >
             {z}×
           </button>
         ))}
-        {eraseMode && <span className="ml-2 text-xs text-red-600 font-medium">Erase mode</span>}
+        {eraseMode && (
+          <span className="ml-2 text-xs text-status-mismatch font-medium">Erase mode</span>
+        )}
       </div>
 
       {/* Konva Stage */}
       <div
-        className="border border-gray-300 rounded overflow-hidden"
+        className="border border-border-2 rounded overflow-hidden"
         style={{ cursor: eraseMode ? "crosshair" : "cell" }}
       >
         <Stage
@@ -254,7 +267,13 @@ export function WordImageCanvas({
               <ImageLayer url={imageUrl} width={imageWidth} height={imageHeight} />
             ) : (
               /* Placeholder rect when no image URL provided */
-              <Rect x={0} y={0} width={stageWidth} height={stageHeight} fill="#f3f4f6" />
+              <Rect
+                x={0}
+                y={0}
+                width={stageWidth}
+                height={stageHeight}
+                fill={readCssToken("--bg-raised", "#1d1d24")}
+              />
             )}
 
             {/* Committed erase rects */}
@@ -266,8 +285,8 @@ export function WordImageCanvas({
                 y={rect.y * zoom}
                 width={rect.width * zoom}
                 height={rect.height * zoom}
-                fill={ERASE_FILL}
-                stroke="#dc2626"
+                fill={wordCanvasColors.eraseFill}
+                stroke={wordCanvasColors.eraseStroke}
                 strokeWidth={1}
               />
             ))}
@@ -279,8 +298,8 @@ export function WordImageCanvas({
                 y={pendingEraseRect.y * zoom}
                 width={pendingEraseRect.width * zoom}
                 height={pendingEraseRect.height * zoom}
-                fill={ERASE_FILL}
-                stroke="#dc2626"
+                fill={wordCanvasColors.eraseFill}
+                stroke={wordCanvasColors.eraseStroke}
                 strokeWidth={1}
                 dash={[4, 2]}
               />
@@ -299,7 +318,7 @@ export function WordImageCanvas({
                   y={0}
                   width={GUIDE_STROKE_WIDTH}
                   height={stageHeight}
-                  fill={GUIDE_STROKE}
+                  fill={wordCanvasColors.guideStroke}
                   opacity={0.6}
                 />
                 {/* Horizontal guide */}
@@ -308,7 +327,7 @@ export function WordImageCanvas({
                   y={guide.y}
                   width={stageWidth}
                   height={GUIDE_STROKE_WIDTH}
-                  fill={GUIDE_STROKE}
+                  fill={wordCanvasColors.guideStroke}
                   opacity={0.6}
                 />
               </>
@@ -323,7 +342,7 @@ export function WordImageCanvas({
                 width={MARKER_RADIUS * 2}
                 height={MARKER_RADIUS * 2}
                 cornerRadius={MARKER_RADIUS}
-                fill={MARKER_FILL}
+                fill={wordCanvasColors.markerFill}
               />
             )}
           </Layer>
@@ -364,7 +383,7 @@ function ImageLayer({ url, width, height }: ImageLayerProps) {
       y={0}
       width={width}
       height={height}
-      fill={loaded ? undefined : "#e5e7eb"}
+      fill={loaded ? undefined : readCssToken("--bg-raised", "#1d1d24")}
       fillPatternImage={loaded && imgRef.current ? imgRef.current : undefined}
       fillPatternScaleX={loaded && imgRef.current ? width / imgRef.current.naturalWidth : 1}
       fillPatternScaleY={loaded && imgRef.current ? height / imgRef.current.naturalHeight : 1}

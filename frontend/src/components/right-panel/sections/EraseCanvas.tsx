@@ -26,6 +26,7 @@
 import { useCallback, useRef, useState } from "react";
 import { Layer, Rect, Stage } from "react-konva";
 import type Konva from "konva";
+import { readCssToken, hexToRgba } from "../../../hooks/useLayerColors";
 
 // ───────────────────────────────────────────────────────────────────────────
 // Types
@@ -82,10 +83,16 @@ export interface EraseCanvasProps {
 
 const DEFAULT_WIDTH = 200;
 const DEFAULT_HEIGHT = 80;
-const ERASE_FILL = "rgba(220,38,38,0.35)"; // red semi-transparent
-const ERASE_STROKE = "#dc2626";
 const MIN_BRUSH = 2;
 const MAX_BRUSH = 32;
+
+function buildEraseColors() {
+  const mismatch = readCssToken("--status-mismatch", "#dc6555");
+  return {
+    fill: hexToRgba(mismatch, 0.35),
+    stroke: mismatch,
+  };
+}
 
 // ───────────────────────────────────────────────────────────────────────────
 // Component
@@ -115,6 +122,7 @@ export function EraseCanvas({
   const stageRef = useRef<Konva.Stage>(null);
   const [rectDrag, setRectDrag] = useState<RectDragState | null>(null);
   const [lassoDrag, setLassoDrag] = useState<LassoDragState | null>(null);
+  const eraseColors = buildEraseColors();
 
   // Extract pointer position from a Konva event. Returns null if unavailable.
   const pointerPos = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -255,13 +263,13 @@ export function EraseCanvas({
               y={0}
               width={width}
               height={height}
-              fill={imageUrl ? undefined : "#1f2937"}
+              fill={imageUrl ? undefined : readCssToken("--bg-sunk", "#08080c")}
             />
           </Layer>
 
           {/* Committed op overlays */}
           <Layer>
-            {ops.map((op, i) => renderOpRect(op, i))}
+            {ops.map((op, i) => renderOpRect(op, i, eraseColors))}
 
             {/* Pending rect drag preview */}
             {rectDrag && (
@@ -270,8 +278,8 @@ export function EraseCanvas({
                 y={rectDrag.current.y}
                 width={rectDrag.current.width}
                 height={rectDrag.current.height}
-                fill={ERASE_FILL}
-                stroke={ERASE_STROKE}
+                fill={eraseColors.fill}
+                stroke={eraseColors.stroke}
                 strokeWidth={1}
                 dash={[4, 2]}
               />
@@ -287,7 +295,7 @@ export function EraseCanvas({
  * Render one committed op as a Konva.Rect (approximation — lasso renders as
  * its bounding-box for now; the polygon outline is purely visual feedback).
  */
-function renderOpRect(op: EraseOp, index: number) {
+function renderOpRect(op: EraseOp, index: number, colors: { fill: string; stroke: string }) {
   if (op.tool === "brush") {
     const r = op.radius;
     return (
@@ -299,8 +307,8 @@ function renderOpRect(op: EraseOp, index: number) {
         width={r * 2}
         height={r * 2}
         cornerRadius={r}
-        fill={ERASE_FILL}
-        stroke={ERASE_STROKE}
+        fill={colors.fill}
+        stroke={colors.stroke}
         strokeWidth={1}
       />
     );
@@ -314,8 +322,8 @@ function renderOpRect(op: EraseOp, index: number) {
         y={op.y}
         width={op.width}
         height={op.height}
-        fill={ERASE_FILL}
-        stroke={ERASE_STROKE}
+        fill={colors.fill}
+        stroke={colors.stroke}
         strokeWidth={1}
       />
     );
@@ -335,8 +343,8 @@ function renderOpRect(op: EraseOp, index: number) {
       y={minY}
       width={maxX - minX}
       height={maxY - minY}
-      fill={ERASE_FILL}
-      stroke={ERASE_STROKE}
+      fill={colors.fill}
+      stroke={colors.stroke}
       strokeWidth={1}
       dash={[2, 2]}
     />
