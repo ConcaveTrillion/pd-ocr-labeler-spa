@@ -15,12 +15,15 @@ import { Toaster } from "sonner";
 
 import { Suspense, lazy } from "react";
 import HeaderBar from "./components/HeaderBar";
+import type { PageMetrics } from "./components/HeaderBar";
 import ProjectNavigationControls from "./components/ProjectNavigationControls";
 import { PageActionsCompact } from "./components/PageActionsCompact";
 import RootPage from "./pages/RootPage";
 import ProjectPage from "./pages/ProjectPage";
 import { ROUTES } from "./lib/routes";
 import { useThemePreference } from "./stores/ui-prefs";
+import { useProject } from "./hooks/useProject";
+import { usePage } from "./hooks/usePage";
 
 // Lazy-load the perf-bench page so the heavy react-konva module graph
 // (and its Node-canvas dependency in jsdom test environments) is only
@@ -105,12 +108,49 @@ function AppShell() {
 
   // IS-2: Inject nav + actions slots into HeaderBar when on a project route.
   const onProjectRoute = projectId !== null;
+  const pageNo = String(pageIndex + 1);
+
+  // P1.a: Fetch project name + page metrics for header breadcrumb + strip.
+  // Both hooks are guarded via enabled:false when projectId is null/undefined.
+  const projectIdOrUndef = projectId ?? undefined;
+  const projectQ = useProject(projectIdOrUndef);
+  const pageQ = usePage(projectIdOrUndef, pageIndex);
+
+  // Prefer using a display name; fall back to project_id as identifier.
+  // The ProjectResponse shape has no separate display-name field, so we
+  // use project_id as the breadcrumb label for now.
+  const headerProjectName: string | null = projectQ.data ? projectQ.data.project_id : null;
+
+  const pageMetrics: PageMetrics | null = (() => {
+    const lineMatches = pageQ.data?.line_matches ?? null;
+    if (!lineMatches) return null;
+    const words = lineMatches.flatMap((l) => l.word_matches);
+    const total = words.length;
+    if (total === 0) return null;
+    return {
+      total,
+      exact: words.filter((w) => w.match_status === "exact").length,
+      fuzzy: words.filter((w) => w.match_status === "fuzzy").length,
+      mismatch: words.filter((w) => w.match_status === "mismatch").length,
+      validated: words.filter((w) => w.is_validated).length,
+    };
+  })();
 
   return (
     <div data-testid="app-shell" className="flex flex-col h-screen">
       <HeaderBar
-        navSlot={onProjectRoute ? <ProjectNavigationControls /> : undefined}
-        actionsSlot={onProjectRoute ? <PageActionsCompact /> : undefined}
+        navSlot={
+          onProjectRoute ? (
+            <ProjectNavigationControls projectId={projectId!} pageNo={pageNo} />
+          ) : undefined
+        }
+        actionsSlot={
+          onProjectRoute ? (
+            <PageActionsCompact projectId={projectId!} pageIndex={pageIndex} />
+          ) : undefined
+        }
+        projectName={headerProjectName}
+        pageMetrics={pageMetrics}
       />
       {/*
        * Accessible live regions — spec #238.

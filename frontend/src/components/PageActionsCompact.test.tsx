@@ -10,7 +10,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/server";
@@ -25,18 +25,12 @@ function makeQC() {
   });
 }
 
-function renderCompact(route = "/projects/proj-1/pages/pageno/1") {
+function renderCompact(projectId = "proj-1", pageIndex = 0) {
   const qc = makeQC();
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={[route]}>
-        <Routes>
-          <Route
-            path="/projects/:projectId/pages/pageno/:pageNo"
-            element={<PageActionsCompact />}
-          />
-          <Route path="/" element={<PageActionsCompact />} />
-        </Routes>
+      <MemoryRouter>
+        <PageActionsCompact projectId={projectId} pageIndex={pageIndex} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -83,18 +77,11 @@ describe("PageActionsCompact: testids (P1.b)", () => {
 // ─── disabled state ───────────────────────────────────────────────────────────
 
 describe("PageActionsCompact: disabled when no project", () => {
-  it("reload-ocr is disabled when projectId is absent", () => {
-    // Render on root route — no :projectId param
-    const qc = makeQC();
-    render(
-      <QueryClientProvider client={qc}>
-        <MemoryRouter initialEntries={["/"]}>
-          <Routes>
-            <Route path="/" element={<PageActionsCompact />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
+  it("reload-ocr is disabled when projectId is empty string", () => {
+    // AppShell only renders PageActionsCompact when onProjectRoute is true
+    // (projectId !== null), but the component's own disabled guard also
+    // checks !projectId so an empty string keeps buttons disabled.
+    renderCompact("", 0);
     expect(screen.getByTestId("page-actions-compact-reload-ocr")).toBeDisabled();
     expect(screen.getByTestId("page-actions-compact-save-page")).toBeDisabled();
   });

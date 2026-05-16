@@ -4,27 +4,28 @@
 // P1.b (Gap 4, 7): Shows Reload OCR | Rematch GT | ✓ Save page | Export ▾
 // styled as labelled header buttons (design-token classes, 28px height).
 //
-// Self-contained: reads projectId + pageIndex from URL params directly.
+// Receives projectId + pageIndex as props (resolved by AppShell via
+// useRouteProjectContext / useMatch, which works outside <Routes>).
 // The full PageActions bar (with all driver-contract testids) remains
 // mounted hidden inside ProjectPage for driver compatibility.
 
-import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useReloadOcr, useSavePage, useRematchGt } from "../hooks/usePageMutations";
 import { useJobProgress } from "../hooks/useJobProgress";
 import { dialogStore } from "../stores/dialog-store";
 
-export function PageActionsCompact() {
-  const { projectId, pageNo } = useParams<{ projectId: string; pageNo: string }>();
+export interface PageActionsCompactProps {
+  projectId: string;
+  pageIndex: number;
+}
+
+export function PageActionsCompact({ projectId, pageIndex }: PageActionsCompactProps) {
   const qc = useQueryClient();
 
-  const idx0 = useMemo(() => {
-    const n = parseInt(pageNo ?? "1", 10);
-    return Number.isFinite(n) && n > 0 ? n - 1 : 0;
-  }, [pageNo]);
+  const idx0 = pageIndex;
 
-  const pid = projectId ?? "";
+  const pid = projectId;
 
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const jobProgress = useJobProgress(activeJobId);

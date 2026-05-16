@@ -24,13 +24,20 @@
 //   - Total label: `/ ${total_pages}` (testid: nav-page-total-label).
 
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useProject } from "../hooks/useProject";
 import { pageNoUrl } from "../lib/routes";
 
-export default function ProjectNavigationControls() {
-  const { projectId, pageNo } = useParams<{ projectId: string; pageNo: string }>();
+export interface ProjectNavigationControlsProps {
+  projectId: string;
+  pageNo: string;
+}
+
+export default function ProjectNavigationControls({
+  projectId,
+  pageNo,
+}: ProjectNavigationControlsProps) {
   const navigate = useNavigate();
   const { data } = useProject(projectId);
 

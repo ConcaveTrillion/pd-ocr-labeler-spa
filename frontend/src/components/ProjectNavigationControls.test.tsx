@@ -75,6 +75,9 @@ function renderControls({ projectId = "proj-1", totalPages = 5, route }: RenderO
   void totalPages;
   const qc = makeQueryClient();
   const initialPath = route ?? `/projects/${projectId}/pages/pageno/1`;
+  // Extract pageNo from the initial path so we can pass it as a prop.
+  const pageNoMatch = initialPath.match(/\/pageno\/(\d+)/);
+  const pageNo = pageNoMatch ? pageNoMatch[1] : "1";
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[initialPath]}>
@@ -82,7 +85,7 @@ function renderControls({ projectId = "proj-1", totalPages = 5, route }: RenderO
         <Routes>
           <Route
             path="/projects/:projectId/pages/pageno/:pageNo"
-            element={<ProjectNavigationControls />}
+            element={<ProjectNavigationControls projectId={projectId} pageNo={pageNo} />}
           />
         </Routes>
       </MemoryRouter>

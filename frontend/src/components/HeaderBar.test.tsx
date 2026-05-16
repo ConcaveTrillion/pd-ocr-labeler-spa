@@ -2,8 +2,9 @@
 //
 // Simplified layout (2026-05-16):
 //   Left:   logo badge + "OCR Labeler" text (link to /) + "Projects" link to /
+//           [+ "/" + project-name chip when projectName prop is set]
 //   Center: navSlot (optional) + actionsSlot (optional)
-//   Right:  ThemeChips (Dark/Light/System)
+//   Right:  [header-metrics-strip (project route only)] + ThemeChips (Dark/Light/System)
 //   Hidden: driver-contract stub div (display:none)
 //
 // Removed from HeaderBar: ProjectLoadControls, MetricsStrip, QuickSearch,
@@ -15,6 +16,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import HeaderBar from "./HeaderBar";
+import type { PageMetrics } from "./HeaderBar";
 
 // --- helpers -----------------------------------------------------------------
 
@@ -26,14 +28,27 @@ interface RenderOpts {
   route?: string;
   navSlot?: React.ReactNode;
   actionsSlot?: React.ReactNode;
+  projectName?: string | null;
+  pageMetrics?: PageMetrics | null;
 }
 
-function renderHeaderBar({ route = "/", navSlot, actionsSlot }: RenderOpts = {}) {
+function renderHeaderBar({
+  route = "/",
+  navSlot,
+  actionsSlot,
+  projectName,
+  pageMetrics,
+}: RenderOpts = {}) {
   const qc = makeQueryClient();
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[route]}>
-        <HeaderBar navSlot={navSlot} actionsSlot={actionsSlot} />
+        <HeaderBar
+          navSlot={navSlot}
+          actionsSlot={actionsSlot}
+          projectName={projectName}
+          pageMetrics={pageMetrics}
+        />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -80,9 +95,19 @@ describe("HeaderBar: structure", () => {
     expect(screen.queryByTestId("source-folder-button")).not.toBeInTheDocument();
   });
 
-  it("does NOT render metrics-strip (removed)", async () => {
+  it("does NOT render legacy metrics-strip testid (removed)", async () => {
     renderHeaderBar({ route: "/projects/p1/pages/pageno/1" });
     expect(screen.queryByTestId("metrics-strip")).not.toBeInTheDocument();
+  });
+
+  it("does NOT render header-metrics-strip when pageMetrics is null", async () => {
+    renderHeaderBar({ route: "/projects/p1/pages/pageno/1", pageMetrics: null });
+    expect(screen.queryByTestId("header-metrics-strip")).not.toBeInTheDocument();
+  });
+
+  it("does NOT render header-project-name when projectName is null", async () => {
+    renderHeaderBar({ route: "/projects/p1/pages/pageno/1", projectName: null });
+    expect(screen.queryByTestId("header-project-name")).not.toBeInTheDocument();
   });
 
   it("does NOT render quick-search (removed)", async () => {
@@ -147,6 +172,81 @@ describe("HeaderBar: navSlot and actionsSlot", () => {
   it("does not render actionsSlot content when not provided", async () => {
     renderHeaderBar();
     expect(screen.queryByTestId("actions-slot-content")).not.toBeInTheDocument();
+  });
+});
+
+// --- project breadcrumb (P1.a) -----------------------------------------------
+
+describe("HeaderBar: project breadcrumb", () => {
+  it("renders header-project-name when projectName is provided", async () => {
+    renderHeaderBar({ projectName: "my-book-project" });
+    const chip = screen.getByTestId("header-project-name");
+    expect(chip).toBeInTheDocument();
+    expect(chip).toHaveTextContent("my-book-project");
+  });
+
+  it("does NOT render header-project-name when projectName is empty string", async () => {
+    renderHeaderBar({ projectName: "" });
+    expect(screen.queryByTestId("header-project-name")).not.toBeInTheDocument();
+  });
+
+  it("does NOT render breadcrumb separator when projectName is null", async () => {
+    renderHeaderBar({ projectName: null });
+    // The "/" separator span has text content "/"; ensure it's absent when no project.
+    expect(screen.queryByTestId("header-project-name")).not.toBeInTheDocument();
+  });
+});
+
+// --- metrics strip (P1.a) ----------------------------------------------------
+
+describe("HeaderBar: metrics strip", () => {
+  const metrics: PageMetrics = {
+    total: 12,
+    exact: 8,
+    fuzzy: 3,
+    mismatch: 1,
+    validated: 4,
+  };
+
+  it("renders header-metrics-strip when pageMetrics has total > 0", async () => {
+    renderHeaderBar({ pageMetrics: metrics });
+    expect(screen.getByTestId("header-metrics-strip")).toBeInTheDocument();
+  });
+
+  it("shows word count in the strip", async () => {
+    renderHeaderBar({ pageMetrics: metrics });
+    expect(screen.getByTestId("header-metrics-strip")).toHaveTextContent("12 words");
+  });
+
+  it("shows exact count in the strip", async () => {
+    renderHeaderBar({ pageMetrics: metrics });
+    expect(screen.getByTestId("header-metrics-strip")).toHaveTextContent("8 exact");
+  });
+
+  it("shows fuzzy count in the strip", async () => {
+    renderHeaderBar({ pageMetrics: metrics });
+    expect(screen.getByTestId("header-metrics-strip")).toHaveTextContent("3 fuzzy");
+  });
+
+  it("shows mismatch count with ✗ in the strip", async () => {
+    renderHeaderBar({ pageMetrics: metrics });
+    expect(screen.getByTestId("header-metrics-strip")).toHaveTextContent("1 ✗");
+  });
+
+  it("shows validated fraction in the strip", async () => {
+    renderHeaderBar({ pageMetrics: metrics });
+    expect(screen.getByTestId("header-metrics-strip")).toHaveTextContent("4/12 validated");
+  });
+
+  it("does NOT render header-metrics-strip when total is 0", async () => {
+    const zeroMetrics: PageMetrics = { total: 0, exact: 0, fuzzy: 0, mismatch: 0, validated: 0 };
+    renderHeaderBar({ pageMetrics: zeroMetrics });
+    expect(screen.queryByTestId("header-metrics-strip")).not.toBeInTheDocument();
+  });
+
+  it("does NOT render header-metrics-strip when pageMetrics is undefined", async () => {
+    renderHeaderBar();
+    expect(screen.queryByTestId("header-metrics-strip")).not.toBeInTheDocument();
   });
 });
 

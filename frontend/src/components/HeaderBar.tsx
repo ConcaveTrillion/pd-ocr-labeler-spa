@@ -3,11 +3,12 @@
 //       specs/22-page-surface-wireup.md §3, §6 (issue #309)
 //       docs/plans/hifi-gaps-plan.md P1.a (Gaps 1, 3, 5)
 // IS-2: added navSlot + actionsSlot props for project-route header wiring.
+// P1.a: added projectName breadcrumb + pageMetrics strip.
 //
 // Layout:
-//   Left:   logo glyph + "Projects" link back to /
+//   Left:   logo glyph + "Projects" link back to / [+ "/" + project-name chip]
 //   Center: [navSlot] + [actionsSlot] (project-route injected content)
-//   Right:  theme toggle (Dark/Light/System chips)
+//   Right:  [metrics strip (project route only)] + theme toggle (Dark/Light/System chips)
 //
 // 56px height (`h-14`), `bg-bg-page`, `border-b border-border-1`.
 // Gap 1: header height 40→56px (DONE).
@@ -64,6 +65,15 @@ function ThemeChips() {
 
 // ─── HeaderBar ───────────────────────────────────────────────────────────────
 
+/** Computed per-page word-match metrics passed from AppShell. */
+export interface PageMetrics {
+  total: number;
+  exact: number;
+  fuzzy: number;
+  mismatch: number;
+  validated: number;
+}
+
 export interface HeaderBarProps {
   /**
    * IS-2: Optional slot rendered in the center-left area (after logo).
@@ -75,9 +85,24 @@ export interface HeaderBarProps {
    * theme toggle). Used to inject PageActionsCompact when on a project route.
    */
   actionsSlot?: React.ReactNode;
+  /**
+   * P1.a: Project name displayed as a breadcrumb chip after "Projects" link.
+   * Only rendered when non-null and truthy.
+   */
+  projectName?: string | null;
+  /**
+   * P1.a: Per-page word-match metrics displayed in the header right area.
+   * Only rendered when non-null and total > 0.
+   */
+  pageMetrics?: PageMetrics | null;
 }
 
-export default function HeaderBar({ navSlot, actionsSlot }: HeaderBarProps = {}) {
+export default function HeaderBar({
+  navSlot,
+  actionsSlot,
+  projectName,
+  pageMetrics,
+}: HeaderBarProps = {}) {
   return (
     <header
       data-testid="header-bar"
@@ -110,6 +135,19 @@ export default function HeaderBar({ navSlot, actionsSlot }: HeaderBarProps = {})
         Projects
       </Link>
 
+      {/* P1.a: project name breadcrumb chip — only when on a project route */}
+      {projectName && (
+        <>
+          <span className="text-ink-3 text-[11px] shrink-0">/</span>
+          <span
+            data-testid="header-project-name"
+            className="text-[11px] text-ink-1 font-medium truncate max-w-[200px] shrink-0"
+          >
+            {projectName}
+          </span>
+        </>
+      )}
+
       {/* Center-left: navigation slot (project route only) */}
       {navSlot}
 
@@ -118,6 +156,26 @@ export default function HeaderBar({ navSlot, actionsSlot }: HeaderBarProps = {})
 
       {/* Center-right: actions slot (project route only) */}
       {actionsSlot}
+
+      {/* P1.a: metrics strip — only when on a project route with loaded words */}
+      {pageMetrics && pageMetrics.total > 0 && (
+        <div
+          data-testid="header-metrics-strip"
+          className="flex items-center gap-1.5 text-[10px] text-ink-3 shrink-0"
+        >
+          <span>{pageMetrics.total} words</span>
+          <span>·</span>
+          <span className="text-status-exact">{pageMetrics.exact} exact</span>
+          <span>·</span>
+          <span className="text-status-fuzzy">{pageMetrics.fuzzy} fuzzy</span>
+          <span>·</span>
+          <span className="text-status-mismatch">{pageMetrics.mismatch} ✗</span>
+          <span>·</span>
+          <span>
+            {pageMetrics.validated}/{pageMetrics.total} validated
+          </span>
+        </div>
+      )}
 
       {/* Right: theme toggle */}
       <div className="shrink-0">
