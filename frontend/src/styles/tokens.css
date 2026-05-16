@@ -38,6 +38,23 @@
   --layer-para: #7fb56a;
   --layer-line: #d088a8;
   --layer-word: #6e9cdf;
+
+  /* Type families */
+  --ui-font: "Inter", system-ui, sans-serif;
+  --mono-font: "JetBrains Mono", ui-monospace, monospace;
+  /* Elevation — floating chrome only */
+  --shadow-floating: 0 3px 10px rgba(0, 0, 0, 0.35);
+
+  /* Design-system aliases (unprefixed) */
+  --exact: var(--status-exact);
+  --fuzzy: var(--status-fuzzy);
+  --mismatch: var(--status-mismatch);
+  --ocr: var(--status-ocr);
+  --gt: var(--status-gt);
+  --block: var(--layer-block);
+  --para: var(--layer-para);
+  --line: var(--layer-line);
+  --word: var(--layer-word);
 }
 
 [data-theme="light"] {
@@ -74,6 +91,18 @@
   --layer-para: #4d8a3a;
   --layer-line: #a8527a;
   --layer-word: #3d6bb8;
+
+  --shadow-floating: 0 3px 10px rgba(60, 40, 20, 0.1);
+  /* Design-system aliases (unprefixed) */
+  --exact: var(--status-exact);
+  --fuzzy: var(--status-fuzzy);
+  --mismatch: var(--status-mismatch);
+  --ocr: var(--status-ocr);
+  --gt: var(--status-gt);
+  --block: var(--layer-block);
+  --para: var(--layer-para);
+  --line: var(--layer-line);
+  --word: var(--layer-word);
 }
 
 @media (prefers-color-scheme: light) {
@@ -111,5 +140,17 @@
     --layer-para: #4d8a3a;
     --layer-line: #a8527a;
     --layer-word: #3d6bb8;
+
+    --shadow-floating: 0 3px 10px rgba(60, 40, 20, 0.1);
+    /* Design-system aliases (unprefixed) */
+    --exact: var(--status-exact);
+    --fuzzy: var(--status-fuzzy);
+    --mismatch: var(--status-mismatch);
+    --ocr: var(--status-ocr);
+    --gt: var(--status-gt);
+    --block: var(--layer-block);
+    --para: var(--layer-para);
+    --line: var(--layer-line);
+    --word: var(--layer-word);
   }
 }

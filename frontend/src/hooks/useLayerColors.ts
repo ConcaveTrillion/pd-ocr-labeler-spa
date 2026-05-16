@@ -94,6 +94,20 @@ export function hexToLayerColorSpec(hexColor: string): LayerColorSpec {
   };
 }
 
+// ─── Generic CSS token reader ────────────────────────────────────────────────
+
+/**
+ * Read any CSS custom property from the root element.
+ * Returns `fallback` when the property is not set (e.g. in jsdom).
+ */
+export function readCssToken(prop: string, fallback: string): string {
+  try {
+    return getComputedStyle(document.documentElement).getPropertyValue(prop).trim() || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 // ─── Accent color reading (Gaps 25 + 26) ────────────────────────────────────
 
 /**
@@ -136,19 +150,3 @@ export function buildDragRectLayerSpec(): LayerColorSpec {
     strokeWidth: 2,
   };
 }
-
-// ─── Static fallback specs (legacy-exact values) ──────────────────────────────
-
-/** Selection overlay colors — legacy-exact fallback. */
-export const SELECTION_LAYER_SPEC: LayerColorSpec = {
-  fill: "rgba(37,99,235,0.20)",
-  stroke: "#1d4ed8",
-  strokeWidth: 1,
-};
-
-/** Drag-rect layer spec — legacy-exact fallback. */
-export const DRAG_RECT_LAYER_SPEC: LayerColorSpec = {
-  fill: "transparent",
-  stroke: "#2563eb",
-  strokeWidth: 2,
-};

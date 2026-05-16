@@ -9,6 +9,7 @@
  */
 
 @import "./styles/tokens.css";
+@import "./styles/primitives.css";
 
 /* shadcn bootstrap vars — replaced by tokens.css in Slice 1 */
 @layer base {
