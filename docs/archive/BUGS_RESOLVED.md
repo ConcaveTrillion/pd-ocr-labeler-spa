@@ -2296,3 +2296,53 @@ No new Q-A entries surfaced — none of B-67..B-71 are user-decision items.
 - **Issue:** Both tests `mkdir(parents=True, exist_ok=True)` an `assets/` subdir under the in-source `static/` bundle, write a single fixture file, and on teardown `unlink()` the file then `rmdir()` `assets/`. The `rmdir()` assumes nobody else has put files in `assets/` — which is true on a clean tree, but **false** any time a real `make frontend-build` has populated `static/assets/index-*.{js,css,js.map}`. After Q-A8 unblocked the frontend toolchain (iter 50+) and someone runs `make frontend-build` once locally, every subsequent `pytest` run fails these two tests with `OSError: [Errno 39] Directory not empty: '.../static/assets'`.
 - **Why it matters:** This is the same B-54-class anti-pattern (test side-effects on the in-source tree) but in test teardown rather than test setup. It's silent on a fresh checkout, surfaces the moment Q-A8 is unblocked. Currently 355/357 tests pass — these are the only two failures. CI on a fresh runner will be green; a developer's laptop after their first `make frontend-build` will be red. Discovered iter 54 by running `uv run pytest -q` against the working tree post-iter-52.
 - **Suggested fix:** Replace the in-source-tree write with a `tmp_path`-based mock bundle + `monkeypatch` of `_resolve_static_dir`. Or, simpler: add an autouse fixture `_preserve_static_assets` that `os.listdir()`s `static/assets/` on entry and asserts the same set on exit (fail loudly if drifts) AND change the teardown to `shutil.rmtree(asset.parent, ignore_errors=True)` only when the dir was created by the test. The `tmp_path` route is preferred — it's the only fix that survives a future frontend-bundle-lives-elsewhere refactor.
+
+---
+
+## BUG-SMOKE-1 — Word mutations fail when page loaded via labeled/cached lane
+
+- **Status:** ✅ **Fixed in commit `7502f38` (2026-05-16).** `_resolve_page_object` in
+  `api/words.py` now lifts `UserPageEnvelope → Page` via `Page.from_dict(envelope.payload.page)`
+  before returning, mirroring the lift already present in `_page_payload`. Regression tests
+  in `tests/integration/test_word_mutation_after_cache_load.py`.
+- **Severity:** high
+- **Where:** `api/words.py` — `_resolve_page_object` / all word mutation handlers
+- **Issue:** `pstate.page_record.payload` holds a raw `UserPageEnvelope` when
+  the page was loaded via the labeled or cached lane (not OCR). `_resolve_page_object`
+  returned that envelope directly. `_resolve_word` then called
+  `getattr(page, "lines", None)` on the envelope — but `UserPageEnvelope` has
+  no `.lines` attribute — so every word mutation (GT edit, style, validated,
+  rebox, split, merge) returned `word_not_found` 404. The `_page_payload` helper
+  in `pages.py` does lift the envelope → `Page` object inline, but does not write
+  the lifted `Page` back to `pstate.page_record.payload`.
+- **Why it matters:** Any project with previously-saved (labeled) or cached pages
+  cannot have words mutated. This blocks the core edit workflow for all returning
+  users.
+- **Resolution:** Factor the envelope→Page lift into `_resolve_page_object` so
+  both the read path (`_page_payload`) and the mutation path (`_resolve_word`)
+  see a proper `Page`. The lifted `Page` is not written back to the frozen
+  `PageLoadOutcome.payload` dataclass; instead the lift runs on each request
+  (cheap: dict traversal, not OCR). The `_page_payload` path is unchanged.
+
+---
+
+## BUG-SMOKE-2 — GET /pages returns project-level generation; save checks page-level
+
+- **Status:** ✅ **Fixed in commit `58da327` (2026-05-16).** `_page_payload` now
+  stamps `pstate.generation` (page-level) instead of `project_state.generation`
+  (project-level). Regression tests in `tests/integration/test_save_generation.py`.
+- **Severity:** high
+- **Where:** `api/pages.py` — `_page_payload` and `save_page`
+- **Issue:** `_page_payload` stamped `generation=project_state.generation`
+  (`ProjectState._generation`, bumped on project load / page-state set / page-nav).
+  `save_page` checked `body.generation != pstate.generation` where `pstate.generation`
+  is `PageState.generation` (bumped only by word mutations). After a fresh project
+  load + GET /pages/0, the frontend received e.g. `generation: 4` (project-level),
+  sent it back on save, but the server had `pstate.generation == 0` → 409
+  `generation_mismatch`. Confirmed: sending `generation: 0` saves correctly; the
+  frontend was using the wrong value from the GET response.
+- **Why it matters:** Every SPA save attempt failed with 409. This completely blocked
+  the save workflow for unmodified pages.
+- **Resolution:** Change `_page_payload` to stamp `pstate.generation` (page-level).
+  The generation guard in `save_page` is unchanged — genuinely stale generations
+  still return 409. Only the counter alignment was wrong.
