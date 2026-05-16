@@ -21,6 +21,7 @@ from PIL import Image
 from pd_ocr_labeler_spa.core.persistence.image_cache import (
     _MAX_CACHED_DIMENSION,
     ImageType,
+    _cleanup_stale_cache,
     cached_image_path,
     encode_image,
     write_cached_image,
@@ -216,3 +217,74 @@ def test_write_cached_image_all_types(tmp_path: Path) -> None:
     for itype in ImageType:
         p = write_cached_image(tmp_path, "proj", 0, itype, img)
         assert p.exists()
+
+
+# ---------------------------------------------------------------------------
+# GAP-8: stale cache file cleanup
+# ---------------------------------------------------------------------------
+
+
+def test_write_cached_removes_stale_files(tmp_path: Path) -> None:
+    """After write_cached_image, old files for the same slot must be removed (GAP-8)."""
+    cache_dir = tmp_path / "page-images"
+    cache_dir.mkdir()
+
+    # Plant a stale file that looks like a prior cache entry for the same slot.
+    stale = cache_dir / "proj1_000_original_aabbccdd11223344.jpg"
+    stale.write_bytes(b"old stale content")
+
+    # Write a new image for the same (project_id=proj1, page_index=0, type=ORIGINAL).
+    img = _make_rgb(color=(10, 20, 30))
+    path = write_cached_image(tmp_path, "proj1", 0, ImageType.ORIGINAL, img)
+
+    # The stale file should be gone.
+    assert not stale.exists(), "stale cache file was not removed after re-OCR write"
+    # The newly written file must still exist.
+    assert path.exists()
+
+
+def test_write_cached_preserves_other_slots(tmp_path: Path) -> None:
+    """Stale cleanup must NOT touch files from other page indices or image types."""
+    cache_dir = tmp_path / "page-images"
+    cache_dir.mkdir()
+
+    # File for a different page index — must survive.
+    other_page = cache_dir / "proj1_001_original_ffffffffffffffff.jpg"
+    other_page.write_bytes(b"other page")
+
+    # File for a different image type on the same page — must survive.
+    other_type = cache_dir / "proj1_000_lines_ffffffffffffffff.jpg"
+    other_type.write_bytes(b"other type")
+
+    img = _make_rgb(color=(50, 60, 70))
+    write_cached_image(tmp_path, "proj1", 0, ImageType.ORIGINAL, img)
+
+    assert other_page.exists(), "file for different page index was incorrectly removed"
+    assert other_type.exists(), "file for different image type was incorrectly removed"
+
+
+def test_write_cached_idempotent_no_self_removal(tmp_path: Path) -> None:
+    """Calling write_cached_image twice with the same image must not remove the file."""
+    img = _make_rgb()
+    p1 = write_cached_image(tmp_path, "proj", 2, ImageType.WORDS, img)
+    p2 = write_cached_image(tmp_path, "proj", 2, ImageType.WORDS, img)
+    assert p1 == p2
+    assert p1.exists(), "idempotent write_cached_image removed the only valid file"
+
+
+def test_cleanup_stale_cache_no_stale(tmp_path: Path) -> None:
+    """_cleanup_stale_cache with no stale files must not raise."""
+    cache_dir = tmp_path / "page-images"
+    cache_dir.mkdir()
+    new_file = cache_dir / "proj_000_words_abc1abc1abc1abc1.jpg"
+    new_file.write_bytes(b"current")
+    # Should not raise even when there is nothing to clean up.
+    _cleanup_stale_cache(cache_dir, "proj", 0, ImageType.WORDS, new_file.name)
+    assert new_file.exists()
+
+
+def test_cleanup_stale_cache_nonexistent_dir(tmp_path: Path) -> None:
+    """_cleanup_stale_cache against a missing directory must not raise."""
+    missing = tmp_path / "nonexistent" / "page-images"
+    # Should swallow the OSError silently.
+    _cleanup_stale_cache(missing, "proj", 0, ImageType.ORIGINAL, "proj_000_original_x.jpg")

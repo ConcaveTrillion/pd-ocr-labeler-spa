@@ -25,8 +25,10 @@ Sizing:
   practice (occurs with synthetic high-contrast images or embedded palette
   transparency); this module handles it transparently.
 
-Cache lifetime: files accumulate until ``make clean-cache`` removes them
-(or the user clears the cache dir manually).  No automatic eviction.
+Cache lifetime: after each ``write_cached_image`` call, stale files for the
+same ``(project_id, page_index, image_type)`` slot that no longer match the
+newly written content are removed automatically (GAP-8).  Files for other
+slots accumulate until ``make clean-cache`` or manual clearing.
 """
 
 from __future__ import annotations
@@ -162,6 +164,36 @@ def _jpeg_is_acceptable(original: PilImage.Image, jpeg_bytes: bytes) -> bool:
         return False
 
 
+def _cleanup_stale_cache(
+    cache_dir: Path,
+    project_id: str,
+    page_index: int,
+    image_type: ImageType,
+    new_filename: str,
+) -> None:
+    """Remove stale cache files for the same (project_id, page_index, image_type) slot.
+
+    After a re-OCR run the content SHA changes, leaving the old file orphaned.
+    This removes all files that match the slot prefix but are NOT the newly
+    written file.  Mirrors ``_remove_unused_page_cached_image_files()`` from
+    the legacy ``pd-ocr-labeler`` (GAP-8).
+
+    Never raises — I/O errors are logged at DEBUG and swallowed so that a
+    stale-cleanup failure never blocks the caller.
+    """
+    prefix = f"{project_id}_{page_index:03d}_{image_type.value}_"
+    try:
+        for existing in cache_dir.glob(f"{prefix}*"):
+            if existing.name != new_filename:
+                try:
+                    existing.unlink(missing_ok=True)
+                    logger.debug("image_cache stale removed: %s", existing.name)
+                except OSError as exc:
+                    logger.debug("image_cache stale remove failed: %s — %s", existing.name, exc)
+    except OSError as exc:
+        logger.debug("image_cache stale scan failed for prefix %s — %s", prefix, exc)
+
+
 def write_cached_image(
     cache_root: Path,
     project_id: str,
@@ -175,6 +207,10 @@ def write_cached_image(
     of the written file.  If the file already exists (same SHA), skips the
     write and returns the existing path.
 
+    After writing (or confirming an existing hit), removes stale files for the
+    same ``(project_id, page_index, image_type)`` slot so re-OCR runs do not
+    accumulate orphaned files (GAP-8).
+
     Never raises on I/O failure — logs at WARNING and re-raises so the
     caller decides whether to 500 (write-side) or degrade gracefully (cache).
     """
@@ -183,11 +219,12 @@ def write_cached_image(
 
     if path.exists():
         logger.debug("image_cache hit: %s", path.name)
-        return path
+    else:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        write_bytes_atomic(path, encoded)
+        logger.debug("image_cache write: %s", path.name)
 
-    path.parent.mkdir(parents=True, exist_ok=True)
-    write_bytes_atomic(path, encoded)
-    logger.debug("image_cache write: %s", path.name)
+    _cleanup_stale_cache(path.parent, project_id, page_index, image_type, path.name)
     return path
 
 
