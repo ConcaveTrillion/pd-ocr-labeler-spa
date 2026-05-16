@@ -6,8 +6,8 @@
 //   1. Neighbors strip — prev (muted) · current (accent) · next (muted)
 //   2. Merge preview row — ← Merge with prev / Merge with next →
 //      (hover shows merged preview text; confirm dialog on click)
-//   3. Gap-picker slider — adjusts inter-word spacing −10…+10 px
-//      (stub mutation — logs with TODO until backend endpoint lands)
+//   3. Gap-picker slider — adjusts inter-word spacing −10…+10 px delta
+//      (commits on mouseup/blur via rebox on wi+1)
 //   4. Vertical-split affordance — click char to pick split point, then Split
 //
 // data-testids:
@@ -51,7 +51,7 @@ function wordText(w: WordMatch | null): string {
 
 /**
  * Compute the pixel gap between word ``wi`` and word ``wi+1``.
- * Returns 0 when either bbox is missing.
+ * Returns 0 when either bbox is missing or bboxes overlap.
  */
 function computeGap(current: BBox | undefined, next: BBox | undefined): number {
   if (!current || !next) return 0;
@@ -161,17 +161,17 @@ export function StructureSection({ word, page, projectId, pageIndex }: Structure
   const currentGap = computeGap(word.bbox, next?.bbox);
 
   const [confirm, setConfirm] = useState<MergeConfirmState>({ open: false, direction: null });
-  // gapDraft tracks the slider position during drag (absolute gap value in px).
-  const [gapDraft, setGapDraft] = useState(currentGap);
+  // gapDelta tracks the slider position (delta from currentGap) during drag.
+  const [gapDelta, setGapDelta] = useState(0);
   const [splitPos, setSplitPos] = useState<number | null>(null);
   const [hoveredMerge, setHoveredMerge] = useState<MergeDirection | null>(null);
 
-  // Sync draft when the selected word changes (currentGap is re-derived).
+  // Reset delta when the word selection changes (currentGap shifts).
   const prevCurrentGapRef = useRef(currentGap);
   useEffect(() => {
     if (prevCurrentGapRef.current !== currentGap) {
       prevCurrentGapRef.current = currentGap;
-      setGapDraft(currentGap);
+      setGapDelta(0);
     }
   }, [currentGap]);
 
@@ -180,9 +180,6 @@ export function StructureSection({ word, page, projectId, pageIndex }: Structure
   const nextText = wordText(next);
 
   const busy = mergeWord.isPending || splitWord.isPending || adjustGap.isPending;
-
-  // Slider display delta relative to committed gap (for label).
-  const gapDelta = gapDraft - currentGap;
 
   // ── Merge preview ─────────────────────────────────────────────────────────
 
@@ -210,18 +207,16 @@ export function StructureSection({ word, page, projectId, pageIndex }: Structure
   // ── Gap picker ────────────────────────────────────────────────────────────
 
   /**
-   * Commit the gap slider value on mouseup/blur.
-   * Computes deltaX = newGap - currentGap, then calls rebox on wi+1.
-   * Clamps so the resulting gap stays >= 0 and the next word's x stays >= 0.
+   * Commit the gap slider delta on mouseup/blur.
+   * Clamps so the resulting gap stays >= 0 and next word x stays >= 0.
    */
   const handleGapCommit = useCallback(
-    (newGap: number) => {
+    (delta: number) => {
       if (!hasNext || !next?.bbox) return;
       const nextBbox = next.bbox;
-      // Clamp: gap >= 0 and next word x must stay >= 0.
-      const desiredDelta = newGap - currentGap;
-      const maxNegativeDelta = Math.min(0, -nextBbox.x); // can't push x below 0
-      const clampedDelta = Math.max(desiredDelta, maxNegativeDelta, -currentGap); // gap >= 0
+      // Clamp: gap >= 0 (no overlap) and next.x + delta >= 0.
+      const minDelta = Math.max(-currentGap, -nextBbox.x);
+      const clampedDelta = Math.max(delta, minDelta);
       if (Math.round(clampedDelta) === 0) return;
       adjustGap.mutate({ lineIndex, wordIndex, nextWordBbox: nextBbox, deltaX: clampedDelta });
     },
@@ -300,13 +295,11 @@ export function StructureSection({ word, page, projectId, pageIndex }: Structure
           min={-10}
           max={10}
           step={1}
-          value={gapDraft - currentGap}
+          value={gapDelta}
           disabled={!hasNext || busy}
-          onChange={(e) => setGapDraft(currentGap + Number(e.target.value))}
-          onMouseUp={(e) =>
-            handleGapCommit(currentGap + Number((e.target as HTMLInputElement).value))
-          }
-          onBlur={(e) => handleGapCommit(currentGap + Number(e.target.value))}
+          onChange={(e) => setGapDelta(Number(e.target.value))}
+          onMouseUp={(e) => handleGapCommit(Number((e.target as HTMLInputElement).value))}
+          onBlur={(e) => handleGapCommit(Number(e.target.value))}
           className="w-full accent-accent cursor-pointer disabled:opacity-50"
           aria-label={`Word gap: ${gapDelta > 0 ? `+${gapDelta}` : gapDelta}px`}
         />
