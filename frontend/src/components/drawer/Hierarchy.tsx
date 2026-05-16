@@ -18,7 +18,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { selectionStore } from "../../stores/selection-store";
+import { selectLine, selectPara, selectWord } from "../../stores/selection-store";
 import type { components } from "../../api/types";
 
 type PagePayload = components["schemas"]["PagePayload"];
@@ -349,28 +349,13 @@ export function Hierarchy({ page }: HierarchyProps) {
 
   const handleSelect = useCallback((id: string, node: TreeNode) => {
     setSelectedId(id);
-    // Update selection-store
+    // Update selection-store using canonical helpers so level+path are set atomically.
     if (node.kind === "line") {
-      selectionStore.setState((s) => ({
-        ...s,
-        selectedLines: [node.lineIndex],
-        selectedParagraphs: [],
-        selectedWords: [],
-      }));
+      selectLine(node.lineIndex);
     } else if (node.kind === "word") {
-      selectionStore.setState((s) => ({
-        ...s,
-        selectedWords: [[node.lineIndex, node.wordIndex]],
-        selectedLines: [],
-        selectedParagraphs: [],
-      }));
+      selectWord(node.lineIndex, node.wordIndex);
     } else if (node.kind === "para" && node.paraIndex !== null) {
-      selectionStore.setState((s) => ({
-        ...s,
-        selectedParagraphs: [node.paraIndex!],
-        selectedLines: [],
-        selectedWords: [],
-      }));
+      selectPara(node.paraIndex);
     }
   }, []);
 

@@ -247,4 +247,39 @@ describe("Hierarchy (Slice 12 + P5.c)", () => {
     render(<Hierarchy page={makePage()} />);
     expect(screen.getByTestId("hierarchy-node-para-0")).toHaveAttribute("data-kind", "para");
   });
+
+  // ── level/path layer (Q1 fix) ─────────────────────────────────────────────
+
+  it("selecting a line node sets level=line on selectionStore", async () => {
+    const user = userEvent.setup();
+    render(<Hierarchy page={makePage()} />);
+    // Expand para-0 to reveal lines
+    const paraNode = screen.getByTestId("hierarchy-node-para-0");
+    await user.click(paraNode);
+    fireEvent.keyDown(paraNode, { key: "ArrowRight" });
+    // Click line-0
+    await user.click(screen.getByTestId("hierarchy-node-line-0"));
+    expect(selectionStore.getState().level).toBe("line");
+  });
+
+  it("selecting a para node sets level=para on selectionStore", async () => {
+    const user = userEvent.setup();
+    render(<Hierarchy page={makePage()} />);
+    await user.click(screen.getByTestId("hierarchy-node-para-0"));
+    expect(selectionStore.getState().level).toBe("para");
+  });
+
+  it("selecting a word node sets level=word on selectionStore", async () => {
+    const user = userEvent.setup();
+    render(<Hierarchy page={makePage()} />);
+    // Expand para-0, then line-0 to reveal words
+    const paraNode = screen.getByTestId("hierarchy-node-para-0");
+    await user.click(paraNode);
+    fireEvent.keyDown(paraNode, { key: "ArrowRight" });
+    const lineNode = screen.getByTestId("hierarchy-node-line-0");
+    fireEvent.keyDown(lineNode, { key: "ArrowRight" });
+    // Click word-0-0
+    await user.click(screen.getByTestId("hierarchy-node-word-0-0"));
+    expect(selectionStore.getState().level).toBe("word");
+  });
 });
