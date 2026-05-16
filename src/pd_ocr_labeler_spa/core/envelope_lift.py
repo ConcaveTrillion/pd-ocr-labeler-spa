@@ -1,4 +1,3 @@
-# src/pd_ocr_labeler_spa/core/envelope_lift.py
 """Shared envelope->Page lifting logic.
 
 Duplicated in api/pages.py and api/words.py before this module.
@@ -14,6 +13,8 @@ from __future__ import annotations
 import importlib
 import logging
 from dataclasses import dataclass
+
+from .persistence.user_page_envelope import USER_PAGE_SCHEMA_NAME as _SCHEMA_NAME
 
 log = logging.getLogger(__name__)
 
@@ -44,8 +45,12 @@ def lift_envelope_to_page(payload: object) -> object | EnvelopeLiftError:
     Returns the original ``payload`` if it doesn't look like an envelope
     (no ``.payload.page`` dict).  Returns ``EnvelopeLiftError`` when
     ``Page.from_dict`` raises -- never raises itself.
+
+    Returns: the original payload (unchanged), a lifted Page object, or
+    EnvelopeLiftError on failure.
     """
     if payload is None:
+        # None is a valid payload ("no page yet"); object return type doesn't include None
         return payload  # type: ignore[return-value]
 
     envelope_inner = getattr(payload, "payload", None)
@@ -60,18 +65,10 @@ def lift_envelope_to_page(payload: object) -> object | EnvelopeLiftError:
 
     # Double-nested envelope detection: legacy labeled-lane files store
     # payload.page as another full UserPageEnvelope dict.
-    try:
-        from .persistence.user_page_envelope import USER_PAGE_SCHEMA_NAME as _SCHEMA_NAME
-
-        schema = page_dict.get("schema")
-        if isinstance(schema, dict) and schema.get("name") == _SCHEMA_NAME:
-            log.warning("lift_envelope_to_page: double-nested envelope detected -- unwrapping")
-            page_dict = page_dict.get("payload", {}).get("page")
-    except Exception as exc:
-        return EnvelopeLiftError(
-            message=f"double-nested detection failed: {exc}",
-            cause=exc,
-        )
+    schema = page_dict.get("schema")
+    if isinstance(schema, dict) and schema.get("name") == _SCHEMA_NAME:
+        log.warning("lift_envelope_to_page: double-nested envelope detected -- unwrapping")
+        page_dict = page_dict.get("payload", {}).get("page")
 
     if not isinstance(page_dict, dict):
         return EnvelopeLiftError(

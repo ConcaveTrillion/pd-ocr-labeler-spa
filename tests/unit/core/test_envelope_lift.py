@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, ClassVar
+from typing import Any
 
 from pd_ocr_labeler_spa.core.envelope_lift import EnvelopeLiftError, lift_envelope_to_page
 
 
 class _FakePage:
     """Minimal stand-in for pd_book_tools.ocr.page.Page."""
-
-    lines: ClassVar[list] = []
 
 
 @dataclass
@@ -66,7 +64,7 @@ def test_envelope_lift_returns_error_on_from_dict_failure(monkeypatch):
     envelope = _FakeEnvelope(payload=_FakeEnvelopePayload(page={"bad": "schema"}))
     result = lift_envelope_to_page(envelope)
     assert isinstance(result, EnvelopeLiftError)
-    assert "items" in result.message or "KeyError" in result.message or "from_dict" in result.message
+    assert "Page.from_dict failed" in result.message
 
 
 def test_envelope_with_non_dict_page_passthrough():
