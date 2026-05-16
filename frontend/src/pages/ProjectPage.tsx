@@ -265,6 +265,21 @@ export default function ProjectPage() {
     }
   }, [projectNotFound, navigate]);
 
+  // GAP-3: Persist page cursor on navigation (debounced 300 ms, fire-and-forget).
+  // The backend stores the cursor in session_state.json so the project reopens
+  // on the same page.  We skip the call when projectId is not yet resolved.
+  useEffect(() => {
+    if (!projectId) return;
+    const timer = setTimeout(() => {
+      void fetch(`/api/projects/${projectId}/current-page-index`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ page_index: idx0 }),
+      });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [projectId, idx0]);
+
   // Show ProjectLoadingOverlay during the initial page fetch.
   const isPageLoading = pageQ.isLoading;
 

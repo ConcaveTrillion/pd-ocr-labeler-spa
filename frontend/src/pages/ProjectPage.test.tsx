@@ -423,4 +423,32 @@ describe("ProjectPage — real shell (spec 22 §3, #314)", () => {
       expect(screen.queryByTestId("right-panel")).toBeNull();
     });
   });
+
+  it("GAP-3: fires POST /current-page-index (debounced) when page index changes", async () => {
+    // Track POST calls to the cursor endpoint.
+    const calls: { projectId: string; body: unknown }[] = [];
+    server.use(
+      http.post("/api/projects/:pid/current-page-index", async ({ params, request }) => {
+        calls.push({ projectId: params["pid"] as string, body: await request.json() });
+        return HttpResponse.json({});
+      }),
+    );
+
+    // Render on page 1 (idx0 = 0).
+    renderProjectPage("/projects/p1/pages/pageno/1");
+    await screen.findByTestId("project-page");
+
+    // Wait for the debounced POST (300 ms timer fires; fake timers not used
+    // here so we rely on waitFor polling).
+    await waitFor(
+      () => {
+        expect(calls.length).toBeGreaterThanOrEqual(1);
+      },
+      { timeout: 1000 },
+    );
+
+    const lastCall = calls[calls.length - 1];
+    expect(lastCall.projectId).toBe("p1");
+    expect(lastCall.body).toEqual({ page_index: 0 });
+  });
 });

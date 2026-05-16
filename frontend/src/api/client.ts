@@ -87,4 +87,11 @@ export class ApiClient {
   delete<T>(path: string): Promise<T> {
     return this.request<T>("DELETE", path);
   }
+
+  /** Persist page cursor — fire-and-forget; caller should not await errors. */
+  setCurrentPageIndex(projectId: string, pageIndex: number): Promise<void> {
+    return this.post<void>(`/api/projects/${projectId}/current-page-index`, {
+      page_index: pageIndex,
+    });
+  }
 }
