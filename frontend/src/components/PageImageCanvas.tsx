@@ -394,7 +394,11 @@ export default function PageImageCanvas({
     const stage = e.target?.getStage?.();
     const pos = stage?.getPointerPosition();
     if (!pos) return null;
-    return { x: pos.x, y: pos.y };
+    // Convert screen-pixel coords → Konva/image coordinate space.
+    // getPointerPosition() returns pixels relative to the stage container;
+    // the stage has scaleX/Y = effectiveScale, so divide to get image coords.
+    const s = effectiveScale || 1;
+    return { x: pos.x / s, y: pos.y / s };
   }
 
   function computeRect(start: DragState, end: { x: number; y: number }): BBox {
@@ -461,8 +465,9 @@ export default function PageImageCanvas({
             cy <= item.bbox.y + item.bbox.height,
         );
         if (hit) {
-          const [lineIdx, wordIdx] = hit.id.split("-").map(Number);
-          selectWord(lineIdx, wordIdx);
+          const parts = hit.id.split("-").map(Number);
+          // parts always has ≥2 elements (id is "lineIdx-wordIdx") — non-null safe.
+          selectWord(parts[0]!, parts[1]!);
           // Open the right panel so WordDetail becomes visible
           useUiPrefs.setState({ rightPanelOpen: true });
         }
@@ -615,10 +620,9 @@ export default function PageImageCanvas({
       </div>
       {/* end inner scroll container */}
 
-      {/* Drag-rect preview DOM sidecar (spec §12).
-          Mirrors the Konva <Rect>; Playwright needs a CSS selector.
-          Lives outside the scroll container so it stays anchored to the
-          outer wrapper's coordinate space. */}
+      {/* Drag-rect sidecar — invisible element for Playwright CSS selector targeting only.
+          The Konva <Rect> in the stage layer is the actual visual.
+          Coordinates are stage-space and do NOT match wrapper-space, so no visual styling. */}
       {dragRect && (
         <div
           data-testid="ocr-drag-rect"
@@ -628,9 +632,8 @@ export default function PageImageCanvas({
             top: dragRect.y,
             width: dragRect.width,
             height: dragRect.height,
-            border: `2px dashed ${modeRectColors[mode]}`,
-            backgroundColor: modeRectFills[mode] ?? "transparent",
           }}
+          aria-hidden="true"
         />
       )}
 

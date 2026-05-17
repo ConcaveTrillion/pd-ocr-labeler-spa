@@ -204,17 +204,20 @@ export function walkDown(path: SelectionPath, page: PagePayload): SelectionPath 
   if (path.lineId !== undefined) {
     const words = wordIdsInLine(page, path.lineId);
     if (words.length === 0) return path;
-    return { ...path, wordId: words[0] };
+    // words.length > 0 guaranteed above — non-null safe.
+    return { ...path, wordId: words[0]! };
   }
   if (path.paraId !== undefined) {
     const lines = linesInPara(page, path.paraId ?? null);
     if (lines.length === 0) return path;
-    return { ...path, lineId: lines[0].line_index };
+    // lines.length > 0 guaranteed above — non-null safe.
+    return { ...path, lineId: lines[0]!.line_index };
   }
   // From block or none: descend into first paragraph.
   const ids = paraIds(page);
   if (ids.length === 0) return path;
-  return { ...path, paraId: ids[0] };
+  // ids.length > 0 guaranteed above — non-null safe.
+  return { ...path, paraId: ids[0]! };
 }
 
 // ─── Level inference ─────────────────────────────────────────────────────────

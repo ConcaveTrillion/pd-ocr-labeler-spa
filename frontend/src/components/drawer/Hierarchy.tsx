@@ -179,7 +179,8 @@ function buildBlockTree(page: PagePayload): BlockNode[] {
   }
   if (nullBlockLines.length > 0) {
     // Synthesize a block index beyond the last real one for unsorted lines.
-    const syntheticIdx = sortedKeys.length > 0 ? sortedKeys[sortedKeys.length - 1] + 1 : 0;
+    // sortedKeys.length > 0 guard above ensures last element exists — non-null safe.
+    const syntheticIdx = sortedKeys.length > 0 ? sortedKeys[sortedKeys.length - 1]! + 1 : 0;
     blocks.push({
       kind: "block",
       blockIndex: syntheticIdx,

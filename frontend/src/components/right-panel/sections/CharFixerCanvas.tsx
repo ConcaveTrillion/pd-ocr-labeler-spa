@@ -240,7 +240,8 @@ export function CharFixerCanvas({
         </Layer>
         <Layer>
           {charBboxes.map((cb, i) => {
-            const palette = rangePalette[i % rangePalette.length];
+            // i % rangePalette.length is always in-bounds — non-null safe.
+            const palette = rangePalette[i % rangePalette.length]!;
             const tl = toCanvas(cb.bbox.x, cb.bbox.y);
             const br = toCanvas(cb.bbox.x + cb.bbox.width, cb.bbox.y + cb.bbox.height);
             const overlayX = Math.min(tl.x, br.x);
@@ -271,7 +272,8 @@ export function CharFixerCanvas({
           {selectedIndex !== null &&
             charBboxes[selectedIndex] &&
             HANDLES.map((h) => {
-              const cb = charBboxes[selectedIndex];
+              // charBboxes[selectedIndex] is truthy (checked above in && chain).
+              const cb = charBboxes[selectedIndex]!;
               const c = h.centre(cb.bbox);
               const can = toCanvas(c.x, c.y);
               return (

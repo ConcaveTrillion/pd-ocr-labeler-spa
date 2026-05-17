@@ -212,7 +212,8 @@ export function CharFixerSection({ word, projectId, pageIndex, imageUrl }: CharF
     setCharBboxes((prev) => {
       if (index < 0 || index >= prev.length) return prev;
       const copy = [...prev];
-      copy[index] = { ...copy[index], bbox: next };
+      // index < prev.length checked above — non-null safe.
+      copy[index] = { ...copy[index]!, bbox: next };
       return copy;
     });
     setDirty(true);
@@ -223,7 +224,8 @@ export function CharFixerSection({ word, projectId, pageIndex, imageUrl }: CharF
       if (selectedIndex === null) return;
       setCharBboxes((prev) => {
         if (selectedIndex < 0 || selectedIndex >= prev.length) return prev;
-        const cur = prev[selectedIndex];
+        // selectedIndex < prev.length checked above — non-null safe.
+        const cur = prev[selectedIndex]!;
         const b = cur.bbox;
         let x1 = b.x;
         let y1 = b.y;

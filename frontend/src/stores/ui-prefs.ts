@@ -39,7 +39,9 @@ export function nextMatchFilter(current: MatchFilter): MatchFilter {
   const idx = MATCH_FILTER_CYCLE.indexOf(current);
   // -1 (unknown value) falls through to index 0 → "unvalidated".
   const nextIdx = idx < 0 ? 0 : (idx + 1) % MATCH_FILTER_CYCLE.length;
-  return MATCH_FILTER_CYCLE[nextIdx];
+  // nextIdx is always in-bounds (computed via modulo) — non-null safe.
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  return MATCH_FILTER_CYCLE[nextIdx]!;
 }
 
 export type DrawerTab = "worklist" | "hierarchy";
@@ -135,7 +137,7 @@ export function resolveEffectiveTheme(theme: ThemePreference): "dark" | "light" 
 /** Apply the effective theme to `document.documentElement.dataset.theme`. */
 function applyTheme(theme: ThemePreference) {
   try {
-    document.documentElement.dataset.theme = resolveEffectiveTheme(theme);
+    document.documentElement.dataset["theme"] = resolveEffectiveTheme(theme);
   } catch {
     // no document in test env without jsdom — handled by tests separately
   }

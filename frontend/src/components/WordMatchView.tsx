@@ -141,7 +141,8 @@ export function WordMatchView({
       {/* Total-size spacer — required by react-virtual for correct scrollbar */}
       <div style={{ height: totalSize, width: "100%", position: "relative" }}>
         {items.map((virtualRow) => {
-          const line = visibleLines[virtualRow.index];
+          // virtualRow.index is always within visibleLines bounds (virtualizer contract).
+          const line = visibleLines[virtualRow.index]!;
           return (
             <div
               key={virtualRow.key}

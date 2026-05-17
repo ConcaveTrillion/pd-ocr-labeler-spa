@@ -63,7 +63,7 @@ function AlertBanner({ testId, variant = "error", children }: AlertBannerProps) 
       data-testid={testId}
       role="alert"
       className="flex items-start gap-2 rounded-md border px-4 py-3 text-sm"
-      style={variantStyles[variant] ?? variantStyles.error}
+      style={variantStyles[variant] ?? variantStyles["error"]}
     >
       <WarningIcon />
       <span>{children}</span>

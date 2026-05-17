@@ -117,7 +117,8 @@ function computeOverlappingIndices(ranges: CharRange[]): Set<number> {
   const result = new Set<number>();
   for (let i = 0; i < ranges.length; i++) {
     for (let j = i + 1; j < ranges.length; j++) {
-      if (rangesOverlap(ranges[i], ranges[j])) {
+      // i and j are loop-bound — always within ranges.length — non-null safe.
+      if (rangesOverlap(ranges[i]!, ranges[j]!)) {
         result.add(i);
         result.add(j);
       }
