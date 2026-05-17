@@ -41,6 +41,7 @@ class SpaBundleCheckHook(BuildHookInterface):
     SPA_INDEX_REL = Path("src") / "pd_ocr_labeler_spa" / "static" / "index.html"
 
     def initialize(self, version: str, build_data: dict) -> None:
+        """Abort the wheel build when the SPA bundle is absent or empty."""
         # Only enforce on the wheel target; sdists deliberately omit the
         # built SPA (it gets rebuilt by `make build` / CI).
         if self.target_name != "wheel":
