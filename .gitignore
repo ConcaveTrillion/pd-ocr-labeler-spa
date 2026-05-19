@@ -57,8 +57,6 @@ playwright-report/
 # see a .claude/ tree here, it is leakage; clean it up.
 .claude/
 
-# Hourly-regenerated spec-chain dashboard — workspace-only artifact, not source.
-docs/spec-chain-report.md
 
 # ship-issue bot temp cache (issue JSON written by ship-issue-pick.py)
 .ship-issue-tmp/
