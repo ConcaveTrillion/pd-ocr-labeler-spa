@@ -1,6 +1,7 @@
 // App.tsx — SPA root: router, QueryClient provider, and route table.
 // Spec: docs/specs/2026-05-12-frontend-shell-design.md §Routing
 // Issue #240
+// Phase 2.4: replaced local AppShell wrapper with pd-ui AppShell (issue #262).
 //
 // Route table (from routes.ts):
 //   /                                              → RootPage (session-state redirect or EmptyProjectState)
@@ -8,12 +9,28 @@
 //   /projects/:projectId/pages/pageno/:pageNo      → ProjectPage (main labeling surface)
 //   /projects/:projectId/pages/index/:idx0         → redirect to pageno equivalent
 //   *                                              → 404 fallback (redirect to /)
+//
+// GAP-1: GET /api/ui-prefs backend endpoint not yet implemented — uiPrefsConfig
+//        load() returns localStorage-seeded defaults; persist callbacks are no-ops.
+//        Full wiring deferred to Phase 2.5 (reactive stores migration).
+// GAP-2: POST /api/ui-prefs backend endpoint not yet implemented — same as GAP-1.
+// GAP-3: GET /api/suite/installed + POST /api/suite/launch backend endpoints not
+//        yet implemented. SuiteSiblingsProvider fetchInstalled returns [] (no-op);
+//        postLaunch returns requires-host-config. Real wiring blocked on pd-ocr-ops
+//        mounting /api/suite/* routes in the FastAPI app.
 
 import { BrowserRouter, Routes, Route, Navigate, useParams, useMatch } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 
 import { Suspense, lazy } from "react";
+import {
+  AppShell,
+  SuiteSiblingsProvider,
+  type UIPrefsConfig,
+  type InstalledApp,
+  type LaunchResult,
+} from "@concavetrillion/pd-ui/shell";
 import HeaderBar from "./components/HeaderBar";
 import type { PageMetrics } from "./components/HeaderBar";
 import ProjectNavigationControls from "./components/ProjectNavigationControls";
@@ -97,7 +114,7 @@ function useRouteProjectContext(): { projectId: string | null; pageIndex: number
 }
 
 /** Inner component so hooks (useNotificationStream) run inside providers. */
-function AppShell() {
+function AppInner() {
   useNotificationStream();
 
   // Dialog open-state slices — re-render only when these change.
@@ -137,97 +154,131 @@ function AppShell() {
   })();
 
   return (
-    <div data-testid="app-shell" className="flex flex-col h-screen">
-      <HeaderBar
-        navSlot={
-          onProjectRoute ? (
-            <ProjectNavigationControls projectId={projectId} pageNo={pageNo} />
-          ) : undefined
+    /*
+     * Phase 2.4: pd-ui AppShell replaces the local layout wrapper.
+     *
+     * The outer div preserves data-testid="app-shell" for Playwright driver
+     * contract compatibility (specs/13-driver-contract.md). pd-ui AppShell
+     * does not inject its own data-testid so the wrapper is the stable anchor.
+     *
+     * Slot mapping vs former local layout:
+     *   header   ← HeaderBar (was top-level before main)
+     *   main     ← Routes block + accessible live regions
+     *   children ← modal dialogs (AppShell renders children outside grid)
+     *
+     * rail / drawer / rightPanel are not used at the App level — they are
+     * filled by StudioShell inside ProjectPage for the per-page layout.
+     * StudioShell continues to manage the 5-zone canvas grid.
+     *
+     * launcherSlot="header": pd-ui AppShell injects LauncherSlot into the
+     * header zone. The SuiteSiblingsProvider (wrapped in App()) supplies the
+     * sibling list via fetchInstalled / postLaunch callbacks.
+     */
+    <div data-testid="app-shell" className="h-screen w-full">
+      <AppShell
+        appId="pd-ocr-labeler-spa"
+        appDisplayName="OCR Labeler"
+        appIconUrl="/static/icon.svg"
+        launcherSlot="header"
+        deployMode="local"
+        uiPrefsConfig={UI_PREFS_CONFIG}
+        header={
+          <>
+            <HeaderBar
+              navSlot={
+                onProjectRoute ? (
+                  <ProjectNavigationControls projectId={projectId} pageNo={pageNo} />
+                ) : undefined
+              }
+              actionsSlot={
+                onProjectRoute ? (
+                  <PageActionsCompact projectId={projectId} pageIndex={pageIndex} />
+                ) : undefined
+              }
+              projectName={headerProjectName}
+              pageMetrics={pageMetrics}
+            />
+            {/*
+             * Accessible live regions — spec #238.
+             * Placed here (inside header slot) so they are always present in
+             * the DOM regardless of route. The header div is always rendered.
+             */}
+            <div
+              id="status-announcer"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              className="sr-only"
+            />
+            <div
+              id="error-announcer"
+              role="alert"
+              aria-live="assertive"
+              aria-atomic="true"
+              className="sr-only"
+            />
+          </>
         }
-        actionsSlot={
-          onProjectRoute ? (
-            <PageActionsCompact projectId={projectId} pageIndex={pageIndex} />
-          ) : undefined
+        main={
+          <main className="h-full min-h-0 overflow-hidden">
+            <Routes>
+              <Route path={ROUTES.ROOT} element={<RootPage />} />
+              <Route path={ROUTES.PROJECT} element={<ProjectRootRedirect />} />
+              <Route path={ROUTES.PROJECT_PAGE_NO} element={<ProjectPage />} />
+              <Route path={ROUTES.PROJECT_PAGE_IDX} element={<ProjectPageIndexRedirect />} />
+              {/* Dev/test-only Konva viewport perf-bench page (#305, spec §11).
+                  Lazy-loaded so the react-konva module graph stays out of the
+                  root route's bundle (and out of jsdom App.test.tsx).
+                  Production-mode renders the disabled stub from PerfTestPage. */}
+              <Route
+                path="/__perf-test"
+                element={
+                  <Suspense fallback={<div data-testid="perf-test-loading" />}>
+                    <PerfTestPage />
+                  </Suspense>
+                }
+              />
+              {/* Catch-all: redirect unknown routes to root */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
         }
-        projectName={headerProjectName}
-        pageMetrics={pageMetrics}
-      />
-      {/*
-       * Accessible live regions — spec #238.
-       * status-announcer: polite — announces bulk action completions
-       *   (e.g. "Validated 5 words") without interrupting the user.
-       * error-announcer: assertive — announces critical errors
-       *   (e.g. "OCR failed") immediately.
-       * Both are visually hidden; text is injected by bulk-action hooks.
-       */}
-      <div
-        id="status-announcer"
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-        className="sr-only"
-      />
-      <div
-        id="error-announcer"
-        role="alert"
-        aria-live="assertive"
-        aria-atomic="true"
-        className="sr-only"
-      />
-      <main className="flex-1 min-h-0 overflow-hidden">
-        <Routes>
-          <Route path={ROUTES.ROOT} element={<RootPage />} />
-          <Route path={ROUTES.PROJECT} element={<ProjectRootRedirect />} />
-          <Route path={ROUTES.PROJECT_PAGE_NO} element={<ProjectPage />} />
-          <Route path={ROUTES.PROJECT_PAGE_IDX} element={<ProjectPageIndexRedirect />} />
-          {/* Dev/test-only Konva viewport perf-bench page (#305, spec §11).
-              Lazy-loaded so the react-konva module graph stays out of the
-              root route's bundle (and out of jsdom App.test.tsx).
-              Production-mode renders the disabled stub from PerfTestPage. */}
-          <Route
-            path="/__perf-test"
-            element={
-              <Suspense fallback={<div data-testid="perf-test-loading" />}>
-                <PerfTestPage />
-              </Suspense>
-            }
-          />
-          {/* Catch-all: redirect unknown routes to root */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-
-      {/*
-       * Dialogs mounted at AppShell (spec 22 §3).
-       *
-       * `HotkeyHelpModal` subscribes to the dialog store itself (it also
-       * listens to the `?` key globally). `OCRConfigModal` + `ExportDialog`
-       * read their open-state via their `open` prop. Export dialog only
-       * shows when a project is loaded (no `projectId` → skip render).
-       */}
-      <OCRConfigModal
-        open={ocrConfigOpen}
-        onClose={() => {
-          dialogStore.close("ocrConfig");
-        }}
-      />
-      {projectId && (
-        <ExportDialog
-          open={exportOpen}
-          projectId={projectId}
-          currentPageIndex={pageIndex}
+      >
+        {/*
+         * Dialogs mounted as AppShell children (spec 22 §3).
+         *
+         * `HotkeyHelpModal` subscribes to the dialog store itself (it also
+         * listens to the `?` key globally). `OCRConfigModal` + `ExportDialog`
+         * read their open-state via their `open` prop. Export dialog only
+         * shows when a project is loaded (no `projectId` → skip render).
+         *
+         * AppShell renders children outside the grid zones so dialogs (which
+         * use portals / fixed positioning) are unaffected by the layout.
+         */}
+        <OCRConfigModal
+          open={ocrConfigOpen}
           onClose={() => {
-            dialogStore.close("export");
+            dialogStore.close("ocrConfig");
           }}
         />
-      )}
-      <HotkeyHelpModal />
-      <SourceFolderDialog
-        open={sourceFolderOpen}
-        onClose={() => {
-          dialogStore.close("sourceFolder");
-        }}
-      />
+        {projectId && (
+          <ExportDialog
+            open={exportOpen}
+            projectId={projectId}
+            currentPageIndex={pageIndex}
+            onClose={() => {
+              dialogStore.close("export");
+            }}
+          />
+        )}
+        <HotkeyHelpModal />
+        <SourceFolderDialog
+          open={sourceFolderOpen}
+          onClose={() => {
+            dialogStore.close("sourceFolder");
+          }}
+        />
+      </AppShell>
     </div>
   );
 }
@@ -255,15 +306,78 @@ function ThemedToaster() {
   return <Toaster richColors position="bottom-right" theme={effectiveTheme} />;
 }
 
+// ── Phase 2.4: UIPrefsConfig shim (GAP-1, GAP-2) ───────────────────────────
+//
+// The backend does not yet expose GET/POST /api/ui-prefs endpoints.
+// `load` returns a baseline UIPrefs object seeded from localStorage theme;
+// `persistCommon` and `persistApp` write to localStorage as a stopgap.
+// Full server-side persistence is deferred to Phase 2.5 (reactive stores).
+const UI_PREFS_CONFIG: UIPrefsConfig = {
+  load: async () => {
+    // Seed theme from localStorage (matches the local ui-prefs.ts logic).
+    let theme: "dark" | "light" = "dark";
+    try {
+      const raw = localStorage.getItem("pdl.ui.theme");
+      if (raw === "light") theme = "light";
+    } catch {
+      // localStorage unavailable
+    }
+    return { theme, density: "normal" };
+  },
+  persistCommon: async (prefs) => {
+    // GAP-1: no backend — write theme to localStorage only.
+    try {
+      localStorage.setItem("pdl.ui.theme", prefs.theme);
+    } catch {
+      // ignore
+    }
+  },
+  persistApp: async (_appPrefs) => {
+    // GAP-2: no backend — no-op until Phase 2.5.
+  },
+};
+
+// ── Phase 2.4: SuiteSiblings fetch/launch shims (GAP-3) ─────────────────────
+//
+// The backend does not yet expose /api/suite/installed or /api/suite/launch.
+// fetchInstalled returns an empty list (no siblings shown in launcher).
+// postLaunch returns requires-host-config so the launcher shows an error
+// rather than a crash if somehow invoked.
+async function fetchInstalled(): Promise<InstalledApp[]> {
+  // GAP-3: when pd-ocr-ops mounts /api/suite/* in FastAPI, replace with:
+  //   const res = await fetch("/api/suite/installed");
+  //   if (!res.ok) return [];
+  //   return (await res.json()) as InstalledApp[];
+  return [];
+}
+
+async function postLaunch(id: string): Promise<LaunchResult> {
+  // GAP-3: when pd-ocr-ops mounts /api/suite/* in FastAPI, replace with:
+  //   const res = await fetch(`/api/suite/launch`, {
+  //     method: "POST", body: JSON.stringify({ id }),
+  //     headers: { "Content-Type": "application/json" },
+  //   });
+  //   return (await res.json()) as LaunchResult;
+  return { kind: "requires-host-config", siblingId: id };
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AppShell />
-        {/* Single Toaster instance — all toasts routed through sonner.
-            Position: bottom-right (Slice 26).
-            Theme matches data-theme preference. */}
-        <ThemedToaster />
+        {/*
+         * Phase 2.4: SuiteSiblingsProvider supplies the launcher context
+         * that pd-ui AppShell's LauncherSlot reads via useSuiteSiblingsContext().
+         * fetchInstalled / postLaunch are shims (GAP-3) until pd-ocr-ops
+         * mounts /api/suite/* in the FastAPI app.
+         */}
+        <SuiteSiblingsProvider value={{ fetchInstalled, postLaunch }}>
+          <AppInner />
+          {/* Single Toaster instance — all toasts routed through sonner.
+              Position: bottom-right (Slice 26).
+              Theme matches data-theme preference. */}
+          <ThemedToaster />
+        </SuiteSiblingsProvider>
       </BrowserRouter>
     </QueryClientProvider>
   );
