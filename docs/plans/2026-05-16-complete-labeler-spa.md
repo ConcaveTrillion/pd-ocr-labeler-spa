@@ -18,10 +18,10 @@ The repo is at the **cut-over gate**. Milestones M0–M11 minus M11 (blocked on 
 
 | Plan archive (shipped) | Path |
 |---|---|
-| Hi-fi redesign (Slices 0–27) | `docs/superpowers/plans/archive/2026-05-15-hifi-redesign-plan.md` |
-| Hi-fi gaps P1–P5 (29 slices) | `docs/superpowers/plans/archive/2026-05-15-hifi-gaps-plan.md` |
-| Spec open-questions wiring (6 tasks) | `docs/superpowers/plans/archive/2026-05-16-spec-open-questions.md` |
-| Wire missing connections (5 tasks) | `docs/superpowers/plans/archive/2026-05-16-wire-missing-connections.md` |
+| Hi-fi redesign (Slices 0–27) | `docs/plans/archive/2026-05-15-hifi-redesign-plan.md` |
+| Hi-fi gaps P1–P5 (29 slices) | `docs/plans/archive/2026-05-15-hifi-gaps-plan.md` |
+| Spec open-questions wiring (6 tasks) | `docs/plans/archive/2026-05-16-spec-open-questions.md` |
+| Wire missing connections (5 tasks) | `docs/plans/archive/2026-05-16-wire-missing-connections.md` |
 
 ---
 
@@ -47,7 +47,7 @@ Every component built or modified by tasks in this plan MUST follow this contrac
 13. **A11y.** Every interactive element has `data-testid` (driver contract, see `docs/architecture/13-driver-contract.md`), an `aria-label`, and a visible focus ring (`focus-visible:ring-1 ring-accent`). All forms are controlled inputs; validation errors surface as field-level toasts (Pydantic `details` array). No layout shift on focus.
 14. **Konva.** `react-konva` + `use-image@^1.1`; Konva nodes carry no `data-testid` (impossible) — sidecar `<div data-testid="...">` is rendered absolutely-positioned with `pointer-events: none` for the driver contract. `useLayerColors()` reads CSS vars via `getComputedStyle(document.documentElement)` and subscribes to `data-theme` changes via `MutationObserver`.
 
-Reference screenshots: `docs/Screenshot from 2026-05-15 17-45-55.png` (shipped state). The full visual contract is encoded in the surviving Phase / Slice tables of `docs/superpowers/plans/archive/2026-05-15-hifi-redesign-plan.md` and the gap list in `docs/superpowers/plans/archive/2026-05-15-hifi-gaps-plan.md` — those archives are the visual law for any future polish.
+Reference screenshots: `docs/Screenshot from 2026-05-15 17-45-55.png` (shipped state). The full visual contract is encoded in the surviving Phase / Slice tables of `docs/plans/archive/2026-05-15-hifi-redesign-plan.md` and the gap list in `docs/plans/archive/2026-05-15-hifi-gaps-plan.md` — those archives are the visual law for any future polish.
 
 ---
 
@@ -429,7 +429,7 @@ def test_refine_available_returns_capability_flags(client):
 
 **Outcome.** The legacy `pd-ocr-labeler` README carries a "superseded by `pd-ocr-labeler-spa`" banner; `docs/plan-to-usable.md` "Legacy README" row closes; the SPA's README "Status" block updates to reflect post-cut-over reality; a new screenshot lands at `docs/Screenshot-hifi-gaps-closed.png`.
 
-**Spec refs.** `docs/plan-to-usable.md` cut-over checklist; `docs/superpowers/plans/archive/2026-05-15-hifi-gaps-plan.md` Acceptance section.
+**Spec refs.** `docs/plan-to-usable.md` cut-over checklist; `docs/plans/archive/2026-05-15-hifi-gaps-plan.md` Acceptance section.
 
 **Files touched.**
 
@@ -464,7 +464,7 @@ def test_refine_available_returns_capability_flags(client):
 1. **Spec-first.** If a task uncovers a divergence between the spec set (`docs/architecture/*` + `specs/16,17,20`) and reality, change the spec first, then the code. Do not silently re-shape an API.
 2. **Driver contract.** No `data-testid` is renamed or removed except via an explicit ADR. Adding new testids is fine. The driver-contract conformance E2E (`tests/e2e/test_driver_contract.py`) must stay green.
 3. **OpenAPI drift.** Every backend Pydantic model change is followed by `make openapi-export AI=1` and a commit that includes the regenerated `frontend/src/api/types.ts`.
-4. **Archive on close.** When a question is resolved, a bug is closed, or a plan completes, cut its entry from `OPEN_QUESTIONS.md` / `docs/BUGS_FOUND.md` / `docs/plans/` into `docs/archive/QUESTIONS_RESOLVED.md` / `docs/archive/BUGS_RESOLVED.md` / `docs/superpowers/plans/archive/` in the **same commit** that lands the resolution.
+4. **Archive on close.** When a question is resolved, a bug is closed, or a plan completes, cut its entry from `OPEN_QUESTIONS.md` / `docs/BUGS_FOUND.md` / `docs/plans/` into `docs/archive/QUESTIONS_RESOLVED.md` / `docs/archive/BUGS_RESOLVED.md` / `docs/plans/archive/` in the **same commit** that lands the resolution.
 5. **Token discipline.** No new color hex values, font sizes, or spacing constants in components. Tokens live in `frontend/src/styles/tokens.css` (variables) + `frontend/tailwind.config.js` (aliases). A token addition is its own commit with a test asserting the variable resolves.
 6. **TDD.** Every task in every milestone above lists "Step 1: write failing test". Skipping this step is a process violation; the commit log must show the test commit before the implementation commit (or the test added in the same commit, but visible in the diff before the implementation).
 
