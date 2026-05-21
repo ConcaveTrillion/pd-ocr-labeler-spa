@@ -315,3 +315,49 @@ describe("CharFixerSection — P4.b bbox canvas + handles (Gap 39)", () => {
     expect(screen.queryByTestId("charfixer-detail-strip")).not.toBeInTheDocument();
   });
 });
+
+// ── CU-6.2 acceptance tests ───────────────────────────────────────────────────
+// Plan: docs/plans/2026-05-16-complete-labeler-spa.md §CU-6.2
+// Pins the char-bboxes POST body shape: { char_bboxes: [{x, y, width, height}, …] }.
+describe("CharFixerSection — CU-6.2 char-bboxes POST body shape", () => {
+  it("Apply POSTs { char_bboxes: [{x,y,width,height}] } shape to the backend", async () => {
+    // Capture the request body so we can assert the payload shape.
+    let capturedBody: unknown = undefined;
+    server.use(
+      http.post("/api/projects/p1/pages/0/words/0/0/char-bboxes", async (info) => {
+        capturedBody = await info.request.json();
+        return HttpResponse.json(makePageResponse("ab"));
+      }),
+    );
+    const user = userEvent.setup();
+    renderSection(makeWord("ab", "ab"));
+
+    // Dirty bbox state by editing a coordinate.
+    // Word "ab" with bbox {x:0,y:0,width:10,height:10}: char0 has x=0, width=5.
+    // Setting x1=2 (< x2=5) is valid and produces x=2, width=3 for char0.
+    const x1 = screen.getByTestId("charfixer-detail-x1");
+    await user.clear(x1);
+    await user.type(x1, "2");
+
+    await user.click(screen.getByTestId("charfixer-apply"));
+
+    await waitFor(() => expect(capturedBody).not.toBeUndefined());
+
+    // Assert body shape: must have char_bboxes as an array of {x,y,width,height}.
+    const body = capturedBody as {
+      char_bboxes: { x: number; y: number; width: number; height: number }[];
+    };
+    expect(Array.isArray(body.char_bboxes)).toBe(true);
+    expect(body.char_bboxes.length).toBeGreaterThan(0);
+    const bbox0 = body.char_bboxes[0];
+    expect(typeof bbox0.x).toBe("number");
+    expect(typeof bbox0.y).toBe("number");
+    expect(typeof bbox0.width).toBe("number");
+    expect(typeof bbox0.height).toBe("number");
+    // Fields must use "width"/"height" (not "w"/"h") per the BBox schema.
+    expect("width" in bbox0).toBe(true);
+    expect("height" in bbox0).toBe(true);
+    // The modified bbox should have x=2 (we set charfixer-detail-x1 to "2").
+    expect(bbox0.x).toBe(2);
+  });
+});
