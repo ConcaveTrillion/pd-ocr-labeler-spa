@@ -1,9 +1,11 @@
 # Plan: pd-ocr-labeler-spa → usable
 
-> **Status:** Active gap analysis — 2026-05-16 (updated).
+> **Status:** Cut-over complete — 2026-05-21.
 > B1/B2/B3/F1/F2/F3/F4/F6 closed. F5 audit doc committed; browser walk TODOs
-> remain for CT to confirm before final M9.5 sign-off.
-> Smoke-run row closed 2026-05-16: BUG-SMOKE-1 + BUG-SMOKE-2 fixed and verified.
+> remain for CT to confirm before final M9.5 sign-off (only remaining open row).
+> Smoke-run row closed 2026-05-16. Legacy README banner added 2026-05-16.
+> Cut-over reference screenshot taken 2026-05-21 (`docs/Screenshot-hifi-gaps-closed.png`).
+> SPA README Status block updated 2026-05-21. CU-8 polish complete.
 > **Authority:** This plan is informed by `docs/architecture/*`,
 > `specs/16-milestones.md`, and direct reads of the implementation
 > tree. Spec authority is unchanged: items below point at specs; this
