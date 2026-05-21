@@ -145,7 +145,7 @@ export default tseslint.config(
       // @concavetrillion/pd-ui/icons (for icons in pd-ui) or
       // @/icons/local-shims (for icons not yet upstreamed to pd-ui).
       // Direct lucide-react imports in SPA component code are banned.
-      // lucide-react remains in package.json as a transitive peer of pd-ui/icons.
+      // lucide-react is a peer dep of pd-ui/icons and must remain in this package's dependencies.
       "no-restricted-imports": [
         "error",
         {
