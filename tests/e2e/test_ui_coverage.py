@@ -77,10 +77,11 @@ def _select_first_word_via_hierarchy(page: Page) -> bool:
 
     The tree starts fully collapsed (expanded={}), so we must expand nodes:
     1. Switch to the hierarchy tab.
-    2. Click first para node to focus it, then press ArrowRight to expand it.
-    3. Click first line node to focus it, then press ArrowRight to expand it.
-    4. Click the first word node.
-    5. Wait for WordDetail to confirm a word-level selection.
+    2. When block_index is populated, expand the first block node first.
+    3. Click first para node to focus it, then press ArrowRight to expand it.
+    4. Click first line node to focus it, then press ArrowRight to expand it.
+    5. Click the first word node.
+    6. Wait for WordDetail to confirm a word-level selection.
 
     Returns True if a word was selected, False if the hierarchy has no data.
     """
@@ -89,9 +90,27 @@ def _select_first_word_via_hierarchy(page: Page) -> bool:
     if not hier_tab.is_visible():
         return False
     hier_tab.click()
-    time.sleep(0.4)
 
-    # Hierarchy nodes start as para nodes only (tree collapsed).
+    # Wait for hierarchy container to be visible before looking for nodes.
+    try:
+        page.wait_for_selector('[data-testid="hierarchy"]', state="visible", timeout=5_000)
+    except Exception:
+        return False
+    time.sleep(0.3)
+
+    # FO-7 / CU-4.3: when block_index is populated on the page, the tree renders
+    # block nodes at the top level (not para nodes).  Expand the first block node
+    # so its para children become visible before we proceed.
+    block_nodes = page.locator('[data-testid^="hierarchy-node-block-"]')
+    if block_nodes.count() > 0:
+        first_block = block_nodes.first
+        first_block.wait_for(state="visible", timeout=5_000)
+        first_block.click()
+        time.sleep(0.2)
+        first_block.press("ArrowRight")  # expand block → reveals para children
+        time.sleep(0.3)
+
+    # Hierarchy nodes: para nodes at top level (no block layer) or under block.
     para_nodes = page.locator('[data-testid^="hierarchy-node-para-"]')
     if para_nodes.count() == 0:
         return False
