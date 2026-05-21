@@ -139,3 +139,15 @@ export const dialogStore = {
     _store.setState({ ...INITIAL_STATE });
   },
 };
+
+// ---------------------------------------------------------------------------
+// E2E test bridge — exposes dialogStore.open on window.__DIALOG_STORE_OPEN
+// so Playwright tests can trigger dialog open without a visible UI button
+// (e.g. OCR config, which has no trigger button post-D-046).
+// This is a desktop-only local tool; window exposure is intentional.
+// ---------------------------------------------------------------------------
+if (typeof window !== "undefined") {
+  (window as unknown as Record<string, unknown>)["__DIALOG_STORE_OPEN"] = (
+    key: Parameters<typeof api.open>[0],
+  ) => api.open(key);
+}

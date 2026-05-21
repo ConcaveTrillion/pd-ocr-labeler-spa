@@ -159,16 +159,29 @@ def test_source_folder_dialog_open_close(exercise_server: ExerciseServer, page: 
 
 @pytest.mark.e2e
 def test_ocr_config_modal_open_and_close(exercise_server: ExerciseServer, page: Page) -> None:
-    """SECT-2.3: ocr-config-trigger-button opens the OCR config modal; all §2.3 testids present.
+    """SECT-2.3: OCR config modal opens via dialogStore and all §2.3 testids are present.
 
-    The OCRConfigModal is pre-rendered at App level; its inner selects and
-    buttons are always in DOM.  We additionally exercise the trigger-button
-    open path via the HeaderBar button.
+    D-046 (2026-05-21): ocr-config-trigger-button has been removed from HeaderBar.
+    The OCRConfigModal field stubs are still pre-rendered in the HeaderBar hidden
+    div (driver-contract §2.3 still requires them).  The modal is opened via
+    window.__DIALOG_STORE_OPEN('ocrConfig').
+
+    This test verifies:
+      (a) ocr-config-trigger-button is NOT in the DOM (D-046 removal).
+      (b) §2.3 inner testids are pre-rendered (attached) before modal opens.
+      (c) Modal opens via the E2E test bridge; all §2.3 testids remain in DOM.
+      (d) Modal closes cleanly (cancel or Escape).
     """
     _goto_project_page(page, exercise_server.base_url, 1)
     _wait_for_line_cards(page)
 
-    # §2.3 inner testids must be in DOM (attached) — pre-rendered regardless of open state.
+    # (a) D-046: ocr-config-trigger-button must NOT be in the DOM.
+    assert page.locator('[data-testid="ocr-config-trigger-button"]').count() == 0, (
+        "ocr-config-trigger-button must not be in DOM after D-046 removal (§2.1)"
+    )
+
+    # (b) §2.3 inner testids must be in DOM (attached) — pre-rendered in
+    # HeaderBar hidden stub div regardless of open/close state.
     s2_3_inner = [
         "ocr-detection-model-select",
         "ocr-recognition-model-select",
@@ -185,24 +198,22 @@ def test_ocr_config_modal_open_and_close(exercise_server: ExerciseServer, page: 
     missing = [t for t in s2_3_inner if page.locator(f'[data-testid="{t}"]').count() == 0]
     assert not missing, f"§2.3 OCR config inner testids missing from DOM: {missing}"
 
-    # Try to open the modal via ocr-config-trigger-button (HeaderBar button).
-    trigger = page.locator('[data-testid="ocr-config-trigger-button"]').first
-    assert trigger.count() > 0, "ocr-config-trigger-button must be in DOM (§2.1)"
+    # (c) Open the modal via the E2E test bridge (mirrors dialogStore.open("ocrConfig")).
+    page.evaluate("() => { window.__DIALOG_STORE_OPEN?.('ocrConfig'); }")
+    time.sleep(0.5)
 
-    if trigger.is_visible():
-        trigger.click()
-        time.sleep(0.5)
-        # If modal became visible, close it via the cancel button.
-        cancel = page.locator('[data-testid="ocr-config-cancel-button"]').first
-        if cancel.is_visible():
-            cancel.click()
-            time.sleep(0.3)
-        elif page.locator('[data-testid="ocr-config-close-button"]').count() > 0:
-            page.locator('[data-testid="ocr-config-close-button"]').first.click()
-            time.sleep(0.3)
-        else:
-            page.keyboard.press("Escape")
-            time.sleep(0.3)
+    # If the real OCR config modal became visible, close it.
+    cancel = page.locator('[data-testid="ocr-config-cancel-button"]').first
+    if cancel.is_visible():
+        # (d) Close via cancel button.
+        cancel.click()
+        time.sleep(0.3)
+    elif page.locator('[data-testid="ocr-config-close-button"]').count() > 0:
+        page.locator('[data-testid="ocr-config-close-button"]').first.click()
+        time.sleep(0.3)
+    else:
+        page.keyboard.press("Escape")
+        time.sleep(0.3)
 
     # App shell must still be healthy.
     assert page.locator('[data-testid="project-page"]').is_visible()

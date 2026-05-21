@@ -34,12 +34,20 @@ from tests.e2e.conftest import LiveServer
 # These are the ALWAYS-PRESENT (possibly stub) driver-contract testids that
 # must exist in the DOM at all times once the app shell renders.
 
-# Header group — rendered on every route.
-_HEADER_TESTIDS = [
-    "project-select",
-    "load-project-button",
-    "source-folder-button",
-    "ocr-config-trigger-button",
+# Deprecated header testids (D-046) — these MUST NOT exist anywhere in the DOM
+# after commit b101ec8 removed the legacy stubs from HeaderBar.
+_DEPRECATED_HEADER_TESTIDS = [
+    "project-select",  # moved to ProjectLoadControls.tsx on RootPage
+    "load-project-button",  # moved to ProjectLoadControls.tsx on RootPage
+    "source-folder-button",  # moved to ProjectLoadControls.tsx (breadcrumb mode)
+    "ocr-config-trigger-button",  # removed; open via dialogStore.open("ocrConfig")
+]
+
+# New §2.1 testids (post-D-046) — reachable via their real components.
+# These are always-rendered elements per the updated driver contract.
+_NEW_HEADER_TESTIDS = [
+    "rail-hotkeys-button",  # Rail.tsx footer — hotkey help trigger
+    "page-actions-compact-export",  # PageActionsCompact.tsx — export trigger
 ]
 
 # Source-folder dialog stubs (display:none until implemented).
@@ -125,15 +133,58 @@ def test_app_shell_renders(live_server: LiveServer, page: Page) -> None:
 
 @pytest.mark.e2e
 def test_header_testids_present(live_server: LiveServer, page: Page) -> None:
-    """All header-group testids exist in the DOM on the root route.
+    """Post-D-046 driver-contract §2.1 conformance on the root route.
 
-    These are always-rendered elements (project-select, load-project-button,
-    source-folder-button, ocr-config-trigger-button).
+    D-046 (2026-05-21): the legacy inline HeaderBar stubs have been removed.
+    This test asserts:
+      (a) Deprecated testids are NOT present anywhere in the DOM (the stubs
+          were deleted — not hidden — per commit b101ec8).
+      (b) New §2.1 testids (rail-hotkeys-button, page-actions-compact-export)
+          are present on a project page route where PageActionsCompact renders.
+
+    Project-load controls (project-select, load-project-button,
+    source-folder-button) are real elements in ProjectLoadControls.tsx and
+    appear only on the RootPage or in breadcrumb mode — they are tested
+    separately via the RootPage fixture.
     """
     page.goto(live_server.base_url, timeout=15_000)
     page.wait_for_selector("#root", timeout=10_000)
-    missing = _all_stub_or_present(page, _HEADER_TESTIDS)
-    assert not missing, f"Header testids missing from DOM: {missing}"
+
+    # (a) Deprecated testids must NOT be in the DOM (no stubs remaining).
+    present_deprecated = []
+    for tid in _DEPRECATED_HEADER_TESTIDS:
+        if page.locator(f'[data-testid="{tid}"]').count() > 0:
+            present_deprecated.append(tid)
+    assert not present_deprecated, (
+        f"Deprecated HeaderBar testids still in DOM (D-046 says they must be removed): {present_deprecated}"
+    )
+
+
+@pytest.mark.e2e
+def test_new_contract_testids_present_on_project_page(live_server: LiveServer, page: Page) -> None:
+    """New §2.1 testids (post-D-046) are present on a loaded project page.
+
+    rail-hotkeys-button is rendered by Rail.tsx inside ProjectPage.
+    page-actions-compact-export is rendered by PageActionsCompact on project routes.
+    Both are real interactive elements (not stubs) per the updated contract.
+    """
+    _load_tiny_fixture(live_server.base_url, str(live_server.source_root))
+
+    url = f"{live_server.base_url}/projects/tiny-fixture/pages/pageno/1"
+    page.goto(url, timeout=15_000)
+    page.wait_for_selector('[data-testid="project-page"]', timeout=10_000)
+
+    missing = _all_stub_or_present(page, _NEW_HEADER_TESTIDS)
+    assert not missing, f"New §2.1 driver-contract testids missing from project page: {missing}"
+
+    # Also verify deprecated testids are absent on the project page route too.
+    present_deprecated = []
+    for tid in _DEPRECATED_HEADER_TESTIDS:
+        if page.locator(f'[data-testid="{tid}"]').count() > 0:
+            present_deprecated.append(tid)
+    assert not present_deprecated, (
+        f"Deprecated testids found on project page (D-046 removed them): {present_deprecated}"
+    )
 
 
 @pytest.mark.e2e

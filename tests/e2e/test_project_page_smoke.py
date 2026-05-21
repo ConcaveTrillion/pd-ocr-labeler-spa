@@ -65,24 +65,32 @@ def test_navigate_prev_next(live_server: LiveServer, page: Page) -> None:
 
 @pytest.mark.e2e
 def test_open_ocr_config_dialog(live_server: LiveServer, page: Page) -> None:
-    """Clicking the HeaderBar OCR-config trigger opens the modal."""
+    """Opening the OCR-config modal via dialogStore.open('ocrConfig') mounts the modal.
+
+    D-046 (2026-05-21): the legacy ocr-config-trigger-button has been removed from
+    HeaderBar.  The OCR config modal is now opened programmatically via the dialog
+    store (e.g. keyboard shortcut or future trigger button).  This test exercises
+    the open path via the window.__DIALOG_STORE_OPEN bridge exposed by dialog-store.ts
+    for E2E testing.
+    """
     _load_tiny_fixture(live_server.base_url, str(live_server.source_root))
 
     url = f"{live_server.base_url}/projects/tiny-fixture/pages/pageno/1"
     page.goto(url, timeout=15_000)
     wait_for_page_loaded(page, live_server.base_url, timeout=15_000)
 
-    # Click the real (non-stub) trigger; the modal mounts above the page shell.
-    # Phase 2: ocr-config-trigger-button is a real button in HeaderBar (spec 22 §6).
-    trigger = page.locator('[data-testid="ocr-config-trigger-button"]:not([data-testid-stub])')
-    trigger.wait_for(state="visible", timeout=10_000)
-    trigger.click()
+    # D-046: ocr-config-trigger-button no longer exists in HeaderBar.
+    # Verify it is absent from the DOM.
+    assert page.locator('[data-testid="ocr-config-trigger-button"]').count() == 0, (
+        "ocr-config-trigger-button should not be in DOM after D-046 removal"
+    )
+
+    # Open the OCR-config modal via the E2E test bridge (window.__DIALOG_STORE_OPEN).
+    # This mirrors the action a trigger button or keyboard shortcut would perform.
+    page.evaluate("() => { window.__DIALOG_STORE_OPEN?.('ocrConfig'); }")
 
     # The OCR-config modal mounts at AppShell once opened — wait for the
     # modal container (driver-contract §2.3: `ocr-config-modal`).
-    # The internal selects (ocr-detection-model-select etc.) are also in the DOM
-    # as stubs (display:none) — use the real modal container which is only present
-    # after dialogStore.open("ocrConfig") runs.
     page.wait_for_selector(
         '[data-testid="ocr-config-modal"]',
         timeout=10_000,
