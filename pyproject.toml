@@ -243,6 +243,7 @@ pythonpath = ["src"]
 markers = [
     "integration: marks tests that require a live app stack (deselect with '-m not integration')",
     "slow: marks tests that call real OCR/DocTR and take more than a few seconds",
+    "e2e: marks Playwright end-to-end tests (require SPA bundle + Playwright browser)",
 ]
 filterwarnings = [
     # Treat all warnings as errors — surfaces deprecation issues at dev time.
@@ -251,6 +252,16 @@ filterwarnings = [
     # PytestUnraisableExceptionWarning wraps ResourceWarning from asyncio
     # cleanup that races with pytest teardown — not actionable in test code.
     "ignore::pytest.PytestUnraisableExceptionWarning",
+    # websockets 14.x: the legacy websockets API is deprecated.
+    # Uvicorn auto-detects WebSocket protocols at startup and triggers this
+    # warning from a background thread, which pytest's filterwarnings=error
+    # converts into a thread exception that kills the server before /healthz
+    # responds. Ignore DeprecationWarnings from the websockets package to allow
+    # server startup in tests. Format: "action:message:category:module:line"
+    # — module pattern matches on the import path of the warning's origin.
+    "ignore::DeprecationWarning:websockets.*",
+    "ignore:websockets.legacy is deprecated:DeprecationWarning",
+    "ignore:websockets.server.WebSocketServerProtocol is deprecated:DeprecationWarning",
     # Add new ignores below as new warnings surface — each with a comment
     # explaining the package and why we tolerate it.
 ]
