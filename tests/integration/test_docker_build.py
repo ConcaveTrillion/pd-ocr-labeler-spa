@@ -30,6 +30,11 @@ def _have_make() -> bool:
     return shutil.which("make") is not None
 
 
+def _have_pnpm() -> bool:
+    """Check if pnpm is available (needed for make docker-build → frontend-build)."""
+    return shutil.which("pnpm") is not None
+
+
 def _run_make_docker_build() -> None:
     """Run `make docker-build` to build the image."""
     result = subprocess.run(
@@ -121,6 +126,7 @@ def _check_spa_served(port: int = 8080) -> bool:
 
 @pytest.mark.skipif(not _have_make(), reason="`make` not on PATH")
 @pytest.mark.skipif(not _have_docker(), reason="docker not on PATH")
+@pytest.mark.skipif(not _have_pnpm(), reason="pnpm not on PATH (needed by make docker-build)")
 class TestDockerBuild:
     """Tests for `make docker-build` producing a running image."""
 

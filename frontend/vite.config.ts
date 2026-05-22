@@ -36,6 +36,11 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // Force a single React instance when pnpm symlink scoping creates two paths
+    // for the same react@19 package (main app vs @concavetrillion/pd-ui scope).
+    // Without this, Vite bundles both as separate module instances and React's
+    // internal hook dispatcher (ReactCurrentBatchConfig) is undefined at runtime.
+    dedupe: ["react", "react-dom"],
   },
   server: {
     port: 5173,
