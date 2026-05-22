@@ -322,12 +322,23 @@ const UI_PREFS_CONFIG: UIPrefsConfig = {
     } catch {
       // localStorage unavailable
     }
-    return { theme, density: "normal" };
+    let fontScale = 1;
+    try {
+      const rawFs = localStorage.getItem("pdl.ui.fontScale");
+      if (rawFs !== null) {
+        const parsed = parseFloat(rawFs);
+        if (Number.isFinite(parsed) && parsed > 0) fontScale = parsed;
+      }
+    } catch {
+      // localStorage unavailable
+    }
+    return { theme, density: "normal", fontScale };
   },
   persistCommon: async (prefs) => {
-    // GAP-1: no backend — write theme to localStorage only.
+    // GAP-1: no backend — write theme + fontScale to localStorage only.
     try {
       localStorage.setItem("pdl.ui.theme", prefs.theme);
+      localStorage.setItem("pdl.ui.fontScale", String(prefs.fontScale));
     } catch {
       // ignore
     }
