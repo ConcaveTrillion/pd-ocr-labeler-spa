@@ -59,6 +59,9 @@ playwright-report/
 # see a .claude/ tree here, it is leakage; clean it up.
 .claude/
 
+# Local git worktrees created for repo-scoped agent work.
+.worktrees/
+
 
 # ship-issue bot temp cache (issue JSON written by ship-issue-pick.py)
 .ship-issue-tmp/
