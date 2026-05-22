@@ -1,6 +1,7 @@
 ---
-status: active
+status: complete
 synced: 2026-05-21
+completed: 2026-05-21
 milestone: 45
 repo: ConcaveTrillion/pd-ocr-labeler-spa
 ---
@@ -88,15 +89,15 @@ Verification gates per milestone:
 
 ### Task 1.1 — CU-1.1: Resolve Q-A7 {#cu-11-resolve-q-a7}
 
-- [ ] Step 1: Read `OPEN_QUESTIONS.md` Q-A7 and `specs/20-glyph-annotations.md` §3 / §11.
-- [ ] Step 2: Append ADR D-044 to `specs/17-decisions.md` adopting **Option (A) — object-level provenance** per the spec author recommendation, citing D-032 (rotation provenance) as precedent and explicitly naming "v2.3 bump deferred until mixed-source granularity is observed in real annotation traffic" as the escape hatch.
-- [ ] Step 3: Move the full Q-A7 entry from `OPEN_QUESTIONS.md` to `docs/archive/QUESTIONS_RESOLVED.md` with a `Resolution: D-044` line. In the same commit, `OPEN_QUESTIONS.md` Open list becomes empty (only the archive pointer remains).
-- [ ] Step 4: Commit `chore(adr): resolve Q-A7 — D-044 object-level provenance is sufficient for v1`.
+- [x] Step 1: Read `OPEN_QUESTIONS.md` Q-A7 and `specs/20-glyph-annotations.md` §3 / §11.
+- [x] Step 2: Append ADR D-044 to `specs/17-decisions.md` adopting **Option (A) — object-level provenance** per the spec author recommendation, citing D-032 (rotation provenance) as precedent and explicitly naming "v2.3 bump deferred until mixed-source granularity is observed in real annotation traffic" as the escape hatch.
+- [x] Step 3: Move the full Q-A7 entry from `OPEN_QUESTIONS.md` to `docs/archive/QUESTIONS_RESOLVED.md` with a `Resolution: D-044` line. In the same commit, `OPEN_QUESTIONS.md` Open list becomes empty (only the archive pointer remains).
+- [x] Step 4: Commit `chore(adr): resolve Q-A7 — D-044 object-level provenance is sufficient for v1`.
 
 ### Task 1.2 — CU-1.2: v2.2 envelope reader + back-compat tests {#cu-12-v22-envelope-reader-back-compat-tests}
 
-- [ ] Step 1: Read the existing reader in `src/pd_ocr_labeler_spa/core/persistence/user_page_envelope.py` and the v2.1 fixtures under `tests/fixtures/envelopes/`.
-- [ ] Step 2: Write the failing back-compat test in `tests/unit/test_glyph_envelope_back_compat.py`:
+- [x] Step 1: Read the existing reader in `src/pd_ocr_labeler_spa/core/persistence/user_page_envelope.py` and the v2.1 fixtures under `tests/fixtures/envelopes/`.
+- [x] Step 2: Write the failing back-compat test in `tests/unit/test_glyph_envelope_back_compat.py`:
 
 ```python
 """v2.1 envelopes must parse with every word's glyph_annotations == None."""
@@ -115,11 +116,11 @@ def test_v21_envelope_loads_with_glyph_annotations_none() -> None:
             assert word.get("glyph_annotations") is None
 ```
 
-- [ ] Step 3: Run `uv run pytest tests/unit/test_glyph_envelope_back_compat.py -v` — confirm FAIL (fixture or parser missing).
-- [ ] Step 4: Add the minimal v2.1 fixture at `tests/fixtures/envelopes/v21_minimal.json` (lift from an existing labeled-envelope fixture in the repo — see `tests/fixtures/` for shape).
-- [ ] Step 5: Implement v2.2 reader: bump the version pattern in `parse_envelope` to accept both `"2.1"` and `"2.2"`; on `"2.1"` ensure every `WordMatch` dict has an explicit `glyph_annotations: None` injected on parse (so callers can read without `KeyError`). Raise `IncompatibleEnvelopeError` for any `major != "2"`.
-- [ ] Step 6: Run the test — confirm PASS.
-- [ ] Step 7: Add the round-trip test `tests/unit/test_glyph_envelope_round_trip.py`:
+- [x] Step 3: Run `uv run pytest tests/unit/test_glyph_envelope_back_compat.py -v` — confirm FAIL (fixture or parser missing).
+- [x] Step 4: Add the minimal v2.1 fixture at `tests/fixtures/envelopes/v21_minimal.json` (lift from an existing labeled-envelope fixture in the repo — see `tests/fixtures/` for shape).
+- [x] Step 5: Implement v2.2 reader: bump the version pattern in `parse_envelope` to accept both `"2.1"` and `"2.2"`; on `"2.1"` ensure every `WordMatch` dict has an explicit `glyph_annotations: None` injected on parse (so callers can read without `KeyError`). Raise `IncompatibleEnvelopeError` for any `major != "2"`.
+- [x] Step 6: Run the test — confirm PASS.
+- [x] Step 7: Add the round-trip test `tests/unit/test_glyph_envelope_round_trip.py`:
 
 ```python
 """v2.2 envelope round-trips with tri-state glyph_annotations preserved."""
@@ -140,13 +141,13 @@ def test_v22_round_trip_preserves_tri_state(v22_envelope_str: str) -> None:
 
 Add a `v22_envelope_str` fixture in `tests/conftest.py` with one word `glyph_annotations=None`, one `=={"long_s_positions": []}`, one `=={"long_s_positions": [3], "source": "human"}`.
 
-- [ ] Step 8: Run the round-trip test — FAIL (no v2.2 writer).
-- [ ] Step 9: Extend `serialize_envelope` to emit `schema_version: "2.2"` and preserve `glyph_annotations` field verbatim per word. Run — PASS.
-- [ ] Step 10: `make openapi-export AI=1` if any FastAPI model picked up the new optional field. Commit `feat(envelope): v2.2 schema reader + writer with v2.1 back-compat (M11 preflight)`.
+- [x] Step 8: Run the round-trip test — FAIL (no v2.2 writer).
+- [x] Step 9: Extend `serialize_envelope` to emit `schema_version: "2.2"` and preserve `glyph_annotations` field verbatim per word. Run — PASS.
+- [x] Step 10: `make openapi-export AI=1` if any FastAPI model picked up the new optional field. Commit `feat(envelope): v2.2 schema reader + writer with v2.1 back-compat (M11 preflight)`.
 
 ### Task 1.3 — CU-1.3: IGlyphPredictor protocol + none adapter {#cu-13-iglyphpredictor-protocol-none-adapter}
 
-- [ ] Step 1: Create `src/pd_ocr_labeler_spa/core/glyph/__init__.py` (empty) and `src/pd_ocr_labeler_spa/core/glyph/predictions.py` containing:
+- [x] Step 1: Create `src/pd_ocr_labeler_spa/core/glyph/__init__.py` (empty) and `src/pd_ocr_labeler_spa/core/glyph/predictions.py` containing:
 
 ```python
 """IGlyphPredictor — Protocol for glyph-annotation predictions.
@@ -180,7 +181,7 @@ class NoneGlyphPredictor:
         return [None] * len(words)
 ```
 
-- [ ] Step 2: Write a unit test `tests/unit/test_glyph_predictor_none.py`:
+- [x] Step 2: Write a unit test `tests/unit/test_glyph_predictor_none.py`:
 
 ```python
 from pd_ocr_labeler_spa.core.glyph.predictions import NoneGlyphPredictor
@@ -192,7 +193,7 @@ def test_none_predictor_returns_none_per_word() -> None:
     assert out == [None, None, None]
 ```
 
-- [ ] Step 3: Run — PASS. Commit `feat(glyph): IGlyphPredictor Protocol + NoneGlyphPredictor adapter`.
+- [x] Step 3: Run — PASS. Commit `feat(glyph): IGlyphPredictor Protocol + NoneGlyphPredictor adapter`.
 
 **Acceptance.** `make ci AI=1` green; `OPEN_QUESTIONS.md` Open section is empty; v2.1 fixtures still parse; v2.2 round-trip preserves tri-state per word.
 
@@ -212,16 +213,16 @@ def test_none_predictor_returns_none_per_word() -> None:
 
 ### Task 2.1 — CU-2.1: Refresh the smoke harness {#cu-21-refresh-the-smoke-harness}
 
-- [ ] Step 1: Read `tests/e2e/exercise_real_project.py` and `tests/e2e/test_ui_coverage.py`. List every Phase / sub-phase number from `docs/full-exercise-workflow.md` covered by a test function (`grep -nE "P[0-9]+\.[0-9]+|Phase " tests/e2e/*.py`).
-- [ ] Step 2: For every sub-phase 1.1 through 6.10 not covered, append a new test function (or a `pytest.mark.skip` placeholder with the sub-phase number as the reason) so the matrix is complete on paper. Commit `test(e2e): inventory full-exercise-workflow into Playwright matrix`.
+- [x] Step 1: Read `tests/e2e/exercise_real_project.py` and `tests/e2e/test_ui_coverage.py`. List every Phase / sub-phase number from `docs/full-exercise-workflow.md` covered by a test function (`grep -nE "P[0-9]+\.[0-9]+|Phase " tests/e2e/*.py`).
+- [x] Step 2: For every sub-phase 1.1 through 6.10 not covered, append a new test function (or a `pytest.mark.skip` placeholder with the sub-phase number as the reason) so the matrix is complete on paper. Commit `test(e2e): inventory full-exercise-workflow into Playwright matrix`.
 
 ### Task 2.2 — CU-2.2: Smoke run by an agent on a real fixture {#cu-22-smoke-run-by-an-agent-on-a-real-fixture}
 
-- [ ] Step 1: Provision a real fixture project under `~/ocr-fixtures/<project>/` containing ≥3 `.png` page images and a `pages.json` ground-truth file. Use the existing `tests/fixtures/sample_project/` if no real fixture is on disk.
-- [ ] Step 2: Run `make run` (production-style build) in a background shell. Confirm `device: …` banner prints and `http://127.0.0.1:8080` responds 200 to `/healthz`.
-- [ ] Step 3: Walk the eleven phases in order, capturing observed-vs-expected discrepancies. Each discrepancy gets one new entry in `docs/BUGS_FOUND.md` using the existing schema (Status / Severity / Where / Issue / Why-it-matters / Suggested-fix).
-- [ ] Step 4: If zero bugs are found, append a `## 2026-05-16 — smoke run` line to `docs/plan-to-usable.md` marking the "Smoke run" checkbox closed. Commit `docs(plan-to-usable): close smoke-run row — agent walked 10 pages cleanly`.
-- [ ] Step 5: If bugs are found, commit `docs(bugs): file <N> smoke-run findings <comma-separated ids>` and stop. Subsequent milestones cannot start until CT has triaged the new bugs.
+- [x] Step 1: Provision a real fixture project under `~/ocr-fixtures/<project>/` containing ≥3 `.png` page images and a `pages.json` ground-truth file. Use the existing `tests/fixtures/sample_project/` if no real fixture is on disk.
+- [x] Step 2: Run `make run` (production-style build) in a background shell. Confirm `device: …` banner prints and `http://127.0.0.1:8080` responds 200 to `/healthz`.
+- [x] Step 3: Walk the eleven phases in order, capturing observed-vs-expected discrepancies. Each discrepancy gets one new entry in `docs/BUGS_FOUND.md` using the existing schema (Status / Severity / Where / Issue / Why-it-matters / Suggested-fix).
+- [x] Step 4: If zero bugs are found, append a `## 2026-05-16 — smoke run` line to `docs/plan-to-usable.md` marking the "Smoke run" checkbox closed. Commit `docs(plan-to-usable): close smoke-run row — agent walked 10 pages cleanly`.
+- [x] Step 5: If bugs are found, commit `docs(bugs): file <N> smoke-run findings <comma-separated ids>` and stop. Subsequent milestones cannot start until CT has triaged the new bugs.
 
 **Acceptance.** Either `docs/plan-to-usable.md` Smoke-run row is checked, or `docs/BUGS_FOUND.md` has new entries with severities assigned.
 
@@ -243,16 +244,16 @@ def test_none_predictor_returns_none_per_word() -> None:
 
 ### Task 3.1 — CU-3.1: Walk the audit document {#cu-31-walk-the-audit-document}
 
-- [ ] Step 1: Read `docs/M9.5-keyboard-audit.md` end-to-end. For each "TODO: verify in browser" line, attempt to reproduce in a `make dev` session.
-- [ ] Step 2: For each verified line, edit the doc to replace `TODO: verify in browser` with `Verified 2026-05-16 — <observation>`.
-- [ ] Step 3: For each line that fails (hotkey doesn't fire, focus doesn't move, modal traps focus incorrectly), either:
+- [x] Step 1: Read `docs/M9.5-keyboard-audit.md` end-to-end. For each "TODO: verify in browser" line, attempt to reproduce in a `make dev` session.
+- [x] Step 2: For each verified line, edit the doc to replace `TODO: verify in browser` with `Verified 2026-05-16 — <observation>`.
+- [x] Step 3: For each line that fails (hotkey doesn't fire, focus doesn't move, modal traps focus incorrectly), either:
   - (small fix) edit the offending file inline, add a regression test under `tests/e2e/test_keyboard_only.py`, commit; OR
   - (deeper fix) file the bug in `docs/BUGS_FOUND.md`, link the TODO line to the bug number, and leave the TODO marked `Blocked on bug #N`.
 
 ### Task 3.2 — CU-3.2: Hotkey help modal completeness check {#cu-32-hotkey-help-modal-completeness-check}
 
-- [ ] Step 1: Render the help modal in a Vitest test (`frontend/src/components/HotkeyHelpModal.test.tsx`) and assert that for every hotkey registered in `frontend/src/lib/hotkey-registry.ts`, there is a corresponding `KeyCap` in the modal output. Run — should already pass per FO-6, but lock the invariant.
-- [ ] Step 2: Commit `test(hotkeys): lock invariant — every registered hotkey appears in the help modal`.
+- [x] Step 1: Render the help modal in a Vitest test (`frontend/src/components/HotkeyHelpModal.test.tsx`) and assert that for every hotkey registered in `frontend/src/lib/hotkey-registry.ts`, there is a corresponding `KeyCap` in the modal output. Run — should already pass per FO-6, but lock the invariant.
+- [x] Step 2: Commit `test(hotkeys): lock invariant — every registered hotkey appears in the help modal`.
 
 **Acceptance.** `docs/M9.5-keyboard-audit.md` Section 5 has zero open TODOs; `make ci AI=1` green.
 
@@ -278,7 +279,7 @@ def test_none_predictor_returns_none_per_word() -> None:
 
 ### Task 4.1 — CU-4.1: Backend block_index round-trip {#cu-41-backend-blockindex-round-trip}
 
-- [ ] Step 1: Add a failing test in `tests/unit/test_page_to_line_matches.py`:
+- [x] Step 1: Add a failing test in `tests/unit/test_page_to_line_matches.py`:
 
 ```python
 def test_line_match_carries_block_index() -> None:
@@ -287,22 +288,22 @@ def test_line_match_carries_block_index() -> None:
     assert [lm.block_index for lm in line_matches] == [0, 1, 1]
 ```
 
-- [ ] Step 2: Run — if it passes, skip to CU-4.2. If it fails, implement: in `page_to_line_matches`, iterate `page.blocks` and tag each `LineMatch` with its block index. Update `core/models.py` `LineMatch` to declare the field. Re-run — PASS.
-- [ ] Step 3: `make openapi-export AI=1` so `frontend/src/api/types.ts` picks up the field. Commit `feat(page-payload): lift block_index onto LineMatch (FO-7)`.
+- [x] Step 2: Run — if it passes, skip to CU-4.2. If it fails, implement: in `page_to_line_matches`, iterate `page.blocks` and tag each `LineMatch` with its block index. Update `core/models.py` `LineMatch` to declare the field. Re-run — PASS.
+- [x] Step 3: `make openapi-export AI=1` so `frontend/src/api/types.ts` picks up the field. Commit `feat(page-payload): lift block_index onto LineMatch (FO-7)`.
 
 ### Task 4.2 — CU-4.2: selection-walk block walk {#cu-42-selection-walk-block-walk}
 
-- [ ] Step 1: Read `frontend/src/lib/selection-walk.ts` to confirm whether `nextSibling` at `level === "block"` walks blocks or returns the input unchanged.
-- [ ] Step 2: If unchanged, write a failing test in `frontend/src/lib/selection-walk.test.ts` that on a page with 3 blocks, calling `nextSibling({ blockId: "1" }, page, +1)` yields `{ blockId: "2" }`. Run — FAIL.
-- [ ] Step 3: Implement: walk the unique `block_index` values across `page.line_matches`. Re-run — PASS. Commit `feat(selection): walk blocks via LineMatch.block_index (FO-7)`.
+- [x] Step 1: Read `frontend/src/lib/selection-walk.ts` to confirm whether `nextSibling` at `level === "block"` walks blocks or returns the input unchanged.
+- [x] Step 2: If unchanged, write a failing test in `frontend/src/lib/selection-walk.test.ts` that on a page with 3 blocks, calling `nextSibling({ blockId: "1" }, page, +1)` yields `{ blockId: "2" }`. Run — FAIL.
+- [x] Step 3: Implement: walk the unique `block_index` values across `page.line_matches`. Re-run — PASS. Commit `feat(selection): walk blocks via LineMatch.block_index (FO-7)`.
 
 ### Task 4.3 — CU-4.3: Hierarchy + Breadcrumb block UI {#cu-43-hierarchy-breadcrumb-block-ui}
 
-- [ ] Step 1: Add a Vitest test `frontend/src/components/drawer/Hierarchy.test.tsx` asserting that for a 2-block page, clicking `hierarchy-node-block-0` calls `selectBlock(0)` and that `selectionStore.getState().level === "block"`.
-- [ ] Step 2: Run — if it passes (Hierarchy already renders block nodes), skip to step 4. If it fails because there is no block node, extend `Hierarchy.tsx` to render one block node per unique `block_index`, each with a `layer-block` color square + mono ID + count of contained paragraphs.
-- [ ] Step 3: Re-run — PASS.
-- [ ] Step 4: Add a Vitest test in `frontend/src/components/shell/Breadcrumb.test.tsx` asserting that the block chip is rendered when `selectionStore.level === "block"` and that clicking it walks sibling blocks. Run; implement if missing; re-run.
-- [ ] Step 5: Commit `feat(hierarchy,breadcrumb): block-level navigation (FO-7)`.
+- [x] Step 1: Add a Vitest test `frontend/src/components/drawer/Hierarchy.test.tsx` asserting that for a 2-block page, clicking `hierarchy-node-block-0` calls `selectBlock(0)` and that `selectionStore.getState().level === "block"`.
+- [x] Step 2: Run — if it passes (Hierarchy already renders block nodes), skip to step 4. If it fails because there is no block node, extend `Hierarchy.tsx` to render one block node per unique `block_index`, each with a `layer-block` color square + mono ID + count of contained paragraphs.
+- [x] Step 3: Re-run — PASS.
+- [x] Step 4: Add a Vitest test in `frontend/src/components/shell/Breadcrumb.test.tsx` asserting that the block chip is rendered when `selectionStore.level === "block"` and that clicking it walks sibling blocks. Run; implement if missing; re-run.
+- [x] Step 5: Commit `feat(hierarchy,breadcrumb): block-level navigation (FO-7)`.
 
 **Acceptance.** `make ci AI=1` green; block selection round-trips Hierarchy ↔ Breadcrumb ↔ RightPanel.
 
@@ -323,7 +324,7 @@ def test_line_match_carries_block_index() -> None:
 
 ### Task 5.1 — CU-5.1: Backend round-trip integration test {#cu-51-backend-round-trip-integration-test}
 
-- [ ] Step 1: Write `tests/integration/test_block_layout_save.py`:
+- [x] Step 1: Write `tests/integration/test_block_layout_save.py`:
 
 ```python
 def test_paragraph_layout_type_round_trip(seeded_client, project_id, page_idx):
@@ -340,16 +341,16 @@ def test_paragraph_layout_type_round_trip(seeded_client, project_id, page_idx):
     assert para["layout_type"] == "heading"
 ```
 
-- [ ] Step 2: Run — if PASS, confirm the endpoint is fully wired and continue to step 4. If FAIL, fix by adding `layout_type` to the request model and threading it through the mutation handler (mirror the pattern of `set_line_gt` from the recently-shipped wiring plan).
-- [ ] Step 3: `make openapi-export AI=1`. Commit `feat(paragraphs): PATCH layout_type round-trip (FO-1)`.
+- [x] Step 2: Run — if PASS, confirm the endpoint is fully wired and continue to step 4. If FAIL, fix by adding `layout_type` to the request model and threading it through the mutation handler (mirror the pattern of `set_line_gt` from the recently-shipped wiring plan).
+- [x] Step 3: `make openapi-export AI=1`. Commit `feat(paragraphs): PATCH layout_type round-trip (FO-1)`.
 
 ### Task 5.2 — CU-5.2: Frontend round-trip via MSW {#cu-52-frontend-round-trip-via-msw}
 
-- [ ] Step 1: Open `frontend/src/components/right-panel/BlockDetail.test.tsx`. Add a test that mocks `PATCH /api/projects/p1/pages/0/paragraphs/0` via MSW, clicks the `heading` layout-type card, clicks `block-detail-save`, and asserts the MSW handler captured `{ layout_type: "heading" }`.
-- [ ] Step 2: Run — if FAIL because the component still labels itself as stub, edit `BlockDetail.tsx`: in the `onLayoutSave` handler, call `useParagraphMutations(projectId, pageIndex).updateLayout.mutate({ paragraphIndex, layout_type })`. The mutation hook lives at `frontend/src/hooks/useParagraphMutations.ts`; create it if absent following the `useLineMutations.ts` pattern.
-- [ ] Step 3: Run — PASS.
-- [ ] Step 4: Block-scope: when the scope toggle is set to "block", iterate every `paragraph_index` in the current block and fire the mutation per paragraph. Add a second test asserting two MSW calls when the block has two paragraphs. Re-run.
-- [ ] Step 5: Commit `feat(block-detail): wire layout-type save round-trip + block-scope apply (FO-1)`.
+- [x] Step 1: Open `frontend/src/components/right-panel/BlockDetail.test.tsx`. Add a test that mocks `PATCH /api/projects/p1/pages/0/paragraphs/0` via MSW, clicks the `heading` layout-type card, clicks `block-detail-save`, and asserts the MSW handler captured `{ layout_type: "heading" }`.
+- [x] Step 2: Run — if FAIL because the component still labels itself as stub, edit `BlockDetail.tsx`: in the `onLayoutSave` handler, call `useParagraphMutations(projectId, pageIndex).updateLayout.mutate({ paragraphIndex, layout_type })`. The mutation hook lives at `frontend/src/hooks/useParagraphMutations.ts`; create it if absent following the `useLineMutations.ts` pattern.
+- [x] Step 3: Run — PASS.
+- [x] Step 4: Block-scope: when the scope toggle is set to "block", iterate every `paragraph_index` in the current block and fire the mutation per paragraph. Add a second test asserting two MSW calls when the block has two paragraphs. Re-run.
+- [x] Step 5: Commit `feat(block-detail): wire layout-type save round-trip + block-scope apply (FO-1)`.
 
 **Acceptance.** Reloading a page preserves the layout type just saved; `make ci AI=1` green.
 
@@ -371,8 +372,8 @@ def test_paragraph_layout_type_round_trip(seeded_client, project_id, page_idx):
 
 ### Task 6.1 — CU-6.1: Erase-pixels capability probe and round-trip {#cu-61-erase-pixels-capability-probe-and-round-trip}
 
-- [ ] Step 1: Read `src/pd_ocr_labeler_spa/api/refine.py`. If `GET /api/refine/available` is missing, add it returning `{ "erase_pixels": True, "refine_bboxes": True }` (or whatever the predictor cache resolves).
-- [ ] Step 2: Write `tests/integration/test_refine_available.py`:
+- [x] Step 1: Read `src/pd_ocr_labeler_spa/api/refine.py`. If `GET /api/refine/available` is missing, add it returning `{ "erase_pixels": True, "refine_bboxes": True }` (or whatever the predictor cache resolves).
+- [x] Step 2: Write `tests/integration/test_refine_available.py`:
 
 ```python
 def test_refine_available_returns_capability_flags(client):
@@ -383,19 +384,19 @@ def test_refine_available_returns_capability_flags(client):
     assert "refine_bboxes" in body
 ```
 
-- [ ] Step 3: Run — PASS (or implement first). Commit `feat(refine): /available capability probe`.
-- [ ] Step 4: Add a Vitest test in `frontend/src/components/right-panel/sections/ErasePixelsSection.test.tsx` asserting:
+- [x] Step 3: Run — PASS (or implement first). Commit `feat(refine): /available capability probe`.
+- [x] Step 4: Add a Vitest test in `frontend/src/components/right-panel/sections/ErasePixelsSection.test.tsx` asserting:
   - When MSW returns `{ erase_pixels: false }` from `/api/refine/available`, the Apply button is disabled with a tooltip "Backend not wired".
   - When MSW returns `{ erase_pixels: true }`, the Apply button is enabled and clicking it posts to `POST /api/projects/p1/pages/0/words/.../erase-pixels` with the marked-pixel polygon payload.
-- [ ] Step 5: Run — if FAIL, wire `useRefineAvailable` to `/api/refine/available` and gate the Apply button. Commit `feat(erase-pixels): gate Apply on /api/refine/available (FO-9 close)`.
+- [x] Step 5: Run — if FAIL, wire `useRefineAvailable` to `/api/refine/available` and gate the Apply button. Commit `feat(erase-pixels): gate Apply on /api/refine/available (FO-9 close)`.
 
 ### Task 6.2 — CU-6.2: Char-fixer per-char persistence {#cu-62-char-fixer-per-char-persistence}
 
-- [ ] Step 1: Read `frontend/src/components/right-panel/sections/CharFixerSection.tsx` and `src/pd_ocr_labeler_spa/api/words.py` — locate `char-bboxes` endpoint. Memory says the endpoint exists.
-- [ ] Step 2: Write a Vitest round-trip in `frontend/src/components/right-panel/sections/CharFixerSection.test.tsx`: MSW captures `POST .../words/{li}/{wi}/char-bboxes` and asserts the body has the expected `{ char_bboxes: [{x,y,w,h}, …] }` shape after a user drag-resizes a per-char handle and clicks Apply.
-- [ ] Step 3: Run — if FAIL, wire the mutation; re-run.
-- [ ] Step 4: Add a backend test in `tests/integration/test_char_bboxes_round_trip.py`: POST char-bboxes → GET page → assert `word_matches[…].char_bboxes` equals the posted list.
-- [ ] Step 5: Commit `feat(char-fixer): per-char bbox persistence round-trip`.
+- [x] Step 1: Read `frontend/src/components/right-panel/sections/CharFixerSection.tsx` and `src/pd_ocr_labeler_spa/api/words.py` — locate `char-bboxes` endpoint. Memory says the endpoint exists.
+- [x] Step 2: Write a Vitest round-trip in `frontend/src/components/right-panel/sections/CharFixerSection.test.tsx`: MSW captures `POST .../words/{li}/{wi}/char-bboxes` and asserts the body has the expected `{ char_bboxes: [{x,y,w,h}, …] }` shape after a user drag-resizes a per-char handle and clicks Apply.
+- [x] Step 3: Run — if FAIL, wire the mutation; re-run.
+- [x] Step 4: Add a backend test in `tests/integration/test_char_bboxes_round_trip.py`: POST char-bboxes → GET page → assert `word_matches[…].char_bboxes` equals the posted list.
+- [x] Step 5: Commit `feat(char-fixer): per-char bbox persistence round-trip`.
 
 **Acceptance.** `make ci AI=1` green; user can mark erase regions and apply; per-char bboxes persist.
 
@@ -415,18 +416,18 @@ def test_refine_available_returns_capability_flags(client):
 
 ### Task 7.1 — CU-7.1: File ADR D-045 {#cu-71-file-adr-d-045}
 
-- [ ] Step 1: Read the legacy ImageTabs implementation at `../pd-ocr-labeler/pd_ocr_labeler/views/projects/pages/image_tabs.py:280-285` (cited in `specs/16-milestones.md`).
-- [ ] Step 2: Compare to the shipped `ImageTabsHeader.tsx`. Document the gap (the SPA has layer toggles + mode radio + Fit/100% buttons, but no Matches / Ground Truth / OCR text overlay sub-tabs).
-- [ ] Step 3: Append ADR D-045 to `specs/17-decisions.md`. Recommendation: **drop the sub-tabs**; the Drawer Worklist + RightPanel + Plaintext sub-mode in LineDetail already cover the three views; restoring the sub-tabs duplicates UI without new affordances. Cross-reference: `docs/architecture/04-image-viewport.md` §3.
-- [ ] Step 4: If ADR adopts the drop, edit `docs/architecture/13-driver-contract.md` to remove the `text-tab-matches` / `text-tab-gt` / `text-tab-ocr` testids and `docs/architecture/04-image-viewport.md` §3 accordingly. Otherwise, hand off to CU-7.2.
-- [ ] Step 5: Commit `chore(adr): D-045 — ImageTabs sub-tabs dropped in favor of Drawer + RightPanel surfaces (#295 close)`.
+- [x] Step 1: Read the legacy ImageTabs implementation at `../pd-ocr-labeler/pd_ocr_labeler/views/projects/pages/image_tabs.py:280-285` (cited in `specs/16-milestones.md`).
+- [x] Step 2: Compare to the shipped `ImageTabsHeader.tsx`. Document the gap (the SPA has layer toggles + mode radio + Fit/100% buttons, but no Matches / Ground Truth / OCR text overlay sub-tabs).
+- [x] Step 3: Append ADR D-045 to `specs/17-decisions.md`. Recommendation: **drop the sub-tabs**; the Drawer Worklist + RightPanel + Plaintext sub-mode in LineDetail already cover the three views; restoring the sub-tabs duplicates UI without new affordances. Cross-reference: `docs/architecture/04-image-viewport.md` §3.
+- [x] Step 4: If ADR adopts the drop, edit `docs/architecture/13-driver-contract.md` to remove the `text-tab-matches` / `text-tab-gt` / `text-tab-ocr` testids and `docs/architecture/04-image-viewport.md` §3 accordingly. Otherwise, hand off to CU-7.2.
+- [x] Step 5: Commit `chore(adr): D-045 — ImageTabs sub-tabs dropped in favor of Drawer + RightPanel surfaces (#295 close)`.
 
 ### Task 7.2 — CU-7.2: Optional: restore ImageTabs sub-tabs (only if ADR adopts restore) {#cu-72-optional-restore-imagetabs-sub-tabs-only-if-}
 
-- [ ] Step 1: Add a `Tabs` row above the canvas in `ImageTabsHeader.tsx` with three triggers: `text-tab-matches`, `text-tab-gt`, `text-tab-ocr`. Default to `matches`.
-- [ ] Step 2: For `matches`, overlay nothing extra; for `gt` overlay GT text positioned over each word's bbox; for `ocr` overlay OCR text similarly.
-- [ ] Step 3: Add Vitest tests + an E2E test under `tests/e2e/test_image_tabs.py` covering all three modes.
-- [ ] Step 4: Commit `feat(image-tabs): restore Matches/Ground Truth/OCR sub-tabs (#295)`.
+- [x] Step 1: Add a `Tabs` row above the canvas in `ImageTabsHeader.tsx` with three triggers: `text-tab-matches`, `text-tab-gt`, `text-tab-ocr`. Default to `matches`.
+- [x] Step 2: For `matches`, overlay nothing extra; for `gt` overlay GT text positioned over each word's bbox; for `ocr` overlay OCR text similarly.
+- [x] Step 3: Add Vitest tests + an E2E test under `tests/e2e/test_image_tabs.py` covering all three modes.
+- [x] Step 4: Commit `feat(image-tabs): restore Matches/Ground Truth/OCR sub-tabs (#295)`.
 
 **Acceptance.** GitHub #295 closed; `docs/plan-to-usable.md` polish row checked.
 
@@ -447,20 +448,20 @@ def test_refine_available_returns_capability_flags(client):
 
 ### Task 8.1 — CU-8.1: Take the cut-over screenshot {#cu-81-take-the-cut-over-screenshot}
 
-- [ ] Step 1: Run `make dev`. Load a fixture project. Open the page that exercises every shell zone (header, rail, drawer with worklist + bulk actions visible, canvas with overlays, right panel showing WordDetail).
-- [ ] Step 2: Capture a screenshot at 1920×1080 and save to `docs/Screenshot-hifi-gaps-closed.png`.
-- [ ] Step 3: Side-by-side compare to `docs/Screenshot from 2026-05-15 17-45-55.png` and the original design handoff in `ocr labeler.zip`. If any element diverges visibly, file a bug in `docs/BUGS_FOUND.md` — do not retouch the design without a paper trail.
-- [ ] Step 4: Commit `docs(screenshot): cut-over reference 2026-05-16`.
+- [x] Step 1: Run `make dev`. Load a fixture project. Open the page that exercises every shell zone (header, rail, drawer with worklist + bulk actions visible, canvas with overlays, right panel showing WordDetail).
+- [x] Step 2: Capture a screenshot at 1920×1080 and save to `docs/Screenshot-hifi-gaps-closed.png`.
+- [x] Step 3: Side-by-side compare to `docs/Screenshot from 2026-05-15 17-45-55.png` and the original design handoff in `ocr labeler.zip`. If any element diverges visibly, file a bug in `docs/BUGS_FOUND.md` — do not retouch the design without a paper trail.
+- [x] Step 4: Commit `docs(screenshot): cut-over reference 2026-05-16`.
 
 ### Task 8.2 — CU-8.2: Update SPA README Status {#cu-82-update-spa-readme-status}
 
-- [ ] Step 1: Edit `README.md` Status block to: `**Status (2026-05-16):** Cut-over complete. Hi-fi P1–P5 shipped; smoke run green; legacy pd-ocr-labeler superseded.` Add a single paragraph linking `docs/plan-to-usable.md`.
-- [ ] Step 2: Commit `docs(readme): cut-over status update`.
+- [x] Step 1: Edit `README.md` Status block to: `**Status (2026-05-16):** Cut-over complete. Hi-fi P1–P5 shipped; smoke run green; legacy pd-ocr-labeler superseded.` Add a single paragraph linking `docs/plan-to-usable.md`.
+- [x] Step 2: Commit `docs(readme): cut-over status update`.
 
 ### Task 8.3 — CU-8.3: Route legacy README update {#cu-83-route-legacy-readme-update}
 
-- [ ] Step 1: This task cannot be completed in-tree. Hand off to the `pd-ocr-labeler` agent with prompt: "Add a top-of-README banner to `/workspaces/ocr-container/pd-ocr-labeler/README.md` reading `> **Superseded by [`pd-ocr-labeler-spa`](../pd-ocr-labeler-spa/). This NiceGUI labeler is no longer under active development as of 2026-05-16.**`. Commit message: `docs(readme): mark legacy NiceGUI labeler as superseded`."
-- [ ] Step 2: Once the sibling agent confirms the commit, flip the corresponding row in `docs/plan-to-usable.md` to checked. Commit `docs(plan-to-usable): close legacy-superseded row`.
+- [x] Step 1: This task cannot be completed in-tree. Hand off to the `pd-ocr-labeler` agent with prompt: "Add a top-of-README banner to `/workspaces/ocr-container/pd-ocr-labeler/README.md` reading `> **Superseded by [`pd-ocr-labeler-spa`](../pd-ocr-labeler-spa/). This NiceGUI labeler is no longer under active development as of 2026-05-16.**`. Commit message: `docs(readme): mark legacy NiceGUI labeler as superseded`."
+- [x] Step 2: Once the sibling agent confirms the commit, flip the corresponding row in `docs/plan-to-usable.md` to checked. Commit `docs(plan-to-usable): close legacy-superseded row`.
 
 **Acceptance.** Both `docs/plan-to-usable.md` checkboxes are checked; legacy README has the banner; SPA README Status is current.
 

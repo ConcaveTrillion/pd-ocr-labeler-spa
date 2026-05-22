@@ -39,7 +39,7 @@ The same lift code is duplicated in `api/pages.py` (~30 lines) and `api/words.py
 - Create: `src/pd_ocr_labeler_spa/core/envelope_lift.py`
 - Create: `tests/unit/core/test_envelope_lift.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 # tests/unit/core/test_envelope_lift.py
@@ -146,7 +146,7 @@ def test_double_nested_envelope_unwrap(monkeypatch):
     assert result is fake_page
 ```
 
-- [ ] **Step 2: Run tests to confirm they all fail**
+- [x] **Step 2: Run tests to confirm they all fail**
 
 ```bash
 cd /workspaces/ocr-container/pd-ocr-labeler-spa
@@ -155,7 +155,7 @@ uv run pytest tests/unit/core/test_envelope_lift.py -v 2>&1 | tail -20
 
 Expected: `ModuleNotFoundError: No module named 'pd_ocr_labeler_spa.core.envelope_lift'`
 
-- [ ] **Step 3: Create `core/envelope_lift.py`**
+- [x] **Step 3: Create `core/envelope_lift.py`**
 
 ```python
 # src/pd_ocr_labeler_spa/core/envelope_lift.py
@@ -248,7 +248,7 @@ def lift_envelope_to_page(payload: object) -> object | EnvelopeLiftError:
         )
 ```
 
-- [ ] **Step 4: Run tests to confirm they pass**
+- [x] **Step 4: Run tests to confirm they pass**
 
 ```bash
 uv run pytest tests/unit/core/test_envelope_lift.py -v 2>&1 | tail -15
@@ -256,7 +256,7 @@ uv run pytest tests/unit/core/test_envelope_lift.py -v 2>&1 | tail -15
 
 Expected: all 6 tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pd_ocr_labeler_spa/core/envelope_lift.py tests/unit/core/test_envelope_lift.py
@@ -273,7 +273,7 @@ When the envelope lift fails, `GET /pages/{idx}` currently returns 200 with `lin
 - Modify: `src/pd_ocr_labeler_spa/core/models.py` (the `PageRecord` class, around line 133)
 - Modify: `tests/integration/test_pages_router.py` (add assertion that the field exists)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `tests/integration/test_pages_router.py` after the existing `test_get_page_returns_200_for_valid_index` test:
 
@@ -287,7 +287,7 @@ def test_get_page_payload_has_payload_error_field(loaded_client: TestClient) -> 
     assert "payload_error" in body.get("page_record", {}) or body.get("page_record") is None
 ```
 
-- [ ] **Step 2: Run test to confirm it's currently passing or absent**
+- [x] **Step 2: Run test to confirm it's currently passing or absent**
 
 ```bash
 uv run pytest tests/integration/test_pages_router.py::test_get_page_payload_has_payload_error_field -v 2>&1 | tail -10
@@ -295,7 +295,7 @@ uv run pytest tests/integration/test_pages_router.py::test_get_page_payload_has_
 
 This may pass trivially if `page_record` is `None` for the stub fixture. That's fine — the test value comes in Task 4 when we stamp the error. Continue.
 
-- [ ] **Step 3: Add `payload_error` to `PageRecord`**
+- [x] **Step 3: Add `payload_error` to `PageRecord`**
 
 In `src/pd_ocr_labeler_spa/core/models.py`, find `PageRecord` (around line 133) and add one field after `provenance_summary`:
 
@@ -306,7 +306,7 @@ In `src/pd_ocr_labeler_spa/core/models.py`, find `PageRecord` (around line 133) 
     payload_error: str | None = None
 ```
 
-- [ ] **Step 4: Run `make openapi-export` to sync TS types**
+- [x] **Step 4: Run `make openapi-export` to sync TS types**
 
 ```bash
 cd /workspaces/ocr-container/pd-ocr-labeler-spa
@@ -315,7 +315,7 @@ make openapi-export AI=1 2>&1 | tail -5
 
 Expected: `✅` — `frontend/src/api/types.ts` regenerated with `payload_error` in `PageRecord`.
 
-- [ ] **Step 5: Run full test suite**
+- [x] **Step 5: Run full test suite**
 
 ```bash
 make test AI=1 2>&1 | tail -10
@@ -323,7 +323,7 @@ make test AI=1 2>&1 | tail -10
 
 Expected: all pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/pd_ocr_labeler_spa/core/models.py frontend/src/api/types.ts tests/integration/test_pages_router.py
@@ -340,7 +340,7 @@ Currently `page_to_line_matches` accepts `page: Any` and does `getattr(page, "li
 - Modify: `src/pd_ocr_labeler_spa/core/page_to_line_matches.py` (around line 333–344)
 - Create: `tests/unit/core/test_page_to_line_matches_errors.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/unit/core/test_page_to_line_matches_errors.py
@@ -483,7 +483,7 @@ def test_paragraph_lookup_failure_logs_warning(caplog, monkeypatch):
     )
 ```
 
-- [ ] **Step 2: Run tests to confirm they fail**
+- [x] **Step 2: Run tests to confirm they fail**
 
 ```bash
 uv run pytest tests/unit/core/test_page_to_line_matches_errors.py -v 2>&1 | tail -20
@@ -491,7 +491,7 @@ uv run pytest tests/unit/core/test_page_to_line_matches_errors.py -v 2>&1 | tail
 
 Expected: all 5 tests FAIL (no warnings emitted, they're all `log.debug`).
 
-- [ ] **Step 3: Update `page_to_line_matches.py`**
+- [x] **Step 3: Update `page_to_line_matches.py`**
 
 In `src/pd_ocr_labeler_spa/core/page_to_line_matches.py`, make these targeted changes:
 
@@ -560,7 +560,7 @@ In `src/pd_ocr_labeler_spa/core/page_to_line_matches.py`, make these targeted ch
     return result
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 ```bash
 uv run pytest tests/unit/core/test_page_to_line_matches_errors.py -v 2>&1 | tail -15
@@ -568,7 +568,7 @@ uv run pytest tests/unit/core/test_page_to_line_matches_errors.py -v 2>&1 | tail
 
 Expected: all 5 tests PASS.
 
-- [ ] **Step 5: Run full test suite to check for regressions**
+- [x] **Step 5: Run full test suite to check for regressions**
 
 ```bash
 make test AI=1 2>&1 | tail -10
@@ -576,7 +576,7 @@ make test AI=1 2>&1 | tail -10
 
 Expected: all pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/pd_ocr_labeler_spa/core/page_to_line_matches.py \
@@ -594,7 +594,7 @@ Replace the 30-line inline lift block in `api/pages.py` with a call to `lift_env
 - Modify: `src/pd_ocr_labeler_spa/api/pages.py` (the `_page_payload` function, around line 537–614)
 - Modify: `tests/integration/test_pages_router.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `tests/integration/test_pages_router.py`:
 
@@ -636,7 +636,7 @@ def test_get_page_stamps_payload_error_on_corrupt_envelope(
         )
 ```
 
-- [ ] **Step 2: Run test to confirm it fails**
+- [x] **Step 2: Run test to confirm it fails**
 
 ```bash
 uv run pytest tests/integration/test_pages_router.py::test_get_page_stamps_payload_error_on_corrupt_envelope -v 2>&1 | tail -10
@@ -644,7 +644,7 @@ uv run pytest tests/integration/test_pages_router.py::test_get_page_stamps_paylo
 
 Expected: FAIL — `payload_error` is None (not stamped yet).
 
-- [ ] **Step 3: Update `_page_payload` in `api/pages.py`**
+- [x] **Step 3: Update `_page_payload` in `api/pages.py`**
 
 Add the import at the top of `api/pages.py` (with other core imports):
 
@@ -706,7 +706,7 @@ Then in `_page_payload`, replace the entire `try: envelope_payload = getattr(...
                     line_matches = _lms
 ```
 
-- [ ] **Step 4: Run the new test**
+- [x] **Step 4: Run the new test**
 
 ```bash
 uv run pytest tests/integration/test_pages_router.py::test_get_page_stamps_payload_error_on_corrupt_envelope -v 2>&1 | tail -10
@@ -714,7 +714,7 @@ uv run pytest tests/integration/test_pages_router.py::test_get_page_stamps_paylo
 
 Expected: PASS.
 
-- [ ] **Step 5: Run full suite**
+- [x] **Step 5: Run full suite**
 
 ```bash
 make test AI=1 2>&1 | tail -10
@@ -722,7 +722,7 @@ make test AI=1 2>&1 | tail -10
 
 Expected: all pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/pd_ocr_labeler_spa/api/pages.py tests/integration/test_pages_router.py
@@ -739,7 +739,7 @@ Same fix as Task 4 but for word mutations. Replace the duplicated inline lift wi
 - Modify: `src/pd_ocr_labeler_spa/api/words.py` (the `_resolve_page_object` function, around line 285–342)
 - Modify: `tests/integration/test_words_router.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `tests/integration/test_words_router.py`. First check the existing fixture pattern and add:
 
@@ -775,7 +775,7 @@ def test_word_mutation_returns_400_on_corrupt_envelope(
     assert resp.json()["error"] == "page_not_loaded"
 ```
 
-- [ ] **Step 2: Run test to confirm it fails**
+- [x] **Step 2: Run test to confirm it fails**
 
 ```bash
 uv run pytest tests/integration/test_words_router.py::test_word_mutation_returns_400_on_corrupt_envelope -v 2>&1 | tail -10
@@ -783,7 +783,7 @@ uv run pytest tests/integration/test_words_router.py::test_word_mutation_returns
 
 Expected: FAIL or error (old code returns the raw payload without erroring cleanly).
 
-- [ ] **Step 3: Update `_resolve_page_object` in `api/words.py`**
+- [x] **Step 3: Update `_resolve_page_object` in `api/words.py`**
 
 Add import at the top of `api/words.py` with the other core imports:
 
@@ -808,7 +808,7 @@ Replace the `try/except` block inside `_resolve_page_object` (around lines 325�
     return lift_result
 ```
 
-- [ ] **Step 4: Run the new test**
+- [x] **Step 4: Run the new test**
 
 ```bash
 uv run pytest tests/integration/test_words_router.py::test_word_mutation_returns_400_on_corrupt_envelope -v 2>&1 | tail -10
@@ -816,7 +816,7 @@ uv run pytest tests/integration/test_words_router.py::test_word_mutation_returns
 
 Expected: PASS.
 
-- [ ] **Step 5: Run full suite**
+- [x] **Step 5: Run full suite**
 
 ```bash
 make test AI=1 2>&1 | tail -10
@@ -824,7 +824,7 @@ make test AI=1 2>&1 | tail -10
 
 Expected: all pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/pd_ocr_labeler_spa/api/words.py tests/integration/test_words_router.py
@@ -841,7 +841,7 @@ Currently `get_page_image` catches bare `Exception`, so a corrupt PNG and a miss
 - Modify: `src/pd_ocr_labeler_spa/api/pages.py` (the `get_page_image` function, around line 1195–1214)
 - Modify: `tests/integration/test_pages_router.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `tests/integration/test_pages_router.py`:
 
@@ -902,7 +902,7 @@ def test_get_page_image_missing_returns_404(
     assert resp.status_code in (404, 422)
 ```
 
-- [ ] **Step 2: Run tests to confirm first one fails with 404**
+- [x] **Step 2: Run tests to confirm first one fails with 404**
 
 ```bash
 uv run pytest tests/integration/test_pages_router.py::test_get_page_image_corrupt_returns_422 -v 2>&1 | tail -10
@@ -910,7 +910,7 @@ uv run pytest tests/integration/test_pages_router.py::test_get_page_image_corrup
 
 Expected: FAIL — currently returns 404 for all PIL failures.
 
-- [ ] **Step 3: Update `get_page_image` in `api/pages.py`**
+- [x] **Step 3: Update `get_page_image` in `api/pages.py`**
 
 Replace the bare `except Exception` block in `get_page_image` (around lines 1207–1214):
 
@@ -935,7 +935,7 @@ Replace the bare `except Exception` block in `get_page_image` (around lines 1207
         )
 ```
 
-- [ ] **Step 4: Run both new tests**
+- [x] **Step 4: Run both new tests**
 
 ```bash
 uv run pytest tests/integration/test_pages_router.py::test_get_page_image_corrupt_returns_422 tests/integration/test_pages_router.py::test_get_page_image_missing_returns_404 -v 2>&1 | tail -10
@@ -943,7 +943,7 @@ uv run pytest tests/integration/test_pages_router.py::test_get_page_image_corrup
 
 Expected: both PASS.
 
-- [ ] **Step 5: Run full suite**
+- [x] **Step 5: Run full suite**
 
 ```bash
 make test AI=1 2>&1 | tail -10
@@ -951,7 +951,7 @@ make test AI=1 2>&1 | tail -10
 
 Expected: all pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/pd_ocr_labeler_spa/api/pages.py tests/integration/test_pages_router.py
@@ -968,7 +968,7 @@ The export job silently skips pages that fail to parse. The terminal notificatio
 - Modify: `src/pd_ocr_labeler_spa/core/jobs/handlers/export.py` (around line 340–370)
 - Modify: `tests/integration/test_export_router.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Look at `tests/integration/test_export_router.py` for the existing notification assertion pattern. Add:
 
@@ -1017,7 +1017,7 @@ def test_export_surfaces_skipped_pages(tmp_path: Path, projects_root: Path, monk
     )
 ```
 
-- [ ] **Step 2: Run test to confirm it fails**
+- [x] **Step 2: Run test to confirm it fails**
 
 ```bash
 uv run pytest tests/integration/test_export_router.py::test_export_surfaces_skipped_pages -v 2>&1 | tail -10
@@ -1025,7 +1025,7 @@ uv run pytest tests/integration/test_export_router.py::test_export_surfaces_skip
 
 Expected: FAIL — terminal message doesn't mention skipped pages.
 
-- [ ] **Step 3: Update export handler**
+- [x] **Step 3: Update export handler**
 
 In `src/pd_ocr_labeler_spa/core/jobs/handlers/export.py`, find the loop that calls `_load_page_from_envelope_file` and the `continue` on `None` result (around lines 340–370). Add a skip counter:
 
@@ -1050,7 +1050,7 @@ In `src/pd_ocr_labeler_spa/core/jobs/handlers/export.py`, find the loop that cal
 
 Then pass `terminal_msg` to the `runner.update_progress` complete call instead of a hardcoded string.
 
-- [ ] **Step 4: Run the test**
+- [x] **Step 4: Run the test**
 
 ```bash
 uv run pytest tests/integration/test_export_router.py::test_export_surfaces_skipped_pages -v 2>&1 | tail -10
@@ -1058,7 +1058,7 @@ uv run pytest tests/integration/test_export_router.py::test_export_surfaces_skip
 
 Expected: PASS.
 
-- [ ] **Step 5: Run full suite**
+- [x] **Step 5: Run full suite**
 
 ```bash
 make test AI=1 2>&1 | tail -10
@@ -1066,7 +1066,7 @@ make test AI=1 2>&1 | tail -10
 
 Expected: all pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/pd_ocr_labeler_spa/core/jobs/handlers/export.py tests/integration/test_export_router.py
@@ -1084,7 +1084,7 @@ This is the test that would have caught C2/C3: if the pipeline were returning wr
 **Files:**
 - Create: `tests/integration/test_ocr_pipeline_integration.py`
 
-- [ ] **Step 1: Check whether DocTR is loadable in this environment**
+- [x] **Step 1: Check whether DocTR is loadable in this environment**
 
 ```bash
 cd /workspaces/ocr-container/pd-ocr-labeler-spa
@@ -1093,7 +1093,7 @@ uv run python -c "from pd_book_tools.ocr import LocalDoctrPageLoader; print('doc
 
 Note the result. If DocTR is available, the integration test can assert `len(line_matches) > 0`. If not, it skips the `> 0` assertion.
 
-- [ ] **Step 2: Create a small valid PNG fixture**
+- [x] **Step 2: Create a small valid PNG fixture**
 
 ```python
 # (Run this once to generate the fixture — or add to conftest.py)
@@ -1125,7 +1125,7 @@ def tiny_png(tmp_path_factory: pytest.TempPathFactory) -> Path:
         pytest.skip("PIL not available")
 ```
 
-- [ ] **Step 3: Write the integration test**
+- [x] **Step 3: Write the integration test**
 
 ```python
 # tests/integration/test_ocr_pipeline_integration.py
@@ -1286,7 +1286,7 @@ def test_reload_ocr_pipeline_line_matches_if_doctr_available(
         assert pr.get("payload_error") is None
 ```
 
-- [ ] **Step 4: Run the pipeline test**
+- [x] **Step 4: Run the pipeline test**
 
 ```bash
 uv run pytest tests/integration/test_ocr_pipeline_integration.py -v -s -m "integration" 2>&1 | tail -30
@@ -1296,7 +1296,7 @@ Expected:
 - If DocTR is available: both tests pass.
 - If DocTR is unavailable: second test skips; first test may also skip if OCR fails to load.
 
-- [ ] **Step 5: Run full suite**
+- [x] **Step 5: Run full suite**
 
 ```bash
 make test AI=1 2>&1 | tail -10
@@ -1304,7 +1304,7 @@ make test AI=1 2>&1 | tail -10
 
 Expected: all pass (integration/slow tests may be skipped under `make test` if that target excludes `slow`).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add tests/integration/test_ocr_pipeline_integration.py \
@@ -1324,13 +1324,13 @@ Replace `Any` with proper types in the three files that have the most impact. Us
 - Modify: `src/pd_ocr_labeler_spa/api/words.py` (critical function signatures only)
 - Create: `src/pd_ocr_labeler_spa/py.typed` (PEP 561 marker)
 
-- [ ] **Step 1: Add `py.typed` marker**
+- [x] **Step 1: Add `py.typed` marker**
 
 ```bash
 touch /workspaces/ocr-container/pd-ocr-labeler-spa/src/pd_ocr_labeler_spa/py.typed
 ```
 
-- [ ] **Step 2: Type `page_to_line_matches.py` — replace `Any` in signatures**
+- [x] **Step 2: Type `page_to_line_matches.py` — replace `Any` in signatures**
 
 Add to the imports block (after `from __future__ import annotations`):
 
@@ -1387,7 +1387,7 @@ def _build_line_to_paragraph_lookup(page: object) -> dict[int, int]:
 def _build_line_to_block_lookup(page: object) -> dict[int, int]:
 ```
 
-- [ ] **Step 3: Type `_resolve_page_object` and `_resolve_word` in `api/words.py`**
+- [x] **Step 3: Type `_resolve_page_object` and `_resolve_word` in `api/words.py`**
 
 ```python
 # Before:
@@ -1399,7 +1399,7 @@ def _resolve_page_object(pstate: PageState | None) -> object | None:
 def _resolve_word(page: object, line_index: int, word_index: int) -> object | None:
 ```
 
-- [ ] **Step 4: Run pyright to check type errors**
+- [x] **Step 4: Run pyright to check type errors**
 
 ```bash
 cd /workspaces/ocr-container/pd-ocr-labeler-spa
@@ -1410,7 +1410,7 @@ Fix any errors pyright reports. Common issues:
 - `object` doesn't have attribute `.lines` → use `cast` or `getattr` (already done via `getattr(page, "lines", None)`)
 - Type narrowing after `isinstance` check → add explicit `assert isinstance` where needed
 
-- [ ] **Step 5: Run full suite**
+- [x] **Step 5: Run full suite**
 
 ```bash
 make test AI=1 2>&1 | tail -10
@@ -1424,7 +1424,7 @@ make frontend-test AI=1 2>&1 | tail -10
 
 Expected: all pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/pd_ocr_labeler_spa/py.typed \
@@ -1442,7 +1442,7 @@ git commit -m "chore(types): replace Any with proper types in critical signature
 - Modify: `CLAUDE.md`
 - Modify: `docs/BUGS_FOUND.md`
 
-- [ ] **Step 1: Update CLAUDE.md**
+- [x] **Step 1: Update CLAUDE.md**
 
 Find the "Current milestone" section. Change:
 
@@ -1459,7 +1459,7 @@ only — the actual image rotation, re-OCR, and PageRecord update are stubbed
 (`core/jobs/handlers/rotate.py` and `auto_rotate_all.py`). See BUGS_FOUND.md.
 ```
 
-- [ ] **Step 2: Add entry to `docs/BUGS_FOUND.md`**
+- [x] **Step 2: Add entry to `docs/BUGS_FOUND.md`**
 
 ```markdown
 ## M9.1/M9.2 rotate handlers are stubs (not shipped)
@@ -1476,7 +1476,7 @@ CLAUDE.md and specs/16-milestones.md incorrectly list M9.1 and M9.2 as ✅.
 Tracking: update specs/16-milestones.md to show these as "plumbing only."
 ```
 
-- [ ] **Step 3: Run `make ci AI=1` to confirm nothing broke**
+- [x] **Step 3: Run `make ci AI=1` to confirm nothing broke**
 
 ```bash
 cd /workspaces/ocr-container/pd-ocr-labeler-spa
@@ -1485,7 +1485,7 @@ make ci AI=1 2>&1 | tail -15
 
 Expected: ✅
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add CLAUDE.md docs/BUGS_FOUND.md

@@ -47,31 +47,26 @@ output for debugging.
 
 ## Current milestone
 
-M0–M10, M9.5, and hi-fi follow-ons FO-1–FO-9 are all ✅ done.
+**Cut-over complete as of 2026-05-21.** M0–M10, M9.5, hi-fi FO-1–FO-9,
+and all 8 CU milestones (complete-labeler-spa plan) are shipped.
 M9.1 (manual rotate) and M9.2 (auto-rotate-all) ship the job/SSE
 plumbing only — the actual image rotation, re-OCR, and PageRecord
 update are stubbed. See `docs/BUGS_FOUND.md`.
-Milestone history lives in GitHub milestones and `specs/16-milestones.md`;
-parity tracking moved to GitHub issues (`label:hifi:P1..P5`).
+Milestone history lives in GitHub milestones and `specs/16-milestones.md`.
 
-**Path to usable** — see `docs/plan-to-usable.md` for the gap analysis
-between today's tree and "CT opens the SPA, loads a real scanned-book
-project, edits OCR, saves, replacing the legacy NiceGUI labeler
-end-to-end."
+**Path to usable** — see `docs/archive/plans/plan-to-usable.md` (archived,
+cut-over complete). All rows checked; legacy pd-ocr-labeler superseded.
 
 **Open work:**
 
-- **Hi-fi completion (P1–P5)** — primary active workstream. 29 slices
-  filed as #336–#364 (`label:hifi:P1..P5`); plan lives at
-  `docs/plans/hifi-gaps-plan.md`. Closes the 61 visual-fidelity gaps
-  between Slices 0–27 (shipped) and the original hi-fi design; this is
-  the cut-over gate for retiring the legacy NiceGUI labeler.
 - M9.5 keyboard audit (#286, `status:backlog`): browser walk TODOs
   pending CT; hotkeys + audit doc already shipped.
 - M11 glyph annotations (#267–#270, `status:blocked`): needs Q-A7
   resolution before implementation.
-- Path-to-usable: `docs/plan-to-usable.md` — only the smoke-run row
-  and legacy-README banner are still pending.
+- #366 tighten tsconfig.test.json relaxations (`status:backlog`).
+- #404 lint-deviations.md documentation (`kind:chore`).
+- #405 OCR-config modal trigger missing after HeaderBar deprecation
+  (`status:blocked`).
 
 Per-slice history is preserved in git log and GitHub closed milestones.
 
