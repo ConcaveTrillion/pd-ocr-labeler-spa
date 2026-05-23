@@ -36,6 +36,19 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // Force single instances of all React-ecosystem packages when pnpm symlink
+    // scoping creates multiple paths for the same package.
+    //
+    // react/react-dom: @concavetrillion/pd-ui resolves from its own pnpm scope
+    //   (node_modules/.pnpm/@concavetrillion+pd-ui@.../node_modules/react).
+    //
+    // react-konva: pd-ui declares peerDeps: "react-konva": "^18.0.0" and brings
+    //   in react-konva@18.2.16 via its pnpm scope, while the labeler-spa uses
+    //   react-konva@19.2.4. Both get bundled; each creates its own
+    //   react-reconciler with conflicting internal state, causing the runtime
+    //   error "Cannot read properties of undefined (reading 'ReactCurrentBatchConfig')".
+    //   Forcing dedupe resolves both to the top-level react-konva@19.2.4.
+    dedupe: ["react", "react-dom", "react-konva"],
   },
   server: {
     port: 5173,
