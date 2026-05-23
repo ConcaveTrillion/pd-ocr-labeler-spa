@@ -23,7 +23,7 @@ dependencies = [
     "sse-starlette>=2.1",
     "anyio>=4.4",
     # OCR / image domain (wired in later milestones; harmless to declare now)
-    "pd-book-tools",
+    "pd-book-tools>=0.14.1",
     "huggingface_hub>=0.23",
 ]
 
@@ -60,11 +60,13 @@ e2e = [
     "pytest-playwright>=0.5",
 ]
 
+[[tool.uv.index]]
+name = "pd-index-pip"
+url = "https://concavetrillion.github.io/pd-index-pip/simple/"
+explicit = true
+
 [tool.uv.sources]
-# Pinned tag chosen to match the version pgdp-prep currently consumes,
-# so a single devcontainer can host both repos against the same
-# pd-book-tools build. Bump via `make upgrade-pd-book-tools` when ready.
-pd-book-tools = { git = "https://github.com/ConcaveTrillion/pd-book-tools.git", tag = "v0.9.0" }
+pd-book-tools = { index = "pd-index-pip" }
 
 [tool.hatch.version]
 source = "vcs"

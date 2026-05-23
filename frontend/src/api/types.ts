@@ -618,6 +618,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/pages/{page_index}/glyph-bulk-mark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Glyph Bulk Mark
+         * @description ``POST .../pages/{idx}/glyph-bulk-mark`` — apply a glyph-mark recipe to the page.
+         *
+         *     Runs synchronously (page-scope bulk is fast).  Dry-run returns preview
+         *     counts without mutating state.
+         *
+         *     Spec: ``specs/20-glyph-annotations.md`` §6.2.
+         */
+        post: operations["glyph_bulk_mark_api_projects__project_id__pages__page_index__glyph_bulk_mark_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs": {
         parameters: {
             query?: never;
@@ -1193,6 +1218,58 @@ export interface paths {
          *     The data lives entirely in the SPA sidecar layer.
          */
         post: operations["set_char_bboxes_api_projects__project_id__pages__page_index__words__line_index___word_index__char_bboxes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/pages/{page_index}/words/{line_index}/{word_index}/glyph-annotations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Glyph Annotations
+         * @description ``POST .../words/{li}/{wi}/glyph-annotations`` — set/clear word glyph annotations.
+         *
+         *     Sets ``WordMatch.glyph_annotations`` for the word and auto-saves to cache.
+         *     ``annotations=None`` clears back to "not reviewed" without touching predictions.
+         *
+         *     Spec: ``specs/20-glyph-annotations.md`` §6.1.
+         */
+        post: operations["set_glyph_annotations_api_projects__project_id__pages__page_index__words__line_index___word_index__glyph_annotations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/pages/{page_index}/words/{line_index}/{word_index}/accept-prediction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept Glyph Prediction
+         * @description ``POST .../words/{li}/{wi}/accept-prediction`` — confirm glyph predictions.
+         *
+         *     Promotes ``glyph_predictions`` to ``glyph_annotations`` with
+         *     ``source="human_confirmed"``.  Predictions remain on the in-memory word
+         *     model (they are not cleared by this call — re-running the classifier
+         *     would regenerate them).
+         *
+         *     Spec: ``specs/20-glyph-annotations.md`` §6.1.
+         */
+        post: operations["accept_glyph_prediction_api_projects__project_id__pages__page_index__words__line_index___word_index__accept_prediction_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1967,6 +2044,14 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * AcceptGlyphPredictionRequest
+         * @description ``POST .../words/{li}/{wi}/accept-prediction`` body — spec §6.1.
+         *
+         *     No fields — confirms the current predictions wholesale, promoting them
+         *     to ``source="human_confirmed"`` annotations.
+         */
+        AcceptGlyphPredictionRequest: Record<string, never>;
+        /**
          * AddWordRequest
          * @description Spec §2 lines 308-311.
          */
@@ -2290,6 +2375,77 @@ export interface components {
              */
             auto_rotate_available: boolean;
         };
+        /**
+         * GlyphAnnotationsModel
+         * @description Glyph-level side-channel annotations for one word — spec §3 + D-044.
+         *
+         *     Mirrors ``pd_book_tools.ocr.glyph_annotations.GlyphAnnotations`` and adds
+         *     ``source`` (D-044: object-level provenance, not per-mark).
+         *
+         *     Tri-state semantics (spec §1):
+         *     - ``WordMatch.glyph_annotations is None`` — not yet reviewed.
+         *     - ``WordMatch.glyph_annotations == GlyphAnnotationsModel()`` — reviewed, nothing to annotate.
+         *     - ``WordMatch.glyph_annotations`` with marks — reviewed, marks present.
+         *
+         *     ``glyph_predictions`` on ``WordMatch`` uses the same shape but with
+         *     ``source="predicted"``; predictions are NEVER persisted in the envelope.
+         */
+        GlyphAnnotationsModel: {
+            /** Ligatures */
+            ligatures?: components["schemas"]["LigatureMarkModel"][];
+            /** Long S Positions */
+            long_s_positions?: number[];
+            /**
+             * Swash
+             * @default false
+             */
+            swash: boolean;
+            /**
+             * Source
+             * @default human
+             * @enum {string}
+             */
+            source: "human" | "predicted" | "human_confirmed";
+        };
+        /**
+         * GlyphBulkMarkRequest
+         * @description ``POST .../pages/{idx}/glyph-bulk-mark`` body — spec §6.2.
+         *
+         *     Applies a recipe to all words on the page and optionally returns a dry-run
+         *     preview without mutating state.
+         */
+        GlyphBulkMarkRequest: {
+            /** Recipe */
+            recipe: string;
+            /**
+             * Skip Already Annotated
+             * @default true
+             */
+            skip_already_annotated: boolean;
+            /**
+             * Accept Predictions
+             * @default false
+             */
+            accept_predictions: boolean;
+            /**
+             * Dry Run
+             * @default false
+             */
+            dry_run: boolean;
+        };
+        /**
+         * GlyphBulkMarkResponse
+         * @description ``POST .../pages/{idx}/glyph-bulk-mark`` response — spec §6.2.
+         *
+         *     ``page`` is ``None`` when ``dry_run=True`` (no state change).
+         */
+        GlyphBulkMarkResponse: {
+            /** Affected Word Ids */
+            affected_word_ids: string[];
+            /** Skipped Word Ids */
+            skipped_word_ids: string[];
+            page?: components["schemas"]["PagePayload"] | null;
+        };
         /** GroupSelectedWordsIntoNewParagraphRequest */
         GroupSelectedWordsIntoNewParagraphRequest: {
             /** Word Indices */
@@ -2363,6 +2519,30 @@ export interface components {
          * @enum {string}
          */
         JobType: "refine_bboxes_page" | "expand_refine_bboxes_page" | "reload_ocr_page" | "export" | "save_project" | "refine_bboxes_project";
+        /**
+         * LigatureMarkModel
+         * @description One ligature occurrence within a word — spec ``specs/20-glyph-annotations.md`` §3.
+         *
+         *     Mirrors ``pd_book_tools.ocr.glyph_annotations.LigatureMark`` as a Pydantic model
+         *     so it serialises correctly in the wire contract.
+         *
+         *     ``kind`` is the ligature kind string (e.g. ``"ct"``, ``"fi"``).  Values
+         *     correspond to ``pd_book_tools.ocr.glyph_annotations.LigatureKind`` but are
+         *     kept as plain strings here to avoid importing from pd_book_tools at schema
+         *     definition time (lazy import strategy for the OCR dependency).
+         *
+         *     ``char_span`` is a ``[start, end)`` tuple of char indices into the GT string,
+         *     or ``None`` when the span is unknown (coarse-grained label).
+         */
+        LigatureMarkModel: {
+            /** Kind */
+            kind: string;
+            /** Char Span */
+            char_span?: [
+                number,
+                number
+            ] | null;
+        };
         /**
          * LineFilter
          * @description Line display filter — spec §1 ``LineFilter``.
@@ -3062,6 +3242,17 @@ export interface components {
             page_index: number;
         };
         /**
+         * SetGlyphAnnotationsRequest
+         * @description ``POST .../words/{li}/{wi}/glyph-annotations`` body — spec §6.1.
+         *
+         *     ``annotations=None`` means "unset back to not-reviewed" (clears confirmed
+         *     annotations without touching predictions).
+         *     ``annotations=GlyphAnnotationsModel()`` means "reviewed, nothing to mark".
+         */
+        SetGlyphAnnotationsRequest: {
+            annotations: components["schemas"]["GlyphAnnotationsModel"] | null;
+        };
+        /**
          * SetLineGtRequest
          * @description ``POST .../lines/{li}/set-gt`` body.
          *
@@ -3322,6 +3513,8 @@ export interface components {
             char_bboxes?: components["schemas"]["BBox"][] | null;
             /** Char Ranges */
             char_ranges?: components["schemas"]["CharRange-Output"][] | null;
+            glyph_annotations?: components["schemas"]["GlyphAnnotationsModel"] | null;
+            glyph_predictions?: components["schemas"]["GlyphAnnotationsModel"] | null;
         };
     };
     responses: never;
@@ -3896,6 +4089,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    glyph_bulk_mark_api_projects__project_id__pages__page_index__glyph_bulk_mark_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                page_index: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GlyphBulkMarkRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GlyphBulkMarkResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4640,6 +4869,82 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["SetCharBboxesRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagePayload"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_glyph_annotations_api_projects__project_id__pages__page_index__words__line_index___word_index__glyph_annotations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                page_index: number;
+                line_index: number;
+                word_index: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetGlyphAnnotationsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagePayload"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_glyph_prediction_api_projects__project_id__pages__page_index__words__line_index___word_index__accept_prediction_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                page_index: number;
+                line_index: number;
+                word_index: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptGlyphPredictionRequest"];
             };
         };
         responses: {
