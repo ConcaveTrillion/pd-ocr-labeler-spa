@@ -369,9 +369,18 @@ export default function ProjectPage() {
       if (selectedLineIndex !== null)
         validateLine.mutate({ lineIndex: selectedLineIndex, validated: false });
     },
+    // F-035: D key is destructive — route through confirm dialog before mutating.
     onDelete: () => {
       const { selectedLineIndex } = worklistStore.getState();
-      if (selectedLineIndex !== null) deleteLine.mutate({ lineIndex: selectedLineIndex });
+      if (selectedLineIndex !== null) {
+        dialogStore.openConfirm({
+          title: "Delete line?",
+          body: "This will permanently remove the selected line from the page. This action cannot be undone.",
+          onConfirm: () => {
+            deleteLine.mutate({ lineIndex: selectedLineIndex });
+          },
+        });
+      }
     },
     onRefine: () => {
       // Refine is not yet a line-level mutation; no-op placeholder.
@@ -544,17 +553,32 @@ export default function ProjectPage() {
       },
     });
   }
+  // F-035: Route destructive hotkeys (Mod+L, Mod+G) through the confirm dialog
+  // so accidental keypresses cannot discard or recompute page data without
+  // the user explicitly confirming.
   function handleLoadPage() {
-    loadPage.mutate(undefined, {
-      onSettled: () => {
-        invalidatePage();
+    dialogStore.openConfirm({
+      title: "Load page?",
+      body: "This will discard any unsaved changes and reload the page from the last saved state. This action cannot be undone.",
+      onConfirm: () => {
+        loadPage.mutate(undefined, {
+          onSettled: () => {
+            invalidatePage();
+          },
+        });
       },
     });
   }
   function handleRematchGt() {
-    rematchGt.mutate(undefined, {
-      onSettled: () => {
-        invalidatePage();
+    dialogStore.openConfirm({
+      title: "Rematch GT?",
+      body: "This will re-run ground-truth matching for the current page, overwriting any manual GT edits. This action cannot be undone.",
+      onConfirm: () => {
+        rematchGt.mutate(undefined, {
+          onSettled: () => {
+            invalidatePage();
+          },
+        });
       },
     });
   }

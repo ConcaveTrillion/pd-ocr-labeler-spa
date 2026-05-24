@@ -500,10 +500,37 @@ describe("ProjectPage — real shell (spec 22 §3, #314)", () => {
       });
     });
 
-    it("Ctrl+G fires POST /rematch-gt (rematch-gt mutation)", async () => {
-      // Ctrl+ArrowRight/Left/Home/End rely on keyCode mapping in hotkeys-js
-      // which doesn't fire reliably in jsdom — tested by E2E (#242).
-      // Instead, verify Ctrl+G (rematch-gt) which uses a plain letter key.
+    it("F-035: Ctrl+G opens confirm dialog (does NOT fire mutation directly)", async () => {
+      // After F-035 fix, Mod+G routes through the confirm dialog.
+      // The mutation must NOT fire until the user confirms.
+      const rematchCalls: unknown[] = [];
+      server.use(
+        http.post("/api/projects/:pid/pages/:idx/rematch-gt", async ({ request }) => {
+          rematchCalls.push(await request.text());
+          return HttpResponse.json({});
+        }),
+      );
+      renderProjectPage();
+      await screen.findByTestId("project-page");
+
+      fireEvent.keyDown(document, { key: "g", ctrlKey: true, bubbles: true });
+
+      // Dialog should be visible now.
+      await waitFor(() => {
+        expect(screen.getByTestId("confirm-dialog")).toBeInTheDocument();
+      });
+
+      // Mutation must NOT have fired yet.
+      expect(rematchCalls.length).toBe(0);
+
+      // Confirm → mutation fires.
+      fireEvent.click(screen.getByTestId("confirm-dialog-confirm"));
+      await waitFor(() => {
+        expect(rematchCalls.length).toBeGreaterThanOrEqual(1);
+      });
+    });
+
+    it("F-035: Ctrl+G confirm dialog cancel leaves mutation unfired", async () => {
       const rematchCalls: unknown[] = [];
       server.use(
         http.post("/api/projects/:pid/pages/:idx/rematch-gt", async ({ request }) => {
@@ -516,8 +543,15 @@ describe("ProjectPage — real shell (spec 22 §3, #314)", () => {
 
       fireEvent.keyDown(document, { key: "g", ctrlKey: true, bubbles: true });
       await waitFor(() => {
-        expect(rematchCalls.length).toBeGreaterThanOrEqual(1);
+        expect(screen.getByTestId("confirm-dialog")).toBeInTheDocument();
       });
+
+      // Cancel — dialog should close and mutation must not fire.
+      fireEvent.click(screen.getByTestId("confirm-dialog-cancel"));
+      await waitFor(() => {
+        expect(screen.queryByTestId("confirm-dialog")).not.toBeInTheDocument();
+      });
+      expect(rematchCalls.length).toBe(0);
     });
   });
 
