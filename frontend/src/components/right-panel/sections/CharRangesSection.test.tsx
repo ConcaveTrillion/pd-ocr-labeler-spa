@@ -3,7 +3,7 @@
 // P4.a (Gap 38): per-char glyph editor rows, overlap markers, STYLE/COMPONENT kind switcher.
 
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -398,5 +398,71 @@ describe("CharRangesSection R3 — load saved char_ranges on mount", () => {
       </QueryClientProvider>,
     );
     expect(screen.getByTestId("char-range-0")).toBeInTheDocument();
+  });
+});
+
+// ---- F-037 regression: existing-range edits persist + activeComponents serialised ----
+
+describe("CharRangesSection F-037 — existing-range edits persist and component labels serialise", () => {
+  it("F-037: style chip toggle on existing range POSTs updated styles", async () => {
+    let lastBody: unknown = null;
+    const handler = vi.fn(async (info: { request: Request }) => {
+      lastBody = await info.request.json();
+      return HttpResponse.json(makePageResponse("Hello"));
+    });
+    server.use(http.post("/api/projects/p1/pages/0/words/0/0/char-ranges", handler));
+
+    const user = userEvent.setup();
+    renderSection(makeWord({ text: "Hello", char_ranges: [{ start: 0, end: 2, styles: [] }] }));
+
+    // Toggle italic chip on the existing range card.
+    await user.click(screen.getByTestId("char-range-0-style-chip-italic"));
+
+    await waitFor(() => expect(handler).toHaveBeenCalled());
+    expect(lastBody).toMatchObject({
+      ranges: [{ start: 0, end: 2, styles: expect.arrayContaining(["italic"]) }],
+    });
+  });
+
+  it("F-037: component chip toggle includes label in POST payload", async () => {
+    let lastBody: unknown = null;
+    const handler = vi.fn(async (info: { request: Request }) => {
+      lastBody = await info.request.json();
+      return HttpResponse.json(makePageResponse("Hello"));
+    });
+    server.use(http.post("/api/projects/p1/pages/0/words/0/0/char-ranges", handler));
+
+    const user = userEvent.setup();
+    renderSection(makeWord({ text: "Hello", char_ranges: [{ start: 0, end: 2, styles: [] }] }));
+
+    // Switch the card to COMPONENT kind, then toggle drop-cap chip.
+    await user.click(screen.getByTestId("char-range-0-kind-component"));
+    await user.click(screen.getByTestId("char-range-0-component-chip-drop-cap"));
+
+    await waitFor(() => expect(handler).toHaveBeenCalledTimes(2));
+    expect(lastBody).toMatchObject({
+      ranges: [{ start: 0, end: 2, styles: expect.arrayContaining(["drop-cap"]) }],
+    });
+  });
+
+  it("F-037: position end change on existing range POSTs updated position", async () => {
+    let lastBody: unknown = null;
+    const handler = vi.fn(async (info: { request: Request }) => {
+      lastBody = await info.request.json();
+      return HttpResponse.json(makePageResponse("Hello"));
+    });
+    server.use(http.post("/api/projects/p1/pages/0/words/0/0/char-ranges", handler));
+
+    renderSection(makeWord({ text: "Hello", char_ranges: [{ start: 0, end: 4, styles: [] }] }));
+
+    const endInput = screen.getByTestId("char-range-0-end");
+    // Use fireEvent.change — userEvent.type on number inputs doesn't reliably
+    // fire onChange on each keystroke in jsdom.
+    fireEvent.change(endInput, { target: { value: "2" } });
+
+    await waitFor(() => expect(handler).toHaveBeenCalled());
+    expect(lastBody).toMatchObject({
+      ranges: [{ start: 0, end: 2 }],
+    });
   });
 });
