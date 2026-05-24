@@ -37,7 +37,7 @@
 //   char-range-{N}-kind-component -- COMPONENT kind segmented button
 //   char-range-add               -- bottom "+ Add range" button
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Chip, type TristateValue } from "../../ui/Chip";
 import { Button } from "../../ui/button";
 import { useSetCharRanges } from "../../../hooks/useWordMutations";
@@ -82,11 +82,14 @@ function rangeDisplayLabel(r: CharRange): string {
   return Array.from(new Set([...legacyOn, ...styleOn, ...compOn])).join(", ");
 }
 
-/** Derive the styles[] array to POST from a CharRange state. */
+/** Derive the styles[] array to POST from a CharRange state.
+ *  F-037: include activeComponents in the payload so component labels persist.
+ */
 function toApiStyles(r: CharRange): string[] {
   const legacyOn = PENDING_STYLE_KEYS.filter((s) => r.styles[s] === "on");
   const styleOn = Array.from(r.activeStyles);
-  return Array.from(new Set([...legacyOn, ...styleOn]));
+  const compOn = Array.from(r.activeComponents);
+  return Array.from(new Set([...legacyOn, ...styleOn, ...compOn]));
 }
 
 type ApiCharRange = components["schemas"]["CharRange-Output"];
@@ -196,11 +199,13 @@ function PosInput({
   label,
   value,
   max,
+  testId,
   onChange,
 }: {
   label: string;
   value: number;
   max: number;
+  testId?: string;
   onChange: (v: number) => void;
 }) {
   return (
@@ -210,6 +215,7 @@ function PosInput({
         type="number"
         min={0}
         max={max}
+        data-testid={testId}
         value={value}
         onChange={(e) => {
           const n = parseInt(e.target.value, 10);
@@ -323,50 +329,52 @@ export function CharRangesSection({ word, projectId, pageIndex }: CharRangesSect
     persistRanges(nextRanges);
   }
 
-  const handleKindChange = useCallback((index: number, kind: RangeKind) => {
-    setRanges((prev) => prev.map((r, i) => (i === index ? { ...r, kind } : r)));
-  }, []);
+  // F-037: existing-range edits (kind, position, style/component chips) must
+  // persist to the backend immediately — they previously only updated local state.
+  // Using plain functions (not useCallback) because they depend on `persistRanges`
+  // which is itself re-created on each render; memoisation would be a no-op.
 
-  const handleRangeStartChange = useCallback((index: number, value: number) => {
-    setRanges((prev) => {
-      const next = prev.map((r, i) => (i === index ? { ...r, start: Math.min(value, r.end) } : r));
-      return next;
+  function handleKindChange(index: number, kind: RangeKind) {
+    const next = ranges.map((r, i) => (i === index ? { ...r, kind } : r));
+    setRanges(next);
+    persistRanges(next);
+  }
+
+  function handleRangeStartChange(index: number, value: number) {
+    const next = ranges.map((r, i) => (i === index ? { ...r, start: Math.min(value, r.end) } : r));
+    setRanges(next);
+    persistRanges(next);
+  }
+
+  function handleRangeEndChange(index: number, value: number) {
+    const next = ranges.map((r, i) => (i === index ? { ...r, end: Math.max(value, r.start) } : r));
+    setRanges(next);
+    persistRanges(next);
+  }
+
+  function handleStyleChipChange(index: number, key: string, next: TristateValue) {
+    const updated = ranges.map((r, i) => {
+      if (i !== index) return r;
+      const activeStyles = new Set(r.activeStyles);
+      if (next === "on" || next === "mixed") activeStyles.add(key);
+      else activeStyles.delete(key);
+      return { ...r, activeStyles };
     });
-  }, []);
+    setRanges(updated);
+    persistRanges(updated);
+  }
 
-  const handleRangeEndChange = useCallback((index: number, value: number) => {
-    setRanges((prev) => {
-      const next = prev.map((r, i) => (i === index ? { ...r, end: Math.max(value, r.start) } : r));
-      return next;
+  function handleComponentChipChange(index: number, key: string, next: TristateValue) {
+    const updated = ranges.map((r, i) => {
+      if (i !== index) return r;
+      const activeComponents = new Set(r.activeComponents);
+      if (next === "on" || next === "mixed") activeComponents.add(key);
+      else activeComponents.delete(key);
+      return { ...r, activeComponents };
     });
-  }, []);
-
-  const handleStyleChipChange = useCallback((index: number, key: string, next: TristateValue) => {
-    setRanges((prev) =>
-      prev.map((r, i) => {
-        if (i !== index) return r;
-        const activeStyles = new Set(r.activeStyles);
-        if (next === "on" || next === "mixed") activeStyles.add(key);
-        else activeStyles.delete(key);
-        return { ...r, activeStyles };
-      }),
-    );
-  }, []);
-
-  const handleComponentChipChange = useCallback(
-    (index: number, key: string, next: TristateValue) => {
-      setRanges((prev) =>
-        prev.map((r, i) => {
-          if (i !== index) return r;
-          const activeComponents = new Set(r.activeComponents);
-          if (next === "on" || next === "mixed") activeComponents.add(key);
-          else activeComponents.delete(key);
-          return { ...r, activeComponents };
-        }),
-      );
-    },
-    [],
-  );
+    setRanges(updated);
+    persistRanges(updated);
+  }
 
   function handleAddBlankRange() {
     const newRange: CharRange = {
@@ -483,6 +491,7 @@ export function CharRangesSection({ word, projectId, pageIndex }: CharRangesSect
                     label="S"
                     value={r.start}
                     max={maxIdx}
+                    testId={`char-range-${i}-start`}
                     onChange={(v) => {
                       handleRangeStartChange(i, v);
                     }}
@@ -491,6 +500,7 @@ export function CharRangesSection({ word, projectId, pageIndex }: CharRangesSect
                     label="E"
                     value={r.end}
                     max={maxIdx}
+                    testId={`char-range-${i}-end`}
                     onChange={(v) => {
                       handleRangeEndChange(i, v);
                     }}
