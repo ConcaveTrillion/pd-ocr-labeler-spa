@@ -306,7 +306,8 @@ def test_wheel_stage_exports_frozen_requirements_for_runtime() -> None:
     text = _dockerfile_text()
     # `uv export` somewhere in the file…
     assert re.search(r"\buv\s+export\b", text), (
-        "wheel stage must run `uv export` to emit a frozen requirements.txt for the runtime stage (B-20)."
+        "wheel stage must run `uv export` to emit a hash-pinned "
+        "requirements.lock for the runtime stage (B-20)."
     )
     # …with `--frozen` (otherwise the lock is decorative).
     assert "--frozen" in text, (
@@ -316,17 +317,24 @@ def test_wheel_stage_exports_frozen_requirements_for_runtime() -> None:
 
 
 def test_runtime_install_uses_frozen_requirements_with_no_deps_wheel() -> None:
-    """B-20: the runtime stage must install the locked transitive deps
-    *first* (via `pip install -r requirements.txt`) and then install
-    the wheel itself with `--no-deps` so pip cannot re-resolve.
+    """B-20 / F-016: the runtime stage must install the locked transitive
+    deps *first* (via `pip install --require-hashes -r requirements.lock`)
+    and then install the wheel itself with `--no-deps` so pip cannot
+    re-resolve.
+
+    F-016 specifically: `--require-hashes` must be present so every
+    transitive dep is verified against its recorded wheel hash.  Using
+    `--no-hashes` in `uv export` (as the old code did) stripped those
+    hashes, making the install name-only and defeating supply-chain
+    verification.
 
     Concretely: somewhere in the runtime stage, both
-        pip install … -r …requirements.txt
+        pip install … --require-hashes … -r …requirements.lock
     and
         pip install … --no-deps …*.whl
     must appear. Order matters at runtime (deps first), but a strict
     line-order check is brittle to layer reorganisation; instead we
-    check both forms exist and the wheel form carries `--no-deps`.
+    check both forms exist and the requirements form carries `--require-hashes`.
     """
     text = _dockerfile_text()
 
@@ -339,12 +347,24 @@ def test_runtime_install_uses_frozen_requirements_with_no_deps_wheel() -> None:
     runtime = text[runtime_start:]
 
     has_requirements_install = re.search(
-        r"pip\s+install[^\n]*-r\s+\S*requirements\.txt",
+        r"pip\s+install[^\n]*-r\s+\S*requirements\.(txt|lock)",
         runtime,
     )
     assert has_requirements_install, (
-        "runtime stage must `pip install -r …requirements.txt` to apply "
+        "runtime stage must `pip install -r …requirements.lock` to apply "
         "the frozen lock before installing the wheel (B-20)."
+    )
+
+    # F-016: hash verification must be enforced at install time.
+    has_require_hashes = re.search(
+        r"pip\s+install[^\n]*--require-hashes[^\n]*-r\s+\S*requirements\.(txt|lock)",
+        runtime,
+    )
+    assert has_require_hashes, (
+        "runtime stage must pass `--require-hashes` to `pip install -r` so "
+        "every transitive dep is verified against its wheel hash (F-016). "
+        "Remove `--no-hashes` from `uv export` and add `--require-hashes` "
+        "to the pip install invocation."
     )
 
     has_wheel_install_no_deps = re.search(
