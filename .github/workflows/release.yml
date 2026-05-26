@@ -24,12 +24,71 @@ env:
   CUDA_VISIBLE_DEVICES: ""
 
 # ---------------------------------------------------------------------------
-# build-container — builds the Docker image (no push)
+# verify-ci — gate: abort the release if CI was not green for this commit
 # ---------------------------------------------------------------------------
 jobs:
+  verify-ci:
+    name: verify CI passed for this commit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check CI status via GitHub Checks API
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Query the check-runs for the tagged commit SHA.  We look for the
+        # GitHub Actions check-runs and assert every run completed with
+        # conclusion "success".  If CI never ran, or any run failed, we abort
+        # before any artifact is built or published.
+        #
+        # GITHUB_SHA resolves to the commit the tag points at (even for
+        # annotated tags), so this correctly validates the exact commit
+        # that was tagged — not a later one.
+        run: |
+          set -euo pipefail
+          SHA="${GITHUB_SHA}"
+          REPO="${GITHUB_REPOSITORY}"
+
+          echo "Checking CI status for commit ${SHA} in ${REPO} ..."
+
+          # Fetch all check-runs for this commit (up to 100; our CI has <10).
+          RESPONSE=$(gh api \
+            "repos/${REPO}/commits/${SHA}/check-runs?per_page=100" \
+            --jq '.check_runs')
+
+          TOTAL=$(echo "${RESPONSE}" | jq 'length')
+          echo "Found ${TOTAL} check run(s)."
+
+          if [ "${TOTAL}" -eq 0 ]; then
+            echo "::error::No CI check-runs found for commit ${SHA}." \
+              " Push to main first so CI runs before tagging."
+            exit 1
+          fi
+
+          # Identify failed / incomplete check-runs from GitHub Actions
+          # workflows, excluding this release workflow's own gate job.
+          FAILED=$(echo "${RESPONSE}" | jq -r '
+            .[] |
+            select(.app.slug == "github-actions") |
+            select(.name != "verify CI passed for this commit") |
+            select(.conclusion != "success") |
+            "  \(.name): status=\(.status) conclusion=\(.conclusion // "null")"
+          ')
+
+          if [ -n "${FAILED}" ]; then
+            echo "::error::One or more CI checks did not pass for ${SHA}:"
+            echo "${FAILED}"
+            echo "Fix CI before tagging a release."
+            exit 1
+          fi
+
+          echo "All CI checks passed. Proceeding with release."
+
+# ---------------------------------------------------------------------------
+# build-container — builds the Docker image (no push)
+# ---------------------------------------------------------------------------
   build-container:
     name: build managed-mode container
     runs-on: ubuntu-latest
+    needs: [verify-ci]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
@@ -67,6 +126,7 @@ jobs:
   release:
     name: publish GitHub Release
     runs-on: ubuntu-latest
+    needs: [verify-ci]
     permissions:
       contents: write
     steps:
