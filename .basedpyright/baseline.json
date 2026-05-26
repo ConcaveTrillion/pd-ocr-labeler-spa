@@ -828,6 +828,38 @@
                     "endColumn": 28,
                     "lineCount": 1
                 }
+            },
+            {
+                "code": "reportImplicitStringConcatenation",
+                "range": {
+                    "startColumn": 12,
+                    "endColumn": 69,
+                    "lineCount": 2
+                }
+            },
+            {
+                "code": "reportImplicitStringConcatenation",
+                "range": {
+                    "startColumn": 12,
+                    "endColumn": 66,
+                    "lineCount": 2
+                }
+            },
+            {
+                "code": "reportImplicitStringConcatenation",
+                "range": {
+                    "startColumn": 12,
+                    "endColumn": 65,
+                    "lineCount": 2
+                }
+            },
+            {
+                "code": "reportImplicitStringConcatenation",
+                "range": {
+                    "startColumn": 12,
+                    "endColumn": 66,
+                    "lineCount": 2
+                }
             }
         ],
         "./src/pd_ocr_labeler_spa/api/env_js.py": [
@@ -871,6 +903,22 @@
                     "startColumn": 15,
                     "endColumn": 16,
                     "lineCount": 1
+                }
+            },
+            {
+                "code": "reportImplicitStringConcatenation",
+                "range": {
+                    "startColumn": 20,
+                    "endColumn": 63,
+                    "lineCount": 2
+                }
+            },
+            {
+                "code": "reportImplicitStringConcatenation",
+                "range": {
+                    "startColumn": 16,
+                    "endColumn": 54,
+                    "lineCount": 2
                 }
             },
             {
@@ -2308,6 +2356,14 @@
                 }
             },
             {
+                "code": "reportUnusedParameter",
+                "range": {
+                    "startColumn": 43,
+                    "endColumn": 46,
+                    "lineCount": 1
+                }
+            },
+            {
                 "code": "reportAny",
                 "range": {
                     "startColumn": 27,
@@ -2870,6 +2926,22 @@
                 }
             },
             {
+                "code": "reportImplicitStringConcatenation",
+                "range": {
+                    "startColumn": 12,
+                    "endColumn": 55,
+                    "lineCount": 2
+                }
+            },
+            {
+                "code": "reportImplicitStringConcatenation",
+                "range": {
+                    "startColumn": 12,
+                    "endColumn": 76,
+                    "lineCount": 2
+                }
+            },
+            {
                 "code": "reportAny",
                 "range": {
                     "startColumn": 41,
@@ -3099,6 +3171,14 @@
                     "startColumn": 28,
                     "endColumn": 51,
                     "lineCount": 1
+                }
+            },
+            {
+                "code": "reportCallInDefaultInitializer",
+                "range": {
+                    "startColumn": 20,
+                    "endColumn": 5,
+                    "lineCount": 11
                 }
             },
             {
@@ -5829,6 +5909,14 @@
                     "startColumn": 19,
                     "endColumn": 56,
                     "lineCount": 1
+                }
+            },
+            {
+                "code": "reportImplicitStringConcatenation",
+                "range": {
+                    "startColumn": 8,
+                    "endColumn": 55,
+                    "lineCount": 2
                 }
             }
         ],
