@@ -1,17 +1,17 @@
 // PageImageCanvas.test.tsx — viewport canvas tests (#196, #197, #198, #297, #302)
 //
-// Phase 2.2: Updated for the pd-ui-wrapped PageImageCanvas.
+// Phase 2.2: Updated for the pdomain-ui-wrapped PageImageCanvas.
 //
 // Key testid changes from pre-Phase-2.2:
 //   - Drag handlers moved from Konva Stage to DOM event-capture overlay.
 //     Tests now fire events on `data-testid="image-event-overlay"`.
 //   - `data-mode` and `cursor` style live on `image-event-overlay`,
-//     not on `image-viewport` (which is owned by pd-ui).
-//   - Drag Layer renamed from `konva-layer-drag` → `konva-layer-tool` (pd-ui naming).
+//     not on `image-viewport` (which is owned by pdomain-ui).
+//   - Drag Layer renamed from `konva-layer-drag` → `konva-layer-tool` (pdomain-ui naming).
 //   - Overlay layers (overlay-paragraphs / overlay-lines / overlay-words) merged
 //     into the `selection` slot: BBoxOverlays render inside `konva-layer-selection`.
-//   - `focus-visible:ring-2` and tabIndex/focus tests now validate pd-ui's outer div
-//     (`image-viewport`) which pd-ui renders with tabIndex=0 and auto-focus.
+//   - `focus-visible:ring-2` and tabIndex/focus tests now validate pdomain-ui's outer div
+//     (`image-viewport`) which pdomain-ui renders with tabIndex=0 and auto-focus.
 //
 // Spec: specs/21-konva-renderer.md §4, §7, §9, §12, §13.
 
@@ -23,18 +23,18 @@ import { selectionStore } from "../stores/selection-store";
 import { useUiPrefs } from "../stores/ui-prefs";
 import { railStore } from "../stores/rail-store";
 
-// ── @concavetrillion/pd-ui/canvas mock ───────────────────────────────────────
+// ── @pdomain/pdomain-ui/canvas mock ───────────────────────────────────────
 //
-// pd-ui's canvas bundle imports react-konva, which in Node.js loads
+// pdomain-ui's canvas bundle imports react-konva, which in Node.js loads
 // konva/lib/index-node.js, which requires('canvas') — a native addon not
-// available in jsdom. Mock the entire pd-ui canvas module before any
+// available in jsdom. Mock the entire pdomain-ui canvas module before any
 // imports resolve so the canvas binary is never loaded.
 //
-// The mock renders the structural skeleton that the real pd-ui component
+// The mock renders the structural skeleton that the real pdomain-ui component
 // renders, so PageImageCanvas.tsx's slot fills land inside the right
-// layer divs. Mirrors pd-ui's outer div testid, data-width/height,
+// layer divs. Mirrors pdomain-ui's outer div testid, data-width/height,
 // tabIndex=0, and focus-on-mount behaviour.
-vi.mock("@concavetrillion/pd-ui/canvas", async () => {
+vi.mock("@pdomain/pdomain-ui/canvas", async () => {
   const { useEffect, useRef } = await import("react");
   return {
     PageImageCanvas: ({
@@ -53,7 +53,7 @@ vi.mock("@concavetrillion/pd-ui/canvas", async () => {
       };
     }) => {
       const divRef = useRef<HTMLDivElement>(null);
-      // Mirror pd-ui's focus-on-mount (yt's useEffect in the real component).
+      // Mirror pdomain-ui's focus-on-mount (yt's useEffect in the real component).
       useEffect(() => {
         divRef.current?.focus();
       }, []);
@@ -69,7 +69,7 @@ vi.mock("@concavetrillion/pd-ui/canvas", async () => {
           aria-label="Page image viewport"
           style={{ width: "100%", height: "100%" }}
         >
-          {/* Mirrors pd-ui's inner Stage structure */}
+          {/* Mirrors pdomain-ui's inner Stage structure */}
           <div data-testid="canvas-stage">
             <div data-testid="konva-layer-image" data-layer-name="image" data-listening="false" />
             <div
@@ -102,7 +102,7 @@ vi.mock("@concavetrillion/pd-ui/canvas", async () => {
   };
 });
 
-// ── use-image mock (used by pd-ui's internal image loading) ──────────────────
+// ── use-image mock (used by pdomain-ui's internal image loading) ──────────────────
 const mockUseImageState = vi.hoisted(() => ({
   image: undefined as HTMLImageElement | undefined,
   status: "loading",
@@ -114,7 +114,7 @@ vi.mock("use-image", () => ({
 
 // ── react-konva mock — render simple divs so jsdom can probe the tree ────────
 //
-// Stage: pd-ui passes data-testid="canvas-stage" to Stage, so the mock renders
+// Stage: pdomain-ui passes data-testid="canvas-stage" to Stage, so the mock renders
 // that testid. Our drag handlers are on image-event-overlay (DOM), not Stage.
 type KonvaMouseHandler = (e: {
   evt: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean };
@@ -381,13 +381,13 @@ describe("PageImageCanvas — Konva Stage scaffold (spec-21-A2, #297)", () => {
     const stageSidecar = screen.getByTestId("image-stage");
     expect(stageSidecar.getAttribute("data-width")).toBe("800");
     expect(stageSidecar.getAttribute("data-height")).toBe("600");
-    // pd-ui's outer image-viewport div also carries data-width / data-height.
+    // pdomain-ui's outer image-viewport div also carries data-width / data-height.
     const viewport = screen.getByTestId("image-viewport");
     expect(viewport.getAttribute("data-width")).toBe("800");
     expect(viewport.getAttribute("data-height")).toBe("600");
   });
 
-  it("renders the Konva layer skeleton via pd-ui (image / underlay / overlay / selection / tool / hud)", () => {
+  it("renders the Konva layer skeleton via pdomain-ui (image / underlay / overlay / selection / tool / hud)", () => {
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
     expect(screen.getByTestId("konva-layer-image")).not.toBeNull();
     expect(screen.getByTestId("konva-layer-underlay")).not.toBeNull();
@@ -442,7 +442,7 @@ describe("PageImageCanvas — dimensions", () => {
     }
   });
 
-  it("renders image-viewport with correct dimensions attributes (pd-ui outer div)", () => {
+  it("renders image-viewport with correct dimensions attributes (pdomain-ui outer div)", () => {
     const { getByTestId } = render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
     const viewport = getByTestId("image-viewport");
     expect(viewport.getAttribute("data-width")).toBe("800");
@@ -736,18 +736,18 @@ describe("PageImageCanvas — Add Word mode (#198)", () => {
 
 // ── spec-21-A8 (#304): focus wrapper + viewport hotkeys ─────────────────────
 //
-// Phase 2.2: pd-ui's PageImageCanvas renders its outer div with tabIndex=0
+// Phase 2.2: pdomain-ui's PageImageCanvas renders its outer div with tabIndex=0
 // and calls focus() on it via a useEffect. The outer div carries
 // data-testid="image-viewport". These behaviours remain intact.
 
 describe("PageImageCanvas — focus wrapper (spec-21-A8, #304, spec §10)", () => {
-  it("image-viewport div has tabIndex=0 (pd-ui renders this)", () => {
+  it("image-viewport div has tabIndex=0 (pdomain-ui renders this)", () => {
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
     const viewport = screen.getByTestId("image-viewport");
     expect(viewport.getAttribute("tabindex")).toBe("0");
   });
 
-  it("image-viewport is focused on mount (pd-ui calls focus() in effect)", () => {
+  it("image-viewport is focused on mount (pdomain-ui calls focus() in effect)", () => {
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
     const viewport = screen.getByTestId("image-viewport");
     expect(document.activeElement).toBe(viewport);
@@ -832,7 +832,7 @@ describe("PageImageCanvas — viewport hotkeys (spec-21-A8, #304, spec §10)", (
 // ── spec-21-A5 (#300): selection layer rendering ────────────────────────────
 //
 // Phase 2.2: Word overlay + selection BBoxOverlays render inside the `selection`
-// slot, which pd-ui wraps in konva-layer-selection. Overlay-paragraphs/lines/words
+// slot, which pdomain-ui wraps in konva-layer-selection. Overlay-paragraphs/lines/words
 // are gone as separate layers; their content merges into konva-layer-selection.
 
 describe("PageImageCanvas — selection layer rendering (spec-21-A5, #300)", () => {

@@ -1,4 +1,4 @@
-"""``pd_ocr_labeler_spa.__main__`` CLI flag-wiring contract — M1.g.
+"""``pdomain_ocr_labeler_spa.__main__`` CLI flag-wiring contract — M1.g.
 
 Specs:
 
@@ -30,9 +30,9 @@ from unittest.mock import patch
 
 import pytest
 
-from pd_ocr_labeler_spa import __main__ as main_mod
-from pd_ocr_labeler_spa.__main__ import _parse_args, main
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa import __main__ as main_mod
+from pdomain_ocr_labeler_spa.__main__ import _parse_args, main
+from pdomain_ocr_labeler_spa.settings import Settings
 
 # ── Argparse parser shape ──────────────────────────────────────────────────
 
@@ -266,7 +266,7 @@ def test_main_invokes_uvicorn_with_factory_and_correct_kwargs(
 ) -> None:
     """The terminal call to uvicorn must use:
 
-    - ``"pd_ocr_labeler_spa.bootstrap:build_app"`` (factory import string).
+    - ``"pdomain_ocr_labeler_spa.bootstrap:build_app"`` (factory import string).
     - ``factory=True`` (Settings is constructed inside build_app for the
       no-args path).
     - ``host`` / ``port`` matching the resolved Settings, not raw argv.
@@ -320,7 +320,7 @@ def test_main_invokes_uvicorn_with_factory_and_correct_kwargs(
 
     assert rc == 0
     # Positional arg is the factory import string.
-    assert captured["args"] == ("pd_ocr_labeler_spa.bootstrap:build_app",)
+    assert captured["args"] == ("pdomain_ocr_labeler_spa.bootstrap:build_app",)
     assert captured["kwargs"]["host"] == "0.0.0.0"
     assert captured["kwargs"]["port"] == 8765
     assert captured["kwargs"]["reload"] is True
@@ -694,7 +694,7 @@ def test_valid_path_flags_still_accepted(tmp_path: Path) -> None:
 
 
 def test_module_main_block_calls_main() -> None:
-    """``python -m pd_ocr_labeler_spa`` boots through the same ``main()``.
+    """``python -m pdomain_ocr_labeler_spa`` boots through the same ``main()``.
 
     Pinned via AST so we don't actually run the module — the module-as-
     script ``if __name__ == "__main__":`` block must call ``main()`` and
@@ -721,7 +721,7 @@ def test_module_main_block_calls_main() -> None:
 
 def test_console_script_target_resolves_to_main() -> None:
     """``pyproject.toml [project.scripts] pd-ocr-labeler-ui`` must point at
-    ``pd_ocr_labeler_spa.__main__:main``. Anti-drift pin: if the script
+    ``pdomain_ocr_labeler_spa.__main__:main``. Anti-drift pin: if the script
     target moves, this assertion catches it before users see broken
     binaries.
     """
@@ -731,7 +731,7 @@ def test_console_script_target_resolves_to_main() -> None:
     with (repo_root / "pyproject.toml").open("rb") as fh:
         cfg = tomllib.load(fh)
     scripts = cfg["project"]["scripts"]
-    assert scripts["pd-ocr-labeler-ui"] == "pd_ocr_labeler_spa.__main__:main"
+    assert scripts["pd-ocr-labeler-ui"] == "pdomain_ocr_labeler_spa.__main__:main"
 
 
 # ── Argv default ─────────────────────────────────────────────────────────
@@ -781,7 +781,7 @@ def test_open_when_ready_waits_for_listener_then_opens(
     ``uvicorn.run`` bound the port, racing the spawned tab against
     the still-importing app factory.
     """
-    from pd_ocr_labeler_spa.__main__ import _open_when_ready
+    from pdomain_ocr_labeler_spa.__main__ import _open_when_ready
 
     attempts = {"n": 0}
 
@@ -818,7 +818,7 @@ def test_open_when_ready_gives_up_silently_after_deadline(
 ) -> None:
     """If the deadline elapses with no successful connect, do NOT open
     the browser (and do NOT raise) — startup may have wedged."""
-    from pd_ocr_labeler_spa.__main__ import _open_when_ready
+    from pdomain_ocr_labeler_spa.__main__ import _open_when_ready
 
     monkeypatch.setattr(
         main_mod._socket,
@@ -845,7 +845,7 @@ def test_open_when_ready_swallows_webbrowser_exceptions(
     """Headless platforms sometimes have ``webbrowser.open`` raise.
     The poller must catch + swallow so a server startup never crashes
     on a missing browser launcher."""
-    from pd_ocr_labeler_spa.__main__ import _open_when_ready
+    from pdomain_ocr_labeler_spa.__main__ import _open_when_ready
 
     class _FakeSock:
         def __enter__(self) -> _FakeSock:

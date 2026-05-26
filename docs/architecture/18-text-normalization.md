@@ -2,7 +2,7 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#40
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#40
 
 How the SPA handles old-typesetting glyphs (`ſ`, `ﬁ`, `ﬂ`, `ﬃ`, `ﬄ`,
 `ſt`-ligature, `ct`-ligature, ...) that diverge from the ASCII
@@ -11,7 +11,7 @@ ground-truth conventions used by PGDP and DocTR training corpora.
 > Cross-refs:
 > ADR — [`17-decisions.md`](../../specs/17-decisions.md) D-025 (this is the
 > source of truth; this spec elaborates).
-> Implementation home — **pd-book-tools** (`pd_book_tools.text.normalize`)
+> Implementation home — **pdomain-book-tools** (`pdomain_book_tools.text.normalize`)
 > Toggle scope decided by [D-033](../../specs/17-decisions.md) (project-level,
 > persisted in `OCRConfig`); resolves Q-A2.
 
@@ -42,20 +42,20 @@ These three rules are the contract.
 
 | Concern | Owner | Status |
 |---|---|---|
-| Glyph→ASCII map (long-s, ligatures, etc.) | `pd_book_tools.text.normalize` | NEW — added by pd-book-tools roadmap (delegated 2026-05-06) |
-| Normalization-aware fuzz matcher | `pd_book_tools.ocr.ground_truth_matching` | EXTEND |
-| Output-time normalization (plaintext) | `pd_book_tools.text.normalize.normalize_string(...)` | NEW |
-| `--normalize-output {none\|ascii}` flag | `pd-ocr-cli` (delegated 2026-05-06) | ROADMAP |
-| Per-package normalize-on-export | `pd-prep-for-pgdp` | ROADMAP (no agent yet — flag for future delegation) |
-| **Toggle in the labeler** | `pd-ocr-labeler-spa` | THIS SPEC, M9 polish |
+| Glyph→ASCII map (long-s, ligatures, etc.) | `pdomain_book_tools.text.normalize` | NEW — added by pdomain-book-tools roadmap (delegated 2026-05-06) |
+| Normalization-aware fuzz matcher | `pdomain_book_tools.ocr.ground_truth_matching` | EXTEND |
+| Output-time normalization (plaintext) | `pdomain_book_tools.text.normalize.normalize_string(...)` | NEW |
+| `--normalize-output {none\|ascii}` flag | `pdomain-ocr-cli` (delegated 2026-05-06) | ROADMAP |
+| Per-package normalize-on-export | `pdomain-prep-for-pgdp` | ROADMAP (no agent yet — flag for future delegation) |
+| **Toggle in the labeler** | `pdomain-ocr-labeler-spa` | THIS SPEC, M9 polish |
 
-The SPA itself ships **no** glyph map. It calls into pd-book-tools.
-If pd-book-tools hasn't shipped the API yet, the toggle is hidden /
+The SPA itself ships **no** glyph map. It calls into pdomain-book-tools.
+If pdomain-book-tools hasn't shipped the API yet, the toggle is hidden /
 disabled with a "feature not yet available" tooltip.
 
 ---
 
-## 3. The glyph map (lives in pd-book-tools)
+## 3. The glyph map (lives in pdomain-book-tools)
 
 Canonical mapping:
 
@@ -84,7 +84,7 @@ Future profiles may include `gaelic` (Cló Gaelach long-i, etc.),
 
 ## 4. Normalization-aware fuzz matching
 
-Today's fuzz match (`pd_book_tools.ocr.ground_truth_matching`) compares
+Today's fuzz match (`pdomain_book_tools.ocr.ground_truth_matching`) compares
 `word.ocr_text` against `word.ground_truth_text` byte-for-byte (or with
 a fuzz-distance algorithm). When the OCR returns `ſhall` and the GT
 says `shall`, the current behaviour:
@@ -105,7 +105,7 @@ indicates "exact only after normalization". The SPA can render a
 small badge on such matches to make the normalization visible.
 
 The matcher is enabled per-call via a flag, defaulting to **off**.
-Callers (pd-ocr-labeler-spa, pd-prep-for-pgdp) opt in.
+Callers (pdomain-ocr-labeler-spa, pdomain-prep-for-pgdp) opt in.
 
 ---
 
@@ -121,7 +121,7 @@ the read-only OCR / GT tabs in the matches view (see
 
 By default these contain raw OCR (with glyphs). The OCR config can
 toggle "Render normalized in plaintext tabs" — when on, the SPA calls
-`pd_book_tools.text.normalize.normalize_string(s, profile="ascii")`
+`pdomain_book_tools.text.normalize.normalize_string(s, profile="ascii")`
 before sending. The Matches view (per-word) is unaffected.
 
 ### 5.2 DocTR export
@@ -148,8 +148,8 @@ normalization":
 [Profile ▼] ascii  (greyed out — only profile in v1)
 ```
 
-When pd-book-tools `pd_book_tools.text.normalize` is unavailable
-(import fails / older pin), the section shows a "Requires pd-book-tools
+When pdomain-book-tools `pdomain_book_tools.text.normalize` is unavailable
+(import fails / older pin), the section shows a "Requires pdomain-book-tools
 ≥ X.Y.Z" hint and the toggles are disabled.
 
 testids:
@@ -193,9 +193,9 @@ config.yaml today.
 
 ## 9. Tests
 
-- Unit: `test_normalize_string.py` (in pd-book-tools, when added) —
+- Unit: `test_normalize_string.py` (in pdomain-book-tools, when added) —
   table-driven over the glyph map.
-- Unit: `test_match_with_normalization.py` (in pd-book-tools) — fuzz
+- Unit: `test_match_with_normalization.py` (in pdomain-book-tools) — fuzz
   comparison with toggle on/off.
 - Backend: `test_ocr_config_normalize.py` — toggle persists, applied
   to plaintext tabs when on.
@@ -211,13 +211,13 @@ config.yaml today.
   Spec author bet: project-level (in OCR config). User to confirm.
 - **Profile registry**. v1 ships `ascii` only. Future profiles
   (`gaelic`, `fraktur`, `greek`) need a clean registry pattern in
-  pd-book-tools — out of scope here.
+  pdomain-book-tools — out of scope here.
 - **Round-trip determinism**. `normalize_string("ſhall") = "shall"` ✓.
   But `normalize_string("shall") = "shall"` (idempotent). The map
   must be one-way — we never *un*-normalize. Document this in
-  pd-book-tools.
+  pdomain-book-tools.
 - **Diacritics interaction with `PGDPResults`**.
-  `pd_book_tools.pgdp.pgdp_results.PGDPResults` already does some
+  `pdomain_book_tools.pgdp.pgdp_results.PGDPResults` already does some
   diacritic processing for GT. We must NOT double-normalize: if GT
   is `[oe]` → `oe` (PGDP markup) and `oe` is then normalized to
   itself, fine. If OCR is `œ`, comparing normalize(`œ`) = `oe`

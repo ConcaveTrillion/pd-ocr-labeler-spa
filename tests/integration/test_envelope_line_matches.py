@@ -46,9 +46,9 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
-from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
+from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
     USER_PAGE_SCHEMA_NAME,
     UserPageEnvelope,
     UserPagePayload,
@@ -56,8 +56,8 @@ from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
     UserPageSchema,
     UserPageSource,
 )
-from pd_ocr_labeler_spa.core.project_state import PageState
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.core.project_state import PageState
+from pdomain_ocr_labeler_spa.settings import Settings
 
 # ── helpers ──────────────────────────────────────────────────────────────
 
@@ -326,7 +326,7 @@ def test_labeled_lane_with_real_fixture_envelope() -> None:
     then calls ``Page.from_dict`` on the correctly unwrapped inner page dict.
 
     This test validates the fix logic in isolation (no HTTP stack needed).
-    Does NOT require DocTR — uses only ``Page.from_dict`` from pd_book_tools.
+    Does NOT require DocTR — uses only ``Page.from_dict`` from pdomain_book_tools.
     """
     fixture_path = (
         Path(__file__).parent.parent
@@ -358,7 +358,7 @@ def test_labeled_lane_with_real_fixture_envelope() -> None:
     # Page.from_dict must succeed on the unwrapped dict.
     import importlib
 
-    page_mod = importlib.import_module("pd_book_tools.ocr.page")
+    page_mod = importlib.import_module("pdomain_book_tools.ocr.page")
     page_obj = page_mod.Page.from_dict(inner_page_dict)
     lines = page_obj.lines
     assert len(lines) > 0, f"real fixture page should have at least one line after unwrapping; got {lines}"

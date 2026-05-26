@@ -22,7 +22,7 @@ import pytest
 
 def test_istorage_protocol_module_exports() -> None:
     """``adapters.storage`` re-exports ``IStorage`` and ``FilesystemStorage``."""
-    from pd_ocr_labeler_spa.adapters import storage
+    from pdomain_ocr_labeler_spa.adapters import storage
 
     assert hasattr(storage, "IStorage"), "IStorage must be re-exported from adapters.storage"
     assert hasattr(storage, "FilesystemStorage"), (
@@ -36,7 +36,7 @@ def test_istorage_protocol_has_spec_method_set() -> None:
     Adding a method to the Protocol means every backend (filesystem +
     future s3) needs to grow that method — surface it loudly.
     """
-    from pd_ocr_labeler_spa.adapters.storage.base import IStorage
+    from pdomain_ocr_labeler_spa.adapters.storage.base import IStorage
 
     expected = {
         "get_bytes",
@@ -56,7 +56,7 @@ def test_filesystem_storage_round_trip(tmp_path: Path) -> None:
     """Write bytes, read them back, exists() flips, delete() removes."""
     import asyncio
 
-    from pd_ocr_labeler_spa.adapters.storage.filesystem import FilesystemStorage
+    from pdomain_ocr_labeler_spa.adapters.storage.filesystem import FilesystemStorage
 
     fs = FilesystemStorage(root=tmp_path)
 
@@ -84,7 +84,7 @@ def test_filesystem_storage_path_traversal_rejected(tmp_path: Path) -> None:
     """
     import asyncio
 
-    from pd_ocr_labeler_spa.adapters.storage.filesystem import FilesystemStorage
+    from pdomain_ocr_labeler_spa.adapters.storage.filesystem import FilesystemStorage
 
     fs = FilesystemStorage(root=tmp_path / "sandbox")
 
@@ -109,7 +109,7 @@ def test_filesystem_storage_absolute_key_rejected(tmp_path: Path) -> None:
     """
     import asyncio
 
-    from pd_ocr_labeler_spa.adapters.storage.filesystem import FilesystemStorage
+    from pdomain_ocr_labeler_spa.adapters.storage.filesystem import FilesystemStorage
 
     fs = FilesystemStorage(root=tmp_path / "sandbox")
 
@@ -154,7 +154,7 @@ def test_filesystem_storage_async_methods_dispatch_blocking_io_to_threadpool() -
     src_path = (
         _Path(__file__).parent.parent.parent
         / "src"
-        / "pd_ocr_labeler_spa"
+        / "pdomain_ocr_labeler_spa"
         / "adapters"
         / "storage"
         / "filesystem.py"
@@ -246,7 +246,7 @@ def test_filesystem_storage_init_does_not_create_root_directory(tmp_path: Path) 
     write — ``put_bytes`` already mkdir's parent dirs, which covers
     the root.
     """
-    from pd_ocr_labeler_spa.adapters.storage.filesystem import FilesystemStorage
+    from pdomain_ocr_labeler_spa.adapters.storage.filesystem import FilesystemStorage
 
     nonexistent = tmp_path / "definitely-does-not-exist-yet"
     assert not nonexistent.exists()
@@ -307,7 +307,7 @@ def test_filesystem_storage_list_keys_file_prefix_returns_canonical_form(tmp_pat
     """
     import asyncio
 
-    from pd_ocr_labeler_spa.adapters.storage.filesystem import FilesystemStorage
+    from pdomain_ocr_labeler_spa.adapters.storage.filesystem import FilesystemStorage
 
     fs = FilesystemStorage(root=tmp_path)
 
@@ -337,7 +337,7 @@ def test_filesystem_storage_presign_put_returns_relative_url(tmp_path: Path) -> 
     The labeler doesn't use this method (the SPA never uploads files),
     but the seam exists for adapter parity with pgdp-prep.
     """
-    from pd_ocr_labeler_spa.adapters.storage.filesystem import FilesystemStorage
+    from pdomain_ocr_labeler_spa.adapters.storage.filesystem import FilesystemStorage
 
     fs = FilesystemStorage(root=tmp_path)
     url = fs.presign_put("page-images/foo.png")

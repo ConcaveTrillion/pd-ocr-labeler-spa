@@ -2,7 +2,7 @@
 
 Spec authority: ``docs/specs/2026-05-24-F-002-cors-and-auth-hardening.md``.
 
-Issue: ConcaveTrillion/pd-ocr-labeler-spa#407.
+Issue: pdomain/pdomain-ocr-labeler-spa#407.
 
 Slice 1: CORS allowlist tests.
 Slice 3: LocalTrustMiddleware route-guard tests.
@@ -14,8 +14,8 @@ from __future__ import annotations
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 # ---------------------------------------------------------------------------
 # Helpers

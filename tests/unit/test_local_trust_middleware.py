@@ -1,12 +1,12 @@
 """Unit tests for LocalTrustMiddleware in isolation.
 
 Spec: ``docs/specs/2026-05-24-F-002-cors-and-auth-hardening.md`` slice 3.
-Issue: ConcaveTrillion/pd-ocr-labeler-spa#407.
+Issue: pdomain/pdomain-ocr-labeler-spa#407.
 """
 
 from __future__ import annotations
 
-from pd_ocr_labeler_spa.middleware.local_trust import (
+from pdomain_ocr_labeler_spa.middleware.local_trust import (
     _LOCALHOST_ORIGINS,
     LOCAL_TRUST_ROUTES,
     LocalTrustMiddleware,

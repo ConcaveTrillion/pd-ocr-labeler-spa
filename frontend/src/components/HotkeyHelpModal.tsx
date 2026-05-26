@@ -9,7 +9,7 @@
 // Reads from HOTKEY_MAP (legacy scope groups) and the new hotkey-registry
 // (grouped sections with KeyCap components).
 //
-// Chrome is now backed by pd-ui's Radix Dialog suite (@concavetrillion/pd-ui/primitives).
+// Chrome is now backed by pdomain-ui's Radix Dialog suite (@pdomain/pdomain-ui/primitives).
 // Radix provides a native focus trap and Escape key handling — the manual Esc
 // useHotkey handler has been removed.
 // testid: hotkey-help-dialog
@@ -30,7 +30,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@concavetrillion/pd-ui/primitives";
+} from "@pdomain/pdomain-ui/primitives";
 
 // ─── Registry hook ───────────────────────────────────────────────────────────
 
@@ -77,7 +77,7 @@ function GroupSection({ group }: { group: HotkeyGroupDef }) {
 // ─── Modal ───────────────────────────────────────────────────────────────────
 
 /**
- * Hotkey help modal, backed by pd-ui's Radix Dialog suite.
+ * Hotkey help modal, backed by pdomain-ui's Radix Dialog suite.
  *
  * Register this component once near the top of the component tree so the
  * `?` listener is always active. Open-state lives in `useDialogStore` so
@@ -104,7 +104,7 @@ export function HotkeyHelpModal() {
         if (!isOpen) close();
       }}
     >
-      {/* DialogContent auto-composes DialogPortal + DialogOverlay (pd-ui convention).
+      {/* DialogContent auto-composes DialogPortal + DialogOverlay (pdomain-ui convention).
           Tailwind overrides supply the labeler's visual chrome since primitives.css
           has no definition for .dialog in this app. */}
       <DialogContent

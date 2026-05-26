@@ -19,8 +19,8 @@ from __future__ import annotations
 
 import pytest
 
-from pd_ocr_labeler_spa.core.models import Selection
-from pd_ocr_labeler_spa.core.selection import apply_selection
+from pdomain_ocr_labeler_spa.core.models import Selection
+from pdomain_ocr_labeler_spa.core.selection import apply_selection
 
 
 def _make(

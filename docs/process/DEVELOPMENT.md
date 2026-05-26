@@ -1,6 +1,6 @@
 # Development
 
-How to set up `pd-ocr-labeler-spa` for hacking. End users running the
+How to set up `pdomain-ocr-labeler-spa` for hacking. End users running the
 published wheel don't need any of this — the wheel ships with a
 pre-built frontend bundle. See the project [`README.md`](../README.md)
 for the user-facing pitch and [`specs/`](../specs/) for the
@@ -11,7 +11,7 @@ authoritative design notes.
 > M2 slice 2 wired). The frontend scaffold exists but has never been
 > `npm install`-ed or `npm run build`-ed — the SPA bundle is not yet
 > committed. `make build` will refuse to produce a wheel until
-> `make frontend-build` populates `src/pd_ocr_labeler_spa/static/`.
+> `make frontend-build` populates `src/pdomain_ocr_labeler_spa/static/`.
 > The SPA fallback route + `/image-cache` route are wired and
 > degrade gracefully (helpful 404) until that bundle lands.
 
@@ -115,7 +115,7 @@ installed the hooks.
 ## Building a wheel
 
 ```sh
-make frontend-build  # writes the SPA bundle into src/pd_ocr_labeler_spa/static/
+make frontend-build  # writes the SPA bundle into src/pdomain_ocr_labeler_spa/static/
 make build           # produces the wheel; refuses without a populated static/
 ```
 

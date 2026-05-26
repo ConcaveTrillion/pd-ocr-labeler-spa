@@ -36,8 +36,8 @@ from _screenshot_utils import pick_free_port as _pick_free_port  # noqa: E402
 from _screenshot_utils import require_http_url as _require_http_url  # noqa: E402
 from playwright.sync_api import sync_playwright  # noqa: E402
 
-from pd_ocr_labeler_spa.bootstrap import build_app  # noqa: E402
-from pd_ocr_labeler_spa.settings import Settings  # noqa: E402
+from pdomain_ocr_labeler_spa.bootstrap import build_app  # noqa: E402
+from pdomain_ocr_labeler_spa.settings import Settings  # noqa: E402
 
 _FIXTURE_SRC = _REPO_ROOT / "tests" / "e2e" / "fixtures" / "projects" / "exercise-fixture"
 _OUT_PNG = _REPO_ROOT / "docs" / "Screenshot-hifi-gaps-closed.png"

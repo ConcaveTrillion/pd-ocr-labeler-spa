@@ -1,4 +1,4 @@
-# CLAUDE — pd-ocr-labeler-spa
+# CLAUDE — pdomain-ocr-labeler-spa
 
 FastAPI + React/Vite/TS replacement for the NiceGUI `pd-ocr-labeler`. Spec-driven,
 milestone-by-milestone implementation (M0…M9). Architecture: `docs/architecture/00-overview.md`.
@@ -16,14 +16,14 @@ milestone-by-milestone implementation (M0…M9). Architecture: `docs/architectur
 | `make pre-commit-check AI=1` | all pre-commit hooks on every tracked file |
 | `make dev` | uvicorn --reload, points at Vite dev server on :5173 |
 | `make frontend-dev` | Vite HMR dev server on :5173 |
-| `make frontend-build AI=1` | builds SPA into `src/pd_ocr_labeler_spa/static/` |
+| `make frontend-build AI=1` | builds SPA into `src/pdomain_ocr_labeler_spa/static/` |
 | `make openapi-export AI=1` | exports `/openapi.json` → regenerates `frontend/src/api/types.ts` |
 | `make build AI=1` | builds the wheel (requires populated `static/`) |
 | `make run` | builds SPA if missing, then `pd-ocr-labeler-ui` (production-style) |
 | `make ci AI=1` | setup + test + frontend-test + build |
 | `make docker-build` | builds the production Docker image |
 | `make local-setup` | clone any missing sibling pd-* repos |
-| `make local-dev` | switch to local-dev mode (pd-book-tools editable + pd-ui linked + marker) |
+| `make local-dev` | switch to local-dev mode (pdomain-book-tools editable + pdomain-ui linked + marker) |
 | `make local-check` | print local-dev mode + per-sibling resolution |
 | `make local-upgrade-deps` | upgrade deps then restore editables (local-mode only) |
 | `make local-run` | run the SPA against local-dev workspace (local-mode only) |
@@ -43,8 +43,8 @@ output for debugging.
   Bare `python`/`python3`/`.venv/bin/python` miss the venv.
 - Backend: FastAPI + uvicorn. Frontend: React 19 + Vite + TS + TanStack Query + Tailwind + Konva.
 - `data-testid` contract governs Playwright driver integration — see `docs/architecture/13-driver-contract.md`.
-- Modeled structurally on `../pd-prep-for-pgdp/` — consult it for scaffolding patterns.
-- `pd-book-tools` pinned in `pyproject.toml`; do not reach into its internals.
+- Modeled structurally on `../pdomain-prep-for-pgdp/` — consult it for scaffolding patterns.
+- `pdomain-book-tools` pinned in `pyproject.toml`; do not reach into its internals.
 - Specs are the source of truth. Code that disagrees with a spec is wrong — change the spec first.
 - Open questions live in `OPEN_QUESTIONS.md`; do not resolve them unilaterally.
 - After FastAPI model changes: run `make openapi-export` to keep TS types in sync.
@@ -88,8 +88,8 @@ All are canonical source of truth. Milestone acceptance gates:
 
 ## Sibling repos
 
-- `../pd-book-tools/` — upstream dependency.
-- `../pd-prep-for-pgdp/` — structural reference (FastAPI + React single-wheel pattern).
+- `../pdomain-book-tools/` — upstream dependency.
+- `../pdomain-prep-for-pgdp/` — structural reference (FastAPI + React single-wheel pattern).
 - `../pd-ocr-labeler/` — legacy NiceGUI UI being replaced; parity tracked via GitHub issues (`label:hifi:P1..P5`).
 
 ## GH issues

@@ -1,4 +1,4 @@
-/* ── Base design tokens — imported from pd-ui canonical token set ──────────────
+/* ── Base design tokens — imported from pdomain-ui canonical token set ──────────────
  * Provides: --bg-page, --bg-surface, --bg-raised, --bg-sunk,
  *           --border-1/2/3, --ink-1/2/3/4,
  *           --accent, --accent-ink,
@@ -6,38 +6,38 @@
  *           --block, --para, --line, --word (canvas layer tokens)
  *           --ui-font, --mono-font, --shadow-floating, --overlay-scrim
  *
- * Theme convention (from pd-ui): :root = dark (warm charcoal), [data-theme="light"] = light.
+ * Theme convention (from pdomain-ui): :root = dark (warm charcoal), [data-theme="light"] = light.
  * ui-prefs.ts applies data-theme on document.documentElement on load from localStorage
- * (default "system", resolved via prefers-color-scheme). Polarity matches pd-ui exactly.
+ * (default "system", resolved via prefers-color-scheme). Polarity matches pdomain-ui exactly.
  * ─────────────────────────────────────────────────────────────────────────── */
-@import "@concavetrillion/pd-ui/theme/tokens.css";
+@import "@pdomain/pdomain-ui/theme/tokens.css";
 
-/* ── Labeler-specific extensions — not in pd-ui ─────────────────────────────
- * These are prefixed aliases for pd-ui's canonical unprefixed status/layer
+/* ── Labeler-specific extensions — not in pdomain-ui ─────────────────────────────
+ * These are prefixed aliases for pdomain-ui's canonical unprefixed status/layer
  * tokens. The entire labeler codebase uses the prefixed form (--status-exact,
  * --layer-block, etc.) as its domain vocabulary; these aliases keep all call
- * sites stable while delegating actual color values to pd-ui.
+ * sites stable while delegating actual color values to pdomain-ui.
  *
  * Local extensions retained:
- *   --status-{exact,fuzzy,mismatch,ocr,gt}  → aliases for pd-ui --exact/--fuzzy/etc.
- *   --layer-{block,para,line,word}           → aliases for pd-ui --block/--para/etc.
+ *   --status-{exact,fuzzy,mismatch,ocr,gt}  → aliases for pdomain-ui --exact/--fuzzy/etc.
+ *   --layer-{block,para,line,word}           → aliases for pdomain-ui --block/--para/etc.
  *
- * Note: The @media (prefers-color-scheme: light) block from the pre-pd-ui
+ * Note: The @media (prefers-color-scheme: light) block from the pre-pdomain-ui
  * version has been removed. Theme switching is handled entirely by the
  * ui-prefs.ts store setting data-theme on document.documentElement, which
- * activates pd-ui's [data-theme="light"] overrides.
+ * activates pdomain-ui's [data-theme="light"] overrides.
  * ─────────────────────────────────────────────────────────────────────────── */
 
-/* Dark default (matches pd-ui :root dark palette) */
+/* Dark default (matches pdomain-ui :root dark palette) */
 :root {
-  /* Labeler domain aliases — prefixed status tokens → pd-ui canonical */
+  /* Labeler domain aliases — prefixed status tokens → pdomain-ui canonical */
   --status-exact: var(--exact);
   --status-fuzzy: var(--fuzzy);
   --status-mismatch: var(--mismatch);
   --status-ocr: var(--ocr);
   --status-gt: var(--gt);
 
-  /* Labeler domain aliases — prefixed layer tokens → pd-ui canonical */
+  /* Labeler domain aliases — prefixed layer tokens → pdomain-ui canonical */
   --layer-block: var(--block);
   --layer-para: var(--para);
   --layer-line: var(--line);

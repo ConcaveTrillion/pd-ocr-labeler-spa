@@ -13,7 +13,7 @@ tags both records with ``record.request_id``. ``time.monotonic()``
 guards against negative durations under wall-clock jumps.
 
 These tests use ``caplog`` against the middleware's own logger
-(``pd_ocr_labeler_spa.api.middleware.request_id``) and assert the
+(``pdomain_ocr_labeler_spa.api.middleware.request_id``) and assert the
 structured ``extra`` fields land on the LogRecord.
 
 B-47: the autouse ``_reset_managed_handlers`` cleanup lives in
@@ -27,10 +27,10 @@ import logging
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.api.middleware.request_id import RequestIdMiddleware
-from pd_ocr_labeler_spa.core.logging_config import RequestIdFilter
+from pdomain_ocr_labeler_spa.api.middleware.request_id import RequestIdMiddleware
+from pdomain_ocr_labeler_spa.core.logging_config import RequestIdFilter
 
-AUDIT_LOGGER = "pd_ocr_labeler_spa.api.middleware.request_id"
+AUDIT_LOGGER = "pdomain_ocr_labeler_spa.api.middleware.request_id"
 
 
 def _make_audit_app() -> FastAPI:
@@ -177,7 +177,7 @@ def test_request_id_var_resets_after_exception_request() -> None:
     via ``try/finally`` — so a raising inner app must NOT leak the rid
     into the outer ContextVar scope.
     """
-    from pd_ocr_labeler_spa.core.logging_config import request_id_var
+    from pdomain_ocr_labeler_spa.core.logging_config import request_id_var
 
     sentinel_token = request_id_var.set("")
     try:

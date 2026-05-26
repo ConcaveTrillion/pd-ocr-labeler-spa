@@ -37,7 +37,7 @@ from pathlib import Path
 
 import pytest
 
-from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
     envelope_to_dict,
     is_user_page_envelope,
     parse_envelope,
@@ -86,7 +86,7 @@ def test_legacy_envelope_round_trip(fixture_path: Path) -> None:
     assert is_user_page_envelope(original_data), (
         f"{fixture_path.name} is not recognised as a user_page envelope "
         f"(schema.name mismatch or missing). "
-        "Verify the fixture was exported from pd-ocr-labeler or pd-ocr-labeler-spa."
+        "Verify the fixture was exported from pd-ocr-labeler or pdomain-ocr-labeler-spa."
     )
 
     parsed = parse_envelope(original_data)
@@ -133,7 +133,7 @@ _MINIMAL_ENVELOPE: dict = {
         "saved_by": "Save Page",
         "source_lane": "labeled",
         "app": {"name": "pd_ocr_labeler", "version": "unknown"},
-        "toolchain": {"python": "3.11.0", "pd_book_tools": "unknown"},
+        "toolchain": {"python": "3.11.0", "pdomain_book_tools": "unknown"},
         "ocr": {"engine": "unknown", "models": []},
     },
     "source": {

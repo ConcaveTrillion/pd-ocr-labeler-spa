@@ -2,7 +2,7 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#14
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#14
 
 The right pane shows OCR-vs-GT comparisons line by line. It's the
 densest piece of UI in the labeler and the most performance-sensitive.

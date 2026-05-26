@@ -2,7 +2,7 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#32
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#32
 
 How the SPA's correctness is asserted: backend pytest, frontend
 Vitest, end-to-end Playwright, plus golden-file conformance against
@@ -11,7 +11,7 @@ the legacy.
 > Cross-refs:
 > Legacy tests — `pd-ocr-labeler/tests/`
 > pgdp-prep test seam —
-> `pd-prep-for-pgdp/tests/conftest.py:44-63`
+> `pdomain-prep-for-pgdp/tests/conftest.py:44-63`
 > Driver contract — [`13-driver-contract.md`](13-driver-contract.md)
 
 ---

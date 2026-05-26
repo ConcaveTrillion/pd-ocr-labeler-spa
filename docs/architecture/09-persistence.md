@@ -2,7 +2,7 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#22
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#22
 
 Every byte the SPA writes to disk. Schema-version-stable so the legacy
 labeler can interop ([D-003](../../specs/17-decisions.md)). Crash-safe via the
@@ -56,8 +56,8 @@ Source of truth: [`01-data-models.md`](01-data-models.md) §3. Schema:
     "saved_at": "2026-05-06T12:34:56.789Z",
     "saved_by": "Save Page" | "Save Project" | "Auto-save" | "Save Page (no-source-update)",
     "source_lane": "labeled" | "cached",
-    "app": {"name": "pd_ocr_labeler_spa", "version": "x", "git_commit": "y"},
-    "toolchain": {"python": "...", "pd_book_tools": "...", "opencv_python": "..."},
+    "app": {"name": "pdomain_ocr_labeler_spa", "version": "x", "git_commit": "y"},
+    "toolchain": {"python": "...", "pdomain_book_tools": "...", "opencv_python": "..."},
     "ocr": { ...OCRProvenance... }
   },
   "source": {
@@ -67,7 +67,7 @@ Source of truth: [`01-data-models.md`](01-data-models.md) §3. Schema:
     "image_fingerprint": {"size": 12345, "mtime_ns": 123456789, "sha256": "..."}
   },
   "payload": {
-    "page": { ...pd_book_tools.Page.to_dict()... },
+    "page": { ...pdomain_book_tools.Page.to_dict()... },
     "original_page": null | {...},
     "word_attributes": { "<word_id>": {"italic": false, "small_caps": false, ...}, ... }
   },
@@ -80,7 +80,7 @@ Source of truth: [`01-data-models.md`](01-data-models.md) §3. Schema:
 ```
 
 Reader and writer live in
-`src/pd_ocr_labeler_spa/core/persistence/user_page_envelope.py`:
+`src/pdomain_ocr_labeler_spa/core/persistence/user_page_envelope.py`:
 
 ```python
 def is_user_page_envelope(data: Mapping) -> bool: ...
@@ -306,7 +306,7 @@ def write_json_atomic(path: Path, data: dict) -> None:
 ```
 
 Implementation in
-`src/pd_ocr_labeler_spa/core/persistence/atomic.py`. Tested with a
+`src/pdomain_ocr_labeler_spa/core/persistence/atomic.py`. Tested with a
 power-fail simulation (`os._exit(1)` between write and replace).
 
 Image writes use `cv2.imencode` to bytes, then `write_bytes_atomic`

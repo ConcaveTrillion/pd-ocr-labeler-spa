@@ -21,17 +21,17 @@ from pathlib import Path
 
 import pytest
 
-from pd_ocr_labeler_spa.adapters.auth import IAuth, NoneAuth, UserContext
-from pd_ocr_labeler_spa.adapters.ocr import (
+from pdomain_ocr_labeler_spa.adapters.auth import IAuth, NoneAuth, UserContext
+from pdomain_ocr_labeler_spa.adapters.ocr import (
     IOCREngine,
     LocalDoctrOCR,
     ModalOCR,
     SharedContainerOCR,
 )
-from pd_ocr_labeler_spa.adapters.storage import FilesystemStorage, IStorage
-from pd_ocr_labeler_spa.core.app_state import AppState, build_app_state
-from pd_ocr_labeler_spa.core.exceptions import NotImplementedYet
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.adapters.storage import FilesystemStorage, IStorage
+from pdomain_ocr_labeler_spa.core.app_state import AppState, build_app_state
+from pdomain_ocr_labeler_spa.core.exceptions import NotImplementedYet
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _settings(tmp_path: Path, **over: object) -> Settings:

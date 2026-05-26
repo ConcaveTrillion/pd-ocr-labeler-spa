@@ -13,7 +13,7 @@ import asyncio
 
 import pytest
 
-from pd_ocr_labeler_spa.core.notifications import (
+from pdomain_ocr_labeler_spa.core.notifications import (
     Notification,
     NotificationKind,
     NotificationQueue,
@@ -43,7 +43,7 @@ def test_queue_appends_to_ring() -> None:
 
 def test_queue_ring_buffer_evicts_oldest_when_full() -> None:
     """Ring buffer must cap at _MAX_NOTIFICATIONS (100)."""
-    from pd_ocr_labeler_spa.core.notifications import _MAX_NOTIFICATIONS
+    from pdomain_ocr_labeler_spa.core.notifications import _MAX_NOTIFICATIONS
 
     q = NotificationQueue()
     for i in range(_MAX_NOTIFICATIONS + 5):

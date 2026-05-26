@@ -4,7 +4,7 @@ Verifies that PATCH /api/projects/{id}/pages/{idx}/paragraphs/{pi} with
 ``layout_type`` persists the attribute on the in-memory paragraph object.
 
 The GET /pages response does NOT currently surface ``layout_type`` on
-``LineMatch`` (pd-book-tools' ``Block.to_dict`` doesn't serialise it yet
+``LineMatch`` (pdomain-book-tools' ``Block.to_dict`` doesn't serialise it yet
 — documented as a round-trip limitation in ``api/lines_paragraphs.py``).
 We therefore verify persistence directly via the ``pstate`` in-memory
 object, and also confirm the PATCH returns 200 with the correct envelope
@@ -21,10 +21,10 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
-from pd_ocr_labeler_spa.core.project_state import PageState
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
+from pdomain_ocr_labeler_spa.core.project_state import PageState
+from pdomain_ocr_labeler_spa.settings import Settings
 
 # ── Test scaffolding ──────────────────────────────────────────────────────────
 

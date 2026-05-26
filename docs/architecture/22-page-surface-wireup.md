@@ -1,7 +1,7 @@
 # 22 — ProjectPage wireup — mount the real labeling surface
 
 > **Status**: Active (shipped — all spec-22-* child issues closed 2026-05-15).
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#290
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#290
 > **Depends on**: [`21-konva-renderer.md`](21-konva-renderer.md)
 > (real `PageImageCanvas` available), [`23-page-payload-backend.md`](23-page-payload-backend.md)
 > (real `GET .../pages/{idx}` payload).

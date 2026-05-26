@@ -48,8 +48,8 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def test_startup_shutdown_clean(tmp_path: Path) -> None:
@@ -128,7 +128,7 @@ def test_startup_shutdown_clean(tmp_path: Path) -> None:
         w
         for w in captured
         if issubclass(w.category, ResourceWarning)
-        and ("pd_ocr_labeler_spa" in (w.filename or "") or "/tests/" in (w.filename or ""))
+        and ("pdomain_ocr_labeler_spa" in (w.filename or "") or "/tests/" in (w.filename or ""))
     ]
     assert not leaks, (
         f"lifespan exit produced {len(leaks)} ResourceWarning(s) "
@@ -209,7 +209,7 @@ def test_resource_warning_capture_self_test() -> None:
 
 def test_resource_warning_filter_excludes_third_party_sources() -> None:
     """B-69 (iter 51): ``test_startup_shutdown_clean``'s ResourceWarning
-    filter narrows by source file (``"pd_ocr_labeler_spa"`` or
+    filter narrows by source file (``"pdomain_ocr_labeler_spa"`` or
     ``"/tests/"``). Pin that contract: a ResourceWarning whose
     ``filename`` is under a third-party tree (httpx, anyio, starlette,
     site-packages generally) MUST NOT count as a leak.
@@ -237,7 +237,7 @@ def test_resource_warning_filter_excludes_third_party_sources() -> None:
     ours = warnings.WarningMessage(
         message=ResourceWarning("simulated leak in our code"),
         category=ResourceWarning,
-        filename="/repo/src/pd_ocr_labeler_spa/some_module.py",
+        filename="/repo/src/pdomain_ocr_labeler_spa/some_module.py",
         lineno=42,
     )
     test_tree = warnings.WarningMessage(
@@ -257,7 +257,7 @@ def test_resource_warning_filter_excludes_third_party_sources() -> None:
         w
         for w in captured
         if issubclass(w.category, ResourceWarning)
-        and ("pd_ocr_labeler_spa" in (w.filename or "") or "/tests/" in (w.filename or ""))
+        and ("pdomain_ocr_labeler_spa" in (w.filename or "") or "/tests/" in (w.filename or ""))
     ]
 
     assert third_party not in leaks, (

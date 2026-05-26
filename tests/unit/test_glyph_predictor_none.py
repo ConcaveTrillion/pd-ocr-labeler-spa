@@ -1,4 +1,4 @@
-from pd_ocr_labeler_spa.core.glyph.predictions import NoneGlyphPredictor
+from pdomain_ocr_labeler_spa.core.glyph.predictions import NoneGlyphPredictor
 
 
 def test_none_predictor_returns_none_per_word() -> None:

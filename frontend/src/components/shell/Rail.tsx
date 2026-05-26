@@ -13,8 +13,8 @@
 // Hotkeys: 1/2/3/4 (target), V/R/A/E (mode) — wired via useRailHotkeys.
 
 import { useSyncExternalStore } from "react";
-import { Eye, Plus } from "@concavetrillion/pd-ui/icons";
-import { ModeErase } from "@concavetrillion/pd-ui/icons";
+import { Eye, Plus } from "@pdomain/pdomain-ui/icons";
+import { ModeErase } from "@pdomain/pdomain-ui/icons";
 import { Square, Keyboard, LayoutList } from "@/icons/local-shims";
 import { railStore, type RailTarget, type RailMode } from "../../stores/rail-store";
 import { useRailHotkeys } from "../../hooks/useRailHotkeys";

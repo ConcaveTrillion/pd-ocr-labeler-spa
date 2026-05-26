@@ -53,8 +53,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from pd_ocr_labeler_spa.core.models import Project
-from pd_ocr_labeler_spa.core.persistence.project_envelope import (
+from pdomain_ocr_labeler_spa.core.models import Project
+from pdomain_ocr_labeler_spa.core.persistence.project_envelope import (
     PROJECT_JSON_FILENAME,
     build_project_from_directory,
     project_from_dict,

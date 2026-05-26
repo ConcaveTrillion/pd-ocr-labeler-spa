@@ -6,7 +6,7 @@
 #   2. The wheel `wheel` stage compiles a clean wheel — no need to ship
 #      build artefacts, caches, or local data.
 #
-# Mirrors `pd-prep-for-pgdp/.dockerignore` (specs/15-deployment-dev.md §6).
+# Mirrors `pdomain-prep-for-pgdp/.dockerignore` (specs/15-deployment-dev.md §6).
 
 .git/
 .gitignore
@@ -28,7 +28,7 @@ frontend/.vite/
 dist/
 build/
 *.egg-info/
-src/pd_ocr_labeler_spa/static/
+src/pdomain_ocr_labeler_spa/static/
 
 # Tests + specs aren't needed in the runtime image.
 tests/

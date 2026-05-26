@@ -25,7 +25,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight } from "@concavetrillion/pd-ui/icons";
+import { ChevronLeft, ChevronRight } from "@pdomain/pdomain-ui/icons";
 import { useProject } from "../hooks/useProject";
 import { pageNoUrl } from "../lib/routes";
 

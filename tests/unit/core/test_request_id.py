@@ -1,6 +1,6 @@
 """Tests for ``api/middleware/request_id.py`` (spec §9 / §12).
 
-The middleware is a verbatim port from ``pd-prep-for-pgdp``:
+The middleware is a verbatim port from ``pdomain-prep-for-pgdp``:
 - read ``X-Request-ID`` (or whatever header_name resolves to);
 - if absent, mint a fresh ``uuid4().hex``;
 - set the ContextVar from ``core/logging_config.request_id_var`` so
@@ -22,14 +22,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.api.middleware.request_id import RequestIdMiddleware
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.logging_config import (
+from pdomain_ocr_labeler_spa.api.middleware.request_id import RequestIdMiddleware
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.logging_config import (
     RequestIdFilter,
     configure_logging,
     request_id_var,
 )
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.settings import Settings
 
 UUID_HEX_RE = re.compile(r"^[0-9a-f]{32}$")
 

@@ -30,7 +30,7 @@ from typing import Any
 
 import pytest
 
-from pd_ocr_labeler_spa.core.hf_probe import (
+from pdomain_ocr_labeler_spa.core.hf_probe import (
     HF_DEFAULT_REPO,
     fetch_hf_last_modified,
 )
@@ -154,7 +154,7 @@ def test_logs_but_does_not_raise_on_failure(monkeypatch, caplog):
 
     _install_fake_hfapi(monkeypatch, raise_on_call=OSError("offline"))
 
-    with caplog.at_level(logging.INFO, logger="pd_ocr_labeler_spa.core.hf_probe"):
+    with caplog.at_level(logging.INFO, logger="pdomain_ocr_labeler_spa.core.hf_probe"):
         result = fetch_hf_last_modified(revision="main")
 
     assert result is None

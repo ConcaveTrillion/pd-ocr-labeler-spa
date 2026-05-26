@@ -2,7 +2,7 @@
 # pip-audit-with-manifest.sh — F-021 fix
 #
 # pip-audit only audits packages it can resolve via PyPI. Dependencies served
-# from private registries (pd-index-pip), GitHub Releases, or other non-PyPI
+# from private registries (pdomain-index-pip), GitHub Releases, or other non-PyPI
 # sources are silently skipped — or cause pip-audit to fail entirely when it
 # tries to resolve them.
 #
@@ -32,7 +32,7 @@ echo ""
 # uv.lock format for a PyPI package:
 #   source = { registry = "https://pypi.org/simple" }
 # For a private-registry package:
-#   source = { registry = "https://concavetrillion.github.io/pd-index-pip/simple/" }
+#   source = { registry = "https://pdomain.github.io/pdomain-index-pip/simple/" }
 # For a git dep or direct URL wheel:
 #   source = { git = "..." } or wheel URL not under files.pythonhosted.org
 #
@@ -99,7 +99,7 @@ else
     echo "-----------------------------------------------------------------------"
     echo ""
     echo "Action required for skipped packages:"
-    echo "  - pd-book-tools: monitor https://github.com/ConcaveTrillion/pd-book-tools"
+    echo "  - pdomain-book-tools: monitor https://github.com/pdomain/pdomain-book-tools"
     echo "    for security advisories; no PyPI advisory database covers it."
     echo "  - For any other private/git dep: subscribe to upstream release notes"
     echo "    or run 'osv-scanner' against the project when available."

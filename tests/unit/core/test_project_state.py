@@ -21,7 +21,7 @@ What this iter-4 skeleton ships:
   ``total_pages``, ``current_page_index``, etc.). Validation contract
   matches spec §1; persistence (``from_dict`` / ``to_dict``) is iter-5.
 - A frozen ``PageState`` placeholder (the rich version with the
-  ``pd_book_tools.ocr.page.Page`` object + dirty flags + selection sets
+  ``pdomain_book_tools.ocr.page.Page`` object + dirty flags + selection sets
   is M3 — see spec §0 lines 187-189).
 - A mutable ``ProjectState`` carrier holding:
    - ``loaded_project: Project | None``
@@ -59,8 +59,8 @@ from pathlib import Path
 
 import pytest
 
-from pd_ocr_labeler_spa.core.models import Project
-from pd_ocr_labeler_spa.core.project_state import PageState, ProjectState
+from pdomain_ocr_labeler_spa.core.models import Project
+from pdomain_ocr_labeler_spa.core.project_state import PageState, ProjectState
 
 # ── Project model basics ──────────────────────────────────────────────────
 

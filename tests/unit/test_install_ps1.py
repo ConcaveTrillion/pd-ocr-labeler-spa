@@ -11,12 +11,12 @@ Mirrors ``test_install_sh.py``: same load-bearing invariants
 but expressed in PowerShell idiom (``$ErrorActionPreference``,
 ``Invoke-RestMethod``, ``Test-Command``).
 
-The peer ``pd-prep-for-pgdp/install.ps1`` is the structural model;
+The peer ``pdomain-prep-for-pgdp/install.ps1`` is the structural model;
 divergence is intentional in two places:
 
 * B-27 parity: this script uses ``/releases/latest`` (the pgdp peer
   still uses ``/tags`` — peer flip is out of scope here).
-* No CUDA/GPU branch: pd-ocr-labeler-spa has no GPU extras, so
+* No CUDA/GPU branch: pdomain-ocr-labeler-spa has no GPU extras, so
   ``nvidia-smi`` detection is omitted (matches install.sh).
 
 PowerShell 5.1 compatibility is the floor (the version Windows 10/11
@@ -136,7 +136,7 @@ def test_install_ps1_runs_python_version_preflight():
 
 
 def test_install_ps1_uses_uv_tool_install():
-    # Peer-mirror with pd-prep-for-pgdp/install.ps1 and the local
+    # Peer-mirror with pdomain-prep-for-pgdp/install.ps1 and the local
     # install.sh. Switching to pip / pipx / poetry would break the
     # documented "no toolchain needed" promise (uv handles Python
     # download too).
@@ -152,7 +152,7 @@ def test_install_ps1_uses_uv_tool_install():
     text = INSTALL_PS1.read_text()
     assert re.search(r"uv tool install\s+--reinstall\s+\S+", text), (
         "install.ps1 must call `uv tool install --reinstall <wheel>` "
-        "(peer-mirror with pd-prep-for-pgdp/install.ps1; --reinstall "
+        "(peer-mirror with pdomain-prep-for-pgdp/install.ps1; --reinstall "
         "makes re-runs idempotent, the wheel arg names what to install)"
     )
 
@@ -180,7 +180,7 @@ def test_install_ps1_uses_releases_latest_endpoint():
     `/tags` + `/releases/tags/<tag>`.
 
     This is an intentional divergence from peer
-    ``pd-prep-for-pgdp/install.ps1``, which still uses `/tags`.
+    ``pdomain-prep-for-pgdp/install.ps1``, which still uses `/tags`.
     """
     text = INSTALL_PS1.read_text()
     assert "/releases/latest" in text, (

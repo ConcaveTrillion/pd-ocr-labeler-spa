@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for ``pd-ocr-labeler-spa``.
+"""Shared pytest fixtures for ``pdomain-ocr-labeler-spa``.
 
 Per ``docs/architecture/02-backend.md §14``:
 
@@ -21,8 +21,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _has_gpu_available() -> bool:
@@ -71,7 +71,7 @@ def v22_envelope_str() -> str:
 
     The ``payload.page`` uses the flattened SPA ``lines``/``words`` dict
     shape so the round-trip test can walk the structure without importing
-    pd_book_tools.
+    pdomain_book_tools.
     """
     envelope: dict = {
         "schema": {
@@ -82,8 +82,8 @@ def v22_envelope_str() -> str:
             "saved_at": "2026-05-16T00:00:00.000Z",
             "saved_by": "Save Page",
             "source_lane": "labeled",
-            "app": {"name": "pd_ocr_labeler_spa", "version": "0.1.0"},
-            "toolchain": {"python": "3.13.1", "pd_book_tools": "0.5.1"},
+            "app": {"name": "pdomain_ocr_labeler_spa", "version": "0.1.0"},
+            "toolchain": {"python": "3.13.1", "pdomain_book_tools": "0.5.1"},
             "ocr": {"engine": "doctr", "models": []},
         },
         "source": {

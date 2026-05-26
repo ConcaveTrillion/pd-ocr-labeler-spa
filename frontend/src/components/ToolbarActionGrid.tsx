@@ -122,7 +122,7 @@ const ACTION_LABELS: Record<ActionKey, string> = {
   reserved: "—",
 };
 
-// Text-style labels (would come from pd-book-tools; hardcoded here until API exposes them)
+// Text-style labels (would come from pdomain-book-tools; hardcoded here until API exposes them)
 const TEXT_STYLE_LABELS = [
   "italic",
   "bold",

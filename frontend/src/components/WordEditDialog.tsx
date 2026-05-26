@@ -13,7 +13,7 @@
 // Refine/Nudge/Tag rows (#212): Refine + nudge accumulator + Style/Component tag row
 //   + dialog hotkeys (Shift+Arrow nudge).
 //
-// Chrome backed by pd-ui's Radix Dialog suite (@concavetrillion/pd-ui/primitives).
+// Chrome backed by pdomain-ui's Radix Dialog suite (@pdomain/pdomain-ui/primitives).
 // Uses explicit DialogPortal + DialogOverlay + DialogContent so that
 // data-testid="dialog-backdrop" lands on DialogOverlay (driver-contract §2.11).
 // Radix provides native focus trap and Escape key handling.
@@ -45,12 +45,7 @@ import type { EraseRect, MarkerPoint } from "./WordImageCanvas";
 import { WordRefineNudgeRows } from "./WordRefineNudgeRows";
 import type { PendingNudge, WordRefineNudgeRowsHandle } from "./WordRefineNudgeRows";
 import { WordTagRow } from "./WordTagRow";
-import {
-  Dialog,
-  DialogContent,
-  DialogOverlay,
-  DialogPortal,
-} from "@concavetrillion/pd-ui/primitives";
+import { Dialog, DialogContent, DialogOverlay, DialogPortal } from "@pdomain/pdomain-ui/primitives";
 
 export interface DialogTarget {
   lineIndex: number;
@@ -114,7 +109,7 @@ interface WordEditDialogProps extends WordActionCallbacks {
  * x Close fires onClose only (discards).
  * Backdrop click (DialogOverlay) fires onClose via onOpenChange (discards).
  *
- * Chrome: pd-ui Radix Dialog — DialogPortal > DialogOverlay > DialogContent.
+ * Chrome: pdomain-ui Radix Dialog — DialogPortal > DialogOverlay > DialogContent.
  * This explicit composition lets us attach data-testid="dialog-backdrop" to
  * DialogOverlay directly (no data-testid-alias needed).
  * Escape is handled natively by Radix Dialog.

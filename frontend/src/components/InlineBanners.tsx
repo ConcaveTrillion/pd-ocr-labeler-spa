@@ -9,10 +9,10 @@
 //   - ImageDriftBanner: shown after a 409 image_drift save response
 //
 // These are NOT toasts — they are rendered inline in the page content area.
-// Uses pd-ui Banner primitive (tone mapping: error→danger, warning→warning, info→info).
+// Uses pdomain-ui Banner primitive (tone mapping: error→danger, warning→warning, info→info).
 // CSS layout for .banner is in frontend/src/styles/primitives.css.
 
-import { Banner } from "@concavetrillion/pd-ui/primitives";
+import { Banner } from "@pdomain/pdomain-ui/primitives";
 
 // --- Public banner components ---
 

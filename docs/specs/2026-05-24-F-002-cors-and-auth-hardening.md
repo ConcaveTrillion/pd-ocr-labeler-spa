@@ -2,7 +2,7 @@
 
 > **Status**: Draft
 > **Last updated**: 2026-05-24
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#407
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#407
 
 ## TL;DR
 
@@ -21,7 +21,7 @@ the filesystem and state-changing routes behind an explicit local-trust check
 
 ### Wildcard CORS
 
-`src/pd_ocr_labeler_spa/bootstrap.py:258–263` adds `CORSMiddleware` with:
+`src/pdomain_ocr_labeler_spa/bootstrap.py:258–263` adds `CORSMiddleware` with:
 
 ```python
 app.add_middleware(
@@ -41,7 +41,7 @@ not possible, but unauthenticated cross-origin JSON requests are.
 
 ### No-auth adapter
 
-`src/pd_ocr_labeler_spa/adapters/auth/none_.py:15–25` (`NoneAuth.verify`)
+`src/pdomain_ocr_labeler_spa/adapters/auth/none_.py:15–25` (`NoneAuth.verify`)
 returns `UserContext("local", "Local User")` for **any** caller, including
 requests that carry no credentials at all. This is correct for a single-user
 local-only tool; the problem is that paired with wildcard CORS it means any
@@ -49,7 +49,7 @@ origin gets "local user" privileges.
 
 ### Unprotected filesystem routes
 
-`GET /api/fs/ls` (`src/pd_ocr_labeler_spa/api/fs.py:38–76`):
+`GET /api/fs/ls` (`src/pdomain_ocr_labeler_spa/api/fs.py:38–76`):
 
 - Accepts an arbitrary `path` query parameter (defaults to `~`).
 - Calls `Path(path).expanduser().resolve()` — will happily resolve `/`,
@@ -57,7 +57,7 @@ origin gets "local user" privileges.
 - Returns names of all non-hidden subdirectories with no restriction.
 - No authentication dependency in the route signature.
 
-`POST /api/projects/source-root` (`src/pd_ocr_labeler_spa/api/projects.py:632`):
+`POST /api/projects/source-root` (`src/pdomain_ocr_labeler_spa/api/projects.py:632`):
 
 - Accepts `SetSourceProjectsRootRequest{path}` in the body.
 - Validates that `path` is an existing directory but places no restriction on
@@ -199,7 +199,7 @@ Replace the wildcard with an explicit list. Add a `cors_allowed_origins`
 setting to `Settings`.
 
 ```python
-# src/pd_ocr_labeler_spa/core/settings.py
+# src/pdomain_ocr_labeler_spa/core/settings.py
 cors_allowed_origins: list[str] = Field(
     default_factory=lambda: [
         "http://localhost:5173",
@@ -227,7 +227,7 @@ app.add_middleware(
 
 Note: explicitly list allowed methods and headers rather than `["*"]`.
 
-### Change 2: `LocalTrustMiddleware` — new file `src/pd_ocr_labeler_spa/middleware/local_trust.py`
+### Change 2: `LocalTrustMiddleware` — new file `src/pdomain_ocr_labeler_spa/middleware/local_trust.py`
 
 ```python
 """LocalTrustMiddleware — block cross-origin requests to local-trust-required routes.
@@ -341,8 +341,8 @@ Slice 3 (test-first — `LocalTrustMiddleware`):
 
 Slice 4 (implementation — `LocalTrustMiddleware`):
 
-- Create `src/pd_ocr_labeler_spa/middleware/__init__.py` (empty).
-- Create `src/pd_ocr_labeler_spa/middleware/local_trust.py` (code in
+- Create `src/pdomain_ocr_labeler_spa/middleware/__init__.py` (empty).
+- Create `src/pdomain_ocr_labeler_spa/middleware/local_trust.py` (code in
   Decision section above).
 - Wire `LocalTrustMiddleware` in `bootstrap.build_app`.
 - Run `make test AI=1` + `make frontend-test AI=1`.

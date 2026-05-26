@@ -15,7 +15,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from pd_ocr_labeler_spa.core.ocr_models import (
+from pdomain_ocr_labeler_spa.core.ocr_models import (
     GetOCRConfigResponse,
     OCRModelOption,
     SetOCRModelsRequest,

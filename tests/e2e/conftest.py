@@ -1,6 +1,6 @@
 """Session-scoped fixtures for Playwright E2E tests.
 
-Mirrors ``pd-prep-for-pgdp/tests/e2e/conftest.py``:
+Mirrors ``pdomain-prep-for-pgdp/tests/e2e/conftest.py``:
 
 - ``live_server`` builds + serves the SPA and FastAPI together on a free
   port, yields the base URL and settings, and tears the server down at
@@ -32,8 +32,8 @@ import httpx
 import pytest
 import uvicorn
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 # Path to the bundled fixtures for the tiny-fixture project.
 _TINY_FIXTURE_SRC = Path(__file__).parent / "fixtures" / "projects" / "tiny-fixture"
@@ -61,7 +61,7 @@ def _spa_built() -> bool:
     ``make e2e`` runs ``frontend-build`` first; this is the safety net
     that prints a clear skip message instead of a cryptic 404.
     """
-    static = Path(__file__).resolve().parents[2] / "src" / "pd_ocr_labeler_spa" / "static"
+    static = Path(__file__).resolve().parents[2] / "src" / "pdomain_ocr_labeler_spa" / "static"
     return static.is_dir() and any(static.iterdir())
 
 

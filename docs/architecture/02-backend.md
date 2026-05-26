@@ -2,10 +2,10 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#8
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#8
 
-The Python side of `pd-ocr-labeler-spa`. Ships as a single wheel; the
-`pd-ocr-labeler-spa-ui` console script boots a `uvicorn` server that
+The Python side of `pdomain-ocr-labeler-spa`. Ships as a single wheel; the
+`pdomain-ocr-labeler-spa-ui` console script boots a `uvicorn` server that
 serves both the API and the bundled SPA.
 
 This spec is the source of truth for **every endpoint contract**. If
@@ -16,7 +16,7 @@ the implementation diverges, the spec is wrong — fix the spec first.
 ## 1. Module layout
 
 ```
-src/pd_ocr_labeler_spa/
+src/pdomain_ocr_labeler_spa/
 ├── __init__.py             # version probe via importlib.metadata
 ├── __main__.py             # console-script entry → uvicorn
 ├── bootstrap.py            # build_app(settings)
@@ -84,7 +84,7 @@ Where this differs from pgdp-prep:
 
 ## 2. App factory
 
-`src/pd_ocr_labeler_spa/bootstrap.py` exports `build_app(settings: Settings | None = None) -> FastAPI`.
+`src/pdomain_ocr_labeler_spa/bootstrap.py` exports `build_app(settings: Settings | None = None) -> FastAPI`.
 
 Order:
 
@@ -96,7 +96,7 @@ Order:
    - `await app_state.startup()` — discovers projects, restores session.
    - `task = asyncio.create_task(runner.run_forever())`
    - on shutdown: `await runner.stop()`, await task, `await app_state.shutdown()`.
-6. `FastAPI(title="pd-ocr-labeler-spa", lifespan=lifespan)`.
+6. `FastAPI(title="pdomain-ocr-labeler-spa", lifespan=lifespan)`.
 7. Add `CORSMiddleware(allow_origins=settings.cors_allowed_origins, ...)` (F-002: explicit allowlist).
    Add `LocalTrustMiddleware` after CORS (guards `/api/fs/ls` + `/api/projects/source-root`).
 8. Add `RequestIdMiddleware` last (becomes outermost).
@@ -114,7 +114,7 @@ wire time, not at request time.
 
 ## 3. Settings
 
-`src/pd_ocr_labeler_spa/settings.py`. Pydantic-settings, env prefix
+`src/pdomain_ocr_labeler_spa/settings.py`. Pydantic-settings, env prefix
 `PDLABELER_`.
 
 ```python
@@ -455,7 +455,7 @@ class IStorage(Protocol):
 
 `filesystem` impl wraps `anyio.Path` with the path-traversal guard
 (verbatim port from pgdp-prep). `presign_put` returns
-`f"/cdn/{key}"` — but `pd-ocr-labeler-spa` doesn't expose a CDN PUT
+`f"/cdn/{key}"` — but `pdomain-ocr-labeler-spa` doesn't expose a CDN PUT
 endpoint (the SPA never uploads files). The method is implemented but
 unused. Keep the seam.
 
@@ -491,7 +491,7 @@ class IOCREngine(Protocol):
 ```
 
 `local_doctr.py` wraps
-`pd_book_tools.ocr.document.Document.from_image_ocr_via_doctr` and a
+`pdomain_book_tools.ocr.document.Document.from_image_ocr_via_doctr` and a
 predictor cache (`_get_or_create_predictor`).
 
 `modal.py` and `shared_container.py` are scaffolded **stubs** that
@@ -545,7 +545,7 @@ Per-route audit log (closes pgdp-prep gap):
 `bootstrap._mount_static_frontend(app, settings)`:
 
 - Skipped when `settings.frontend_dev_url` is set.
-- Resolves `pd_ocr_labeler_spa/static/` via `importlib.resources.files()`.
+- Resolves `pdomain_ocr_labeler_spa/static/` via `importlib.resources.files()`.
 - Defines a manual catch-all `/{full_path:path}` that:
   - 404s for reserved prefixes (`/api/`, `/healthz`, `/env.js`,
     `/docs`, `/redoc`, `/openapi.json`, `/image-cache/`) so backend

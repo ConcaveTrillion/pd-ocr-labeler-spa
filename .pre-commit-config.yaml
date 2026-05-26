@@ -1,4 +1,4 @@
-# Mirrors the peer pd-* convention (see pd-prep-for-pgdp/.pre-commit-config.yaml).
+# Mirrors the peer pd-* convention (see pdomain-prep-for-pgdp/.pre-commit-config.yaml).
 # Hook list is intentionally kept in lockstep with sibling repos so a single
 # `pre-commit install` works the same way across the workspace.
 
@@ -49,8 +49,8 @@ repos:
     -   id: ruff-format
 
 # Markdown lint. Pinned to the same rev all peer pd-* repos use
-# (pd-ocr-labeler, pd-book-tools, pd-prep-for-pgdp, pd-ocr-trainer,
-# pd-ocr-synth, pd-png-optimizer all sit on v0.22.1) so the hook
+# (pd-ocr-labeler, pdomain-book-tools, pdomain-prep-for-pgdp, pd-ocr-trainer,
+# pdomain-ocr-synth, pd-png-optimizer all sit on v0.22.1) so the hook
 # environment can be cached across the workspace and bumps happen
 # in one place. Per-repo rules live in `.markdownlint-cli2.jsonc`.
 -   repo: https://github.com/DavidAnson/markdownlint-cli2
@@ -62,13 +62,13 @@ repos:
         args: [--fix]
         stages: [manual]
 
-# Secret scanner. Rev kept in lockstep with pd-book-tools canonical (v8.30.1).
+# Secret scanner. Rev kept in lockstep with pdomain-book-tools canonical (v8.30.1).
 -   repo: https://github.com/gitleaks/gitleaks
     rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e  # frozen: v8.30.1
     hooks:
     -   id: gitleaks
 
-# Commit-message linter. Config in .gitlint; rev in lockstep with pd-book-tools.
+# Commit-message linter. Config in .gitlint; rev in lockstep with pdomain-book-tools.
 -   repo: https://github.com/jorisroovers/gitlint
     rev: acc9d9de6369b76d22cb4167029d2035e8730b98  # frozen: v0.19.1
     hooks:
@@ -78,7 +78,7 @@ repos:
 -   repo: local
     hooks:
     # B-11 + B-17: refresh hatch-vcs derived version after any
-    # ref-changing op so `pd_ocr_labeler_spa.__version__` and
+    # ref-changing op so `pdomain_ocr_labeler_spa.__version__` and
     # `pd-ocr-labeler-ui --version` stay aligned with HEAD/tag state.
     #
     # All three hook stages share a single shell entry point
@@ -121,11 +121,11 @@ repos:
         name: basedpyright (backend type-check)
         description: Runs basedpyright recommended type-checking on src/
           (--level error suppresses stub warnings).
-        entry: uv run basedpyright src/pd_ocr_labeler_spa --level error
+        entry: uv run basedpyright src/pdomain_ocr_labeler_spa --level error
         language: system
         stages: [pre-commit]
         pass_filenames: false
-        files: ^src/pd_ocr_labeler_spa/.*\.py$
+        files: ^src/pdomain_ocr_labeler_spa/.*\.py$
     -   id: uv-lock-check
         name: uv.lock is in sync with pyproject.toml
         entry: uv lock --check

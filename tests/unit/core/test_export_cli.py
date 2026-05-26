@@ -23,7 +23,7 @@ class TestExportCliNoFastAPI:
 
     def test_module_importable_without_fastapi(self) -> None:
         """Module must be importable without FastAPI in sys.path."""
-        import pd_ocr_labeler_spa.core.jobs.handlers.export_cli as cli_mod
+        import pdomain_ocr_labeler_spa.core.jobs.handlers.export_cli as cli_mod
 
         # Check that there are no 'import fastapi' or 'from fastapi' lines
         # outside of function/class bodies (i.e. at module level).
@@ -42,7 +42,7 @@ class TestExportCliParser:
     """Argument parser tests."""
 
     def setup_method(self) -> None:
-        from pd_ocr_labeler_spa.core.jobs.handlers.export_cli import _build_parser
+        from pdomain_ocr_labeler_spa.core.jobs.handlers.export_cli import _build_parser
 
         self._build_parser = _build_parser
 
@@ -117,7 +117,7 @@ class TestExportCliParser:
                 sys.executable,
                 "-c",
                 (
-                    "from pd_ocr_labeler_spa.core.jobs.handlers.export_cli import _build_parser;"
+                    "from pdomain_ocr_labeler_spa.core.jobs.handlers.export_cli import _build_parser;"
                     "_build_parser().parse_args(['--data-root','/d','--project-id','p',"
                     "'--detection-only','--recognition-only'])"
                 ),
@@ -162,7 +162,7 @@ class TestRunExport:
 
     @pytest.mark.asyncio
     async def test_no_pages_returns_zero(self, tmp_path: Path) -> None:
-        from pd_ocr_labeler_spa.core.jobs.handlers.export_cli import _run_export
+        from pdomain_ocr_labeler_spa.core.jobs.handlers.export_cli import _run_export
 
         count = await _run_export(
             data_root=tmp_path,
@@ -179,7 +179,7 @@ class TestRunExport:
     @pytest.mark.asyncio
     async def test_single_page_export_calls_export_page(self, tmp_path: Path) -> None:
         """_run_export delegates to _export_page for each page."""
-        from pd_ocr_labeler_spa.core.jobs.handlers.export_cli import _run_export
+        from pdomain_ocr_labeler_spa.core.jobs.handlers.export_cli import _run_export
 
         # Set up a minimal labeled project dir with one page
         labeled_dir = tmp_path / "labeled-projects" / "proj1"
@@ -198,23 +198,23 @@ class TestRunExport:
         # Patch in the source module (export.py) since _run_export imports from there
         with (
             patch(
-                "pd_ocr_labeler_spa.core.jobs.handlers.export._load_page_from_envelope_file",
+                "pdomain_ocr_labeler_spa.core.jobs.handlers.export._load_page_from_envelope_file",
                 return_value=mock_page,
             ),
             patch(
-                "pd_ocr_labeler_spa.core.jobs.handlers.export._page_is_validated",
+                "pdomain_ocr_labeler_spa.core.jobs.handlers.export._page_is_validated",
                 return_value=True,
             ),
             patch(
-                "pd_ocr_labeler_spa.core.jobs.handlers.export._resolve_image_path",
+                "pdomain_ocr_labeler_spa.core.jobs.handlers.export._resolve_image_path",
                 return_value=image_path,
             ),
             patch(
-                "pd_ocr_labeler_spa.core.jobs.handlers.export._scan_labeled_pages",
+                "pdomain_ocr_labeler_spa.core.jobs.handlers.export._scan_labeled_pages",
                 return_value=[page_file],
             ),
             patch(
-                "pd_ocr_labeler_spa.core.jobs.handlers.export._export_page",
+                "pdomain_ocr_labeler_spa.core.jobs.handlers.export._export_page",
             ) as mock_export,
         ):
             count = await _run_export(
@@ -240,7 +240,7 @@ class TestConsoleScriptRegistration:
         pyproject = root / "pyproject.toml"
         assert pyproject.exists(), "pyproject.toml not found"
         text = pyproject.read_text()
-        assert "pd-ocr-labeler-spa-export" in text, (
-            "Console script 'pd-ocr-labeler-spa-export' not registered in pyproject.toml"
+        assert "pdomain-ocr-labeler-spa-export" in text, (
+            "Console script 'pdomain-ocr-labeler-spa-export' not registered in pyproject.toml"
         )
         assert "export_cli:main" in text, "Console script entry-point 'export_cli:main' not in pyproject.toml"

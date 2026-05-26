@@ -18,8 +18,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path) -> Settings:
@@ -309,7 +309,7 @@ def test_export_surfaces_skipped_pages(tmp_path: Path, monkeypatch: pytest.Monke
 
     Task 7 acceptance: "Exported N pages (M skipped due to load errors)" when M > 0.
     """
-    import pd_ocr_labeler_spa.core.jobs.handlers.export as _export_mod
+    import pdomain_ocr_labeler_spa.core.jobs.handlers.export as _export_mod
 
     # Inject two fake pages into the scan list so the handler enters the load loop.
     fake_json = tmp_path / "book_001.json"

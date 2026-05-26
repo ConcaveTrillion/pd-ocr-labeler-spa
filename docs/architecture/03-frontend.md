@@ -2,9 +2,9 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#10
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#10
 
-The SPA half of `pd-ocr-labeler-spa`. Built with Vite, served from the
+The SPA half of `pdomain-ocr-labeler-spa`. Built with Vite, served from the
 FastAPI wheel in production, served via Vite dev-server with proxy in
 development.
 
@@ -604,7 +604,7 @@ patch around it.
 ## 18. Build output
 
 `npm run build` →`frontend/dist/`. `make frontend-build` then copies
-`frontend/dist/.` → `src/pd_ocr_labeler_spa/static/` so the wheel
+`frontend/dist/.` → `src/pdomain_ocr_labeler_spa/static/` so the wheel
 `force-include` picks it up.
 
 Vite sourcemaps: `sourcemap: true` so production stack traces are

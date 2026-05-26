@@ -108,17 +108,17 @@ jobs:
           pnpm run build
       - name: Copy bundle to static/
         run: |
-          mkdir -p src/pd_ocr_labeler_spa/static
-          rm -rf src/pd_ocr_labeler_spa/static/*
-          cp -r frontend/dist/. src/pd_ocr_labeler_spa/static/
+          mkdir -p src/pdomain_ocr_labeler_spa/static
+          rm -rf src/pdomain_ocr_labeler_spa/static/*
+          cp -r frontend/dist/. src/pdomain_ocr_labeler_spa/static/
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Build Docker image (no push)
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           docker build \
             --build-arg "VERSION=${VERSION}" \
-            -t "pd-ocr-labeler-spa:${GITHUB_REF_NAME}" .
-          docker images pd-ocr-labeler-spa
+            -t "pdomain-ocr-labeler-spa:${GITHUB_REF_NAME}" .
+          docker images pdomain-ocr-labeler-spa
 
 # ---------------------------------------------------------------------------
 # release — publishes wheel + sdist to GitHub Release
@@ -151,9 +151,9 @@ jobs:
           pnpm run build
       - name: Copy bundle to static/
         run: |
-          mkdir -p src/pd_ocr_labeler_spa/static
-          rm -rf src/pd_ocr_labeler_spa/static/*
-          cp -r frontend/dist/. src/pd_ocr_labeler_spa/static/
+          mkdir -p src/pdomain_ocr_labeler_spa/static
+          rm -rf src/pdomain_ocr_labeler_spa/static/*
+          cp -r frontend/dist/. src/pdomain_ocr_labeler_spa/static/
       - name: Build wheel + sdist
         run: |
           uv build --wheel

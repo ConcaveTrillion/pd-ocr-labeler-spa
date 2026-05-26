@@ -17,8 +17,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path) -> Settings:
@@ -107,7 +107,7 @@ def test_notification_queue_wired_to_app_state(tmp_path: Path) -> None:
     settings = _make_settings(tmp_path)
     app = build_app(settings)
 
-    from pd_ocr_labeler_spa.core.notifications import NotificationKind, NotificationQueue
+    from pdomain_ocr_labeler_spa.core.notifications import NotificationKind, NotificationQueue
 
     nq = app.state.notification_queue
     assert isinstance(nq, NotificationQueue)
@@ -140,7 +140,7 @@ async def test_stream_events_pushed_appear_in_subscribe(tmp_path: Path) -> None:
     stream blocking problem for unbounded SSE streams while still exercising
     the full queue → subscriber path.
     """
-    from pd_ocr_labeler_spa.core.notifications import Notification, NotificationKind
+    from pdomain_ocr_labeler_spa.core.notifications import Notification, NotificationKind
 
     settings = _make_settings(tmp_path)
     app = build_app(settings)
@@ -184,7 +184,7 @@ async def test_stream_events_pushed_appear_in_subscribe(tmp_path: Path) -> None:
 
 def test_dismiss_returns_204_on_success(tmp_path: Path) -> None:
     """``POST /api/notifications/{id}/dismiss`` returns 204 when found."""
-    from pd_ocr_labeler_spa.core.notifications import NotificationKind
+    from pdomain_ocr_labeler_spa.core.notifications import NotificationKind
 
     settings = _make_settings(tmp_path)
     app = build_app(settings)
@@ -198,7 +198,7 @@ def test_dismiss_returns_204_on_success(tmp_path: Path) -> None:
 
 def test_dismiss_removes_from_ring_buffer(tmp_path: Path) -> None:
     """After dismiss, the notification is gone from the buffer."""
-    from pd_ocr_labeler_spa.core.notifications import NotificationKind
+    from pdomain_ocr_labeler_spa.core.notifications import NotificationKind
 
     settings = _make_settings(tmp_path)
     app = build_app(settings)
@@ -223,7 +223,7 @@ def test_notification_queue_isolated_across_build_app_instances(
     tmp_path: Path,
 ) -> None:
     """Each ``build_app`` call gets its own ``NotificationQueue`` — no leakage."""
-    from pd_ocr_labeler_spa.core.notifications import NotificationKind
+    from pdomain_ocr_labeler_spa.core.notifications import NotificationKind
 
     app_a = build_app(_make_settings(tmp_path / "a"))
     app_b = build_app(_make_settings(tmp_path / "b"))

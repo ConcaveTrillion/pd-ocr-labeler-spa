@@ -2,7 +2,7 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#6
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#6
 
 Every Pydantic, dataclass, and on-disk JSON schema. **Compatibility
 with the legacy `pd-ocr-labeler` is mandatory** for everything the
@@ -11,7 +11,7 @@ data root is shared during transition ([D-003](../../specs/17-decisions.md)).
 
 Conventions:
 
-- Domain models live in `src/pd_ocr_labeler_spa/core/models.py`. They
+- Domain models live in `src/pdomain_ocr_labeler_spa/core/models.py`. They
   are reused by both the `IStorage`/`IOCREngine` Protocols and the
   wire — no separate DTO layer (mirrors pgdp-prep's
   `core/models.py:1-300`).
@@ -27,7 +27,7 @@ Conventions:
 
 ### `Project`
 
-`src/pd_ocr_labeler_spa/core/models.py`. Mirrors legacy
+`src/pdomain_ocr_labeler_spa/core/models.py`. Mirrors legacy
 `pd_ocr_labeler/models/project_model.py:9`.
 
 ```python
@@ -53,7 +53,7 @@ class Project(BaseModel):
 
 ### `PageRecord`
 
-Wraps `pd_book_tools.ocr.page.Page` plus per-page UI/persistence
+Wraps `pdomain_book_tools.ocr.page.Page` plus per-page UI/persistence
 metadata. Mirrors legacy `PageModel` (`page_model.py:8`).
 
 ```python
@@ -89,7 +89,7 @@ accesses the underlying `Page` object explicitly.
 
 ### `MatchStatus`
 
-`pd_ocr_labeler_spa.core.models.MatchStatus` (StrEnum):
+`pdomain_ocr_labeler_spa.core.models.MatchStatus` (StrEnum):
 
 ```
 exact | fuzzy | mismatch | unmatched_ocr | unmatched_gt
@@ -111,11 +111,11 @@ class WordMatch(BaseModel):
     text_style_labels: list[str] = []        # italics, small_caps, ...
     word_components: list[str] = []          # footnote_marker, drop_cap, ...
     bbox: BBox                               # always present (placeholder for unmatched_gt)
-    word_id: str | None = None               # stable id from pd_book_tools
+    word_id: str | None = None               # stable id from pdomain_book_tools
 ```
 
 `text_style_labels` / `word_components` come from
-`pd_book_tools.ocr.label_normalization.ALLOWED_TEXT_STYLE_LABELS` /
+`pdomain_book_tools.ocr.label_normalization.ALLOWED_TEXT_STYLE_LABELS` /
 `ALLOWED_WORD_COMPONENT_LABELS`.
 
 ### `LineMatch`
@@ -168,7 +168,7 @@ class EncodedDims(BaseModel):
 
 Same algorithm as legacy
 `image_tabs._compute_encoded_dimensions:962`. Implementation lives in
-`pd_book_tools` so the SPA stays byte-identical with cached image
+`pdomain_book_tools` so the SPA stays byte-identical with cached image
 encoding.
 
 ### `Selection`
@@ -532,10 +532,10 @@ per Q-A1 option (B) with auto-cleanup on next legacy save.
     "saved_at": "2026-05-06T12:34:56.789Z",
     "saved_by": "Save Page",        // human-readable trigger label
     "source_lane": "labeled",       // "labeled" | "cached" — legacy enum
-    "app": {"name": "pd_ocr_labeler_spa", "version": "...", "git_commit": "..."},
+    "app": {"name": "pdomain_ocr_labeler_spa", "version": "...", "git_commit": "..."},
     "toolchain": {
       "python": "3.13.x",
-      "pd_book_tools": "...",
+      "pdomain_book_tools": "...",
       "opencv_python": "..."
     },
     "ocr": { /* OCRProvenance: engine, engine_version, models[], config_fingerprint */ }
@@ -553,7 +553,7 @@ per Q-A1 option (B) with auto-cleanup on next legacy save.
     }
   },
   "payload": {
-    "page": { /* pd_book_tools.ocr.page.Page.to_dict() — verbatim */ },
+    "page": { /* pdomain_book_tools.ocr.page.Page.to_dict() — verbatim */ },
     "original_page": { /* optional pre-edit snapshot */ },
     "word_attributes": {
       "<word_id>": {"italic": false, "small_caps": false, ...}
@@ -569,7 +569,7 @@ per Q-A1 option (B) with auto-cleanup on next legacy save.
 }
 ```
 
-Reader (`src/pd_ocr_labeler_spa/core/persistence/user_page_envelope.py`):
+Reader (`src/pdomain_ocr_labeler_spa/core/persistence/user_page_envelope.py`):
 
 - `is_user_page_envelope(data)` type guard.
 - `parse_envelope(data) -> UserPageEnvelope` Pydantic-validating loader.
@@ -630,7 +630,7 @@ Top of `<labeled-projects>/<project_id>/project.json`:
 
 Normalisation (`_normalize_ground_truth_entries:275`):
 
-- Apply `pd_book_tools.pgdp.pgdp_results.PGDPResults(key, text).processed_page_text`
+- Apply `pdomain_book_tools.pgdp.pgdp_results.PGDPResults(key, text).processed_page_text`
   to every value (PGDP-markup → OCR-comparable Unicode).
 - Add lowercase variant of every key.
 - For keys without extension, add `.png/.jpg/.jpeg` variants and
@@ -752,7 +752,7 @@ in [`02-backend.md`](02-backend.md).
 `make openapi-export` runs:
 
 ```sh
-uv run python -c "import json; from pd_ocr_labeler_spa.bootstrap import build_app; \
+uv run python -c "import json; from pdomain_ocr_labeler_spa.bootstrap import build_app; \
   print(json.dumps(build_app().openapi(), indent=2))" > frontend/openapi.json
 cd frontend && npx --yes openapi-typescript openapi.json -o src/api/types.ts
 ```

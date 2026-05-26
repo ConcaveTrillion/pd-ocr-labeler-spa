@@ -53,8 +53,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path) -> Settings:
@@ -79,7 +79,7 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClie
     default; tests that exercise a non-default ``selection_reason``
     install their own monkeypatches *after* this fixture.
     """
-    from pd_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
+    from pdomain_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
 
     monkeypatch.setattr(_ocr_config_mod, "fetch_hf_last_modified", lambda: None)
     empty_root = tmp_path / "no-models"  # not created → discover_local_pairs returns []
@@ -108,7 +108,7 @@ def test_get_ocr_config_payload_validates_against_dto(client: TestClient) -> Non
     This is the first-line spec contract: anything that doesn't validate
     against the iter-7 DTO is a wire-shape break.
     """
-    from pd_ocr_labeler_spa.core.ocr_models import GetOCRConfigResponse
+    from pdomain_ocr_labeler_spa.core.ocr_models import GetOCRConfigResponse
 
     resp = client.get("/api/ocr-config")
     parsed = GetOCRConfigResponse.model_validate(resp.json())
@@ -180,7 +180,7 @@ def test_get_ocr_config_hf_option_uses_legacy_label(client: TestClient) -> None:
     ``f"Hugging Face: {HF_DEFAULT_REPO} (latest)"`` (legacy line 353)
     so the modal renders the same string operators are used to.
     """
-    from pd_ocr_labeler_spa.core.hf_probe import HF_DEFAULT_REPO
+    from pdomain_ocr_labeler_spa.core.hf_probe import HF_DEFAULT_REPO
 
     resp = client.get("/api/ocr-config")
     body = resp.json()
@@ -201,7 +201,7 @@ def test_get_ocr_config_surfaces_local_pairs(
 
     Legacy label parity (legacy line 288): ``f"{profile}: {signature}"``.
     """
-    from pd_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
+    from pdomain_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
 
     profile = tmp_path / "models" / "all"
     (profile / "detection").mkdir(parents=True)
@@ -248,7 +248,7 @@ def test_post_ocr_config_models_accepts_discovered_local_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Slice 8c-v-a: a key surfaced as a local option may be POSTed."""
-    from pd_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
+    from pdomain_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
 
     profile = tmp_path / "models" / "all"
     (profile / "detection").mkdir(parents=True)
@@ -338,7 +338,7 @@ def test_post_ocr_config_models_response_validates_against_dto(
     Spec §5.8 line 320 declares the POST returns the same DTO as GET so
     the frontend can refresh from a single shape.
     """
-    from pd_ocr_labeler_spa.core.ocr_models import GetOCRConfigResponse
+    from pdomain_ocr_labeler_spa.core.ocr_models import GetOCRConfigResponse
 
     resp = client.post(
         "/api/ocr-config/models",
@@ -463,7 +463,7 @@ def test_get_ocr_config_returns_hf_latest_when_hub_reachable(
     """
     from datetime import UTC, datetime
 
-    from pd_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
+    from pdomain_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
 
     fixed = datetime(2025, 6, 1, tzinfo=UTC)
     monkeypatch.setattr(_ocr_config_mod, "fetch_hf_last_modified", lambda: fixed)
@@ -489,7 +489,7 @@ def test_get_ocr_config_returns_local_only_when_hub_offline_and_pair_present(
     its records flow into ``pick_default_keys``, and the resulting
     reason reaches the wire.
     """
-    from pd_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
+    from pdomain_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
 
     # Build a legacy-shaped local-models tree with one complete pair.
     profile = tmp_path / "models" / "all"
@@ -566,7 +566,7 @@ def test_carrier_isolated_across_build_app_instances(
     is the test isolation contract for the carrier wire-up — the same
     contract ``ProjectState`` and ``ActiveProjectCarrier`` already pin.
     """
-    from pd_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
+    from pdomain_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
 
     monkeypatch.setattr(_ocr_config_mod, "fetch_hf_last_modified", lambda: None)
     monkeypatch.setattr(_ocr_config_mod, "_resolve_local_models_root", lambda: tmp_path / "no-models")
@@ -604,7 +604,7 @@ def test_carrier_exposed_on_app_state(client: TestClient) -> None:
     inspection / test seam — the production read path goes through
     ``Depends(get_ocr_config_carrier)``.
     """
-    from pd_ocr_labeler_spa.core.ocr_config_state import OCRConfigCarrier
+    from pdomain_ocr_labeler_spa.core.ocr_config_state import OCRConfigCarrier
 
     carrier = client.app.state.ocr_config_carrier  # type: ignore[attr-defined]
     assert isinstance(carrier, OCRConfigCarrier)
@@ -683,7 +683,7 @@ def test_post_selection_persists_across_build_app_restart(
     GET and must see that revision because the lifespan startup hook
     seeded the carrier from the sidecar on disk.
     """
-    from pd_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
+    from pdomain_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
 
     monkeypatch.setattr(_ocr_config_mod, "fetch_hf_last_modified", lambda: None)
     monkeypatch.setattr(_ocr_config_mod, "_resolve_local_models_root", lambda: tmp_path / "no-models")
@@ -729,7 +729,7 @@ def test_idempotent_post_does_not_rewrite_sidecar(
     (no new mtime, no rewrite). Otherwise a busy SPA could thrash the
     disk on every UI re-mount.
     """
-    from pd_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
+    from pdomain_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
 
     monkeypatch.setattr(_ocr_config_mod, "fetch_hf_last_modified", lambda: None)
     monkeypatch.setattr(_ocr_config_mod, "_resolve_local_models_root", lambda: tmp_path / "no-models")
@@ -788,7 +788,7 @@ def test_post_rescan_response_validates_against_dto(client: TestClient) -> None:
 
     Spec line 321 declares the rescan returns the same DTO as GET.
     """
-    from pd_ocr_labeler_spa.core.ocr_models import GetOCRConfigResponse
+    from pdomain_ocr_labeler_spa.core.ocr_models import GetOCRConfigResponse
 
     resp = client.post("/api/ocr-config/rescan")
     parsed = GetOCRConfigResponse.model_validate(resp.json())
@@ -813,7 +813,7 @@ def test_post_rescan_picks_up_newly_landed_local_pair(
     landed *after* startup surfaces in the response. Pins that the
     handler does not cache the discovery output across requests.
     """
-    from pd_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
+    from pdomain_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
 
     models_root = tmp_path / "models"
     monkeypatch.setattr(_ocr_config_mod, "fetch_hf_last_modified", lambda: None)
@@ -877,7 +877,7 @@ def test_post_rescan_falls_back_when_selected_key_no_longer_surfaces(
     stock for both detection and recognition. The next GET reflects the
     same reconciled state — i.e. the rescan persisted the fallback.
     """
-    from pd_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
+    from pdomain_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
 
     models_root = tmp_path / "models"
     profile = models_root / "all"
@@ -930,7 +930,7 @@ def test_corrupt_sidecar_does_not_crash_startup(
     happens inside ``TestClient(app) as ...`` — a regression that
     raises here would crash the test client.
     """
-    from pd_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
+    from pdomain_ocr_labeler_spa.api import ocr_config as _ocr_config_mod
 
     monkeypatch.setattr(_ocr_config_mod, "fetch_hf_last_modified", lambda: None)
     monkeypatch.setattr(_ocr_config_mod, "_resolve_local_models_root", lambda: tmp_path / "no-models")

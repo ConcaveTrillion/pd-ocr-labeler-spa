@@ -1,8 +1,8 @@
-// ConfirmDialog.tsx — destructive-action confirmation dialog, backed by pd-ui AlertDialog.
+// ConfirmDialog.tsx — destructive-action confirmation dialog, backed by pdomain-ui AlertDialog.
 // Spec: docs/specs/2026-05-12-hotkeys-a11y-design.md §Destructive keys confirm
 // Issue #236
 //
-// Replaces the hand-rolled modal with @concavetrillion/pd-ui's AlertDialog suite
+// Replaces the hand-rolled modal with @pdomain/pdomain-ui's AlertDialog suite
 // (Radix-based). This gives us a native focus trap and Escape handling built in,
 // addressing the aria-modal-without-focus-trap concern from issue #445.
 //
@@ -23,7 +23,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@concavetrillion/pd-ui/primitives";
+} from "@pdomain/pdomain-ui/primitives";
 
 interface ConfirmDialogProps {
   /** Whether the dialog is visible. */
@@ -43,7 +43,7 @@ interface ConfirmDialogProps {
 }
 
 /**
- * Modal confirm dialog for destructive actions, backed by pd-ui's Radix-based
+ * Modal confirm dialog for destructive actions, backed by pdomain-ui's Radix-based
  * AlertDialog suite. Provides a native focus trap and Escape key handling.
  *
  * Both AlertDialogAction and AlertDialogCancel close the dialog (triggering
@@ -80,7 +80,7 @@ export function ConfirmDialog({
       }}
     >
       {/* AlertDialogContent already composes AlertDialogPortal + AlertDialogOverlay
-          internally (pd-ui convention). The overlay uses class "dialog-overlay" and
+          internally (pdomain-ui convention). The overlay uses class "dialog-overlay" and
           the content uses class "dialog" — we supplement with Tailwind to match the
           labeler's visual style since those CSS classes have no definition in the
           local primitives.css. */}

@@ -30,8 +30,8 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _build_test_settings(tmp_path_factory) -> Settings:  # type: ignore[no-untyped-def]

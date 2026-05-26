@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from pd_ocr_labeler_spa.core.persistence.atomic import (
+from pdomain_ocr_labeler_spa.core.persistence.atomic import (
     write_bytes_atomic,
     write_json_atomic,
 )
@@ -274,7 +274,7 @@ def crashing_replace(src, dst):
 
 os.replace = crashing_replace
 
-from pd_ocr_labeler_spa.core.persistence.atomic import write_json_atomic
+from pdomain_ocr_labeler_spa.core.persistence.atomic import write_json_atomic
 
 try:
     write_json_atomic(target, {data!r})
@@ -317,7 +317,7 @@ def crashing_replace(src, dst):
 
 os.replace = crashing_replace
 
-from pd_ocr_labeler_spa.core.persistence.atomic import write_bytes_atomic
+from pdomain_ocr_labeler_spa.core.persistence.atomic import write_bytes_atomic
 
 try:
     write_bytes_atomic(target, {data!r})

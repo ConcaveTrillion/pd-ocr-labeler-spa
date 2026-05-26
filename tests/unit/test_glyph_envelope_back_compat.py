@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from pd_ocr_labeler_spa.core.persistence.user_page_envelope import parse_envelope
+from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import parse_envelope
 
 
 def test_v21_envelope_loads_with_glyph_annotations_none() -> None:

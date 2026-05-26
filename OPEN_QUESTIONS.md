@@ -1,4 +1,4 @@
-# Open Questions for `pd-ocr-labeler-spa`
+# Open Questions for `pdomain-ocr-labeler-spa`
 
 > **Resolved questions are archived in [`docs/archive/research/QUESTIONS_RESOLVED.md`](docs/archive/research/QUESTIONS_RESOLVED.md).**
 > Only currently-open questions live below. When a question is answered, move

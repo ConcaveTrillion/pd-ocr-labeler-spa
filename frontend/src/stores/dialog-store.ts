@@ -7,9 +7,9 @@
 // listener store to Zustand's vanilla `createStore`. External API preserved
 // (`useDialogStore` React hook, `dialogStore` imperative API).
 //
-// GAP-6: No pd-ui factory covers labeler-specific dialog orchestration.
+// GAP-6: No pdomain-ui factory covers labeler-specific dialog orchestration.
 //   The dialogs managed here (OCR config, export, hotkey help, source folder,
-//   word-edit, confirm) are all labeler-specific features. pd-ui ships
+//   word-edit, confirm) are all labeler-specific features. pdomain-ui ships
 //   Radix-based dialog primitives but no store abstraction for domain-level
 //   dialog management. This store is kept local permanently.
 //

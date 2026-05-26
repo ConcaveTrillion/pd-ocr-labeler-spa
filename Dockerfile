@@ -1,12 +1,12 @@
-# pd-ocr-labeler-spa runtime container.
+# pdomain-ocr-labeler-spa runtime container.
 #
 # Two-stage build: Node compiles the SPA, Python builds and installs the
 # wheel that bundles it. End image is CPU-only and does not require Node
 # at runtime — the wheel ships the prebuilt SPA under
-# `pd_ocr_labeler_spa/static/`.
+# `pdomain_ocr_labeler_spa/static/`.
 #
 # Spec: `specs/15-deployment-dev.md` §6.
-# Mirrors `pd-prep-for-pgdp/Dockerfile` for cross-repo consistency.
+# Mirrors `pdomain-prep-for-pgdp/Dockerfile` for cross-repo consistency.
 
 # syntax=docker/dockerfile:1.7
 
@@ -34,7 +34,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_NO_PROGRESS=1 \
     UV_LINK_MODE=copy
 
-# git for `uv` to resolve the pd-book-tools git source; ca-certificates so
+# git for `uv` to resolve the pdomain-book-tools git source; ca-certificates so
 # the HTTPS clone works.
 RUN apt-get update \
     && apt-get install --no-install-recommends -y git ca-certificates \
@@ -58,11 +58,11 @@ COPY build_hooks/ ./build_hooks/
 
 # Bring in the built SPA. `pyproject.toml`'s
 # `[tool.hatch.build.targets.wheel.force-include]` maps
-# `src/pd_ocr_labeler_spa/static` → `pd_ocr_labeler_spa/static`, and
+# `src/pdomain_ocr_labeler_spa/static` → `pdomain_ocr_labeler_spa/static`, and
 # `build_hooks/spa_check.py` requires
-# `src/pd_ocr_labeler_spa/static/index.html` to exist before it lets
+# `src/pdomain_ocr_labeler_spa/static/index.html` to exist before it lets
 # `uv build --wheel` proceed.
-COPY --from=spa /work/dist/ ./src/pd_ocr_labeler_spa/static/
+COPY --from=spa /work/dist/ ./src/pdomain_ocr_labeler_spa/static/
 
 # Replace `dynamic = ["version"]` with a literal version line so
 # hatch-vcs is bypassed (no `.git/` in the context).
@@ -77,7 +77,7 @@ RUN uv build --wheel -o /dist/
 # from PyPI; consuming this file with `--require-hashes` pins every
 # transitive dep to its exact wheel hash, preventing substitution attacks
 # and drift from what `uv lock` resolved at author time.
-# `--no-emit-project` excludes `pd-ocr-labeler-spa` itself (the wheel
+# `--no-emit-project` excludes `pdomain-ocr-labeler-spa` itself (the wheel
 # installs that). `--no-dev` strips dev/test extras.
 # NOTE: `--no-hashes` is intentionally absent — hashes are required.
 RUN uv export --frozen --no-emit-project --no-dev \
@@ -105,7 +105,7 @@ RUN groupadd -g ${APP_GID} app \
 WORKDIR /app
 COPY --from=wheel /dist/*.whl /dist/requirements.lock /tmp/
 
-# B-21: install-time deps (`git` for pip to clone the pd-book-tools git
+# B-21: install-time deps (`git` for pip to clone the pdomain-book-tools git
 # source; `ca-certificates` for HTTPS) live only inside this single RUN.
 # `apt-get purge --autoremove` strips both packages out of the final
 # image layer so the runtime carries no git binary and no cert bundle
@@ -119,7 +119,7 @@ COPY --from=wheel /dist/*.whl /dist/requirements.lock /tmp/
 #      transitive dep at the exact version uv locked AND verifies each
 #      wheel against its sha256 hash, closing the supply-chain gap that
 #      --no-hashes introduced (F-016).
-#   2. `pip install --no-deps <wheel>` adds `pd-ocr-labeler-spa` itself
+#   2. `pip install --no-deps <wheel>` adds `pdomain-ocr-labeler-spa` itself
 #      without re-resolving — its declared deps were already satisfied
 #      by step 1.
 RUN apt-get update \
@@ -143,7 +143,7 @@ USER app
 #
 # Bind host is set via argv (`--host 0.0.0.0`) rather than via ENV because
 # `Settings` reads the `PDLABELER_` prefix (no underscore — see
-# `src/pd_ocr_labeler_spa/settings.py` env_prefix). Hardcoding an
+# `src/pdomain_ocr_labeler_spa/settings.py` env_prefix). Hardcoding an
 # `ENV PDLABELER_HOST=…` here would just duplicate the argv default and
 # also fight any user override of `--host`. Users can still override
 # the port at runtime by passing `-e PDLABELER_PORT=…` to `docker run`,

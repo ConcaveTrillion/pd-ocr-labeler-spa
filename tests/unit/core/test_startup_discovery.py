@@ -39,13 +39,13 @@ from pathlib import Path
 
 import pytest
 
-from pd_ocr_labeler_spa.core.persistence.session_state import SessionState
-from pd_ocr_labeler_spa.core.startup_discovery import (
+from pdomain_ocr_labeler_spa.core.persistence.session_state import SessionState
+from pdomain_ocr_labeler_spa.core.startup_discovery import (
     ResolvedInitialProject,
     resolve_initial_project,
     validate_project_dir,
 )
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.settings import Settings
 
 # ── validate_project_dir ───────────────────────────────────────────────────
 
@@ -115,7 +115,7 @@ def test_resolve_initial_project_cli_overrides_session(
     )
     session = SessionState(last_project_path=str(session_dir), last_page_index=3)
 
-    with caplog.at_level(logging.INFO, logger="pd_ocr_labeler_spa.core.startup_discovery"):
+    with caplog.at_level(logging.INFO, logger="pdomain_ocr_labeler_spa.core.startup_discovery"):
         resolved = resolve_initial_project(settings, session_state=session)
 
     assert resolved is not None
@@ -151,7 +151,7 @@ def test_resolve_initial_project_cli_invalid_falls_through_to_session(
     )
     session = SessionState(last_project_path=str(session_dir), last_page_index=0)
 
-    with caplog.at_level(logging.WARNING, logger="pd_ocr_labeler_spa.core.startup_discovery"):
+    with caplog.at_level(logging.WARNING, logger="pdomain_ocr_labeler_spa.core.startup_discovery"):
         resolved = resolve_initial_project(settings, session_state=session)
 
     assert resolved is not None
@@ -180,7 +180,7 @@ def test_resolve_initial_project_session_restore(tmp_path: Path, caplog: pytest.
     )
     session = SessionState(last_project_path=str(session_dir), last_page_index=2)
 
-    with caplog.at_level(logging.INFO, logger="pd_ocr_labeler_spa.core.startup_discovery"):
+    with caplog.at_level(logging.INFO, logger="pdomain_ocr_labeler_spa.core.startup_discovery"):
         resolved = resolve_initial_project(settings, session_state=session)
 
     assert resolved is not None
@@ -206,7 +206,7 @@ def test_resolve_initial_project_session_stale_returns_none(
     )
     session = SessionState(last_project_path=str(tmp_path / "vanished"), last_page_index=0)
 
-    with caplog.at_level(logging.DEBUG, logger="pd_ocr_labeler_spa.core.startup_discovery"):
+    with caplog.at_level(logging.DEBUG, logger="pdomain_ocr_labeler_spa.core.startup_discovery"):
         resolved = resolve_initial_project(settings, session_state=session)
 
     assert resolved is None

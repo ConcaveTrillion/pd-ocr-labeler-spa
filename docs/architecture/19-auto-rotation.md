@@ -2,7 +2,7 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#42
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#42
 
 Pages from book scans sometimes arrive rotated (sideways, upside-down).
 The SPA must detect, optionally auto-correct, and always allow manual
@@ -127,8 +127,8 @@ def find_best_rotation(image_bytes, gt_text, ocr_engine) -> tuple[int, float]:
     return candidates[best_idx], scores[best_idx]
 ```
 
-Implementation lives in `pd_book_tools.ocr.rotation` (new module —
-flag for delegation to pd-book-tools agent if not already in their
+Implementation lives in `pdomain_book_tools.ocr.rotation` (new module —
+flag for delegation to pdomain-book-tools agent if not already in their
 roadmap).
 
 The `fast=True` flag on `ocr_engine.ocr_image` is a hint to use a
@@ -147,7 +147,7 @@ def find_best_rotation_layout(image_bytes, layout_engine) -> tuple[int, float]:
     ...
 ```
 
-Layout method lives in pd-book-tools (it already runs layout analysis
+Layout method lives in pdomain-book-tools (it already runs layout analysis
 during OCR; rotation can piggy-back).
 
 ---
@@ -234,7 +234,7 @@ Auto-rotation is a **post-GA enhancement**:
 - Manual rotate buttons (M9.1): cheap, useful, doesn't risk
   destabilising M0–M8.
 - Auto-rotation pass (M9.2 or M10): heavier; depends on
-  pd-book-tools `rotation` module being available.
+  pdomain-book-tools `rotation` module being available.
 
 Add as a new milestone in [`16-milestones.md`](../../specs/16-milestones.md):
 
@@ -275,9 +275,9 @@ Add as a new milestone in [`16-milestones.md`](../../specs/16-milestones.md):
   cancel-able job. The first-page-OCR result is cached, so
   re-loading the project re-uses the cached rotation.
 - **GT absence.** When GT is missing entirely (most projects in
-  practice), the layout-method fallback runs. We need pd-book-tools
+  practice), the layout-method fallback runs. We need pdomain-book-tools
   to expose a `layout_only_orientation_score(image)` function. Flag
-  for delegation to pd-book-tools agent in a follow-up.
+  for delegation to pdomain-book-tools agent in a follow-up.
 - **Tilt vs cardinal rotation.** This spec covers 90° increments
   only. Skew correction (e.g. 3° tilt) is a separate concern and
   out of scope for v1.

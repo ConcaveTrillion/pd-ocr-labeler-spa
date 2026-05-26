@@ -5,11 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from pd_ocr_labeler_spa.core.envelope_lift import EnvelopeLiftError, lift_envelope_to_page
+from pdomain_ocr_labeler_spa.core.envelope_lift import EnvelopeLiftError, lift_envelope_to_page
 
 
 class _FakePage:
-    """Minimal stand-in for pd_book_tools.ocr.page.Page."""
+    """Minimal stand-in for pdomain_book_tools.ocr.page.Page."""
 
 
 @dataclass
@@ -40,9 +40,9 @@ def test_envelope_lift_success(monkeypatch):
     import types
 
     fake_page = _FakePage()
-    fake_page_mod = types.ModuleType("pd_book_tools.ocr.page")
+    fake_page_mod = types.ModuleType("pdomain_book_tools.ocr.page")
     fake_page_mod.Page = type("Page", (), {"from_dict": staticmethod(lambda d: fake_page)})  # type: ignore
-    monkeypatch.setitem(sys.modules, "pd_book_tools.ocr.page", fake_page_mod)
+    monkeypatch.setitem(sys.modules, "pdomain_book_tools.ocr.page", fake_page_mod)
 
     envelope = _FakeEnvelope(payload=_FakeEnvelopePayload(page={"items": []}))
     result = lift_envelope_to_page(envelope)
@@ -57,9 +57,9 @@ def test_envelope_lift_returns_error_on_from_dict_failure(monkeypatch):
     def _raise(d):
         raise KeyError("items")
 
-    fake_page_mod = types.ModuleType("pd_book_tools.ocr.page")
+    fake_page_mod = types.ModuleType("pdomain_book_tools.ocr.page")
     fake_page_mod.Page = type("Page", (), {"from_dict": staticmethod(_raise)})  # type: ignore
-    monkeypatch.setitem(sys.modules, "pd_book_tools.ocr.page", fake_page_mod)
+    monkeypatch.setitem(sys.modules, "pdomain_book_tools.ocr.page", fake_page_mod)
 
     envelope = _FakeEnvelope(payload=_FakeEnvelopePayload(page={"bad": "schema"}))
     result = lift_envelope_to_page(envelope)
@@ -86,12 +86,12 @@ def test_double_nested_envelope_unwrap(monkeypatch):
     import sys
     import types
 
-    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import USER_PAGE_SCHEMA_NAME
+    from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import USER_PAGE_SCHEMA_NAME
 
     fake_page = _FakePage()
-    fake_page_mod = types.ModuleType("pd_book_tools.ocr.page")
+    fake_page_mod = types.ModuleType("pdomain_book_tools.ocr.page")
     fake_page_mod.Page = type("Page", (), {"from_dict": staticmethod(lambda d: fake_page)})  # type: ignore
-    monkeypatch.setitem(sys.modules, "pd_book_tools.ocr.page", fake_page_mod)
+    monkeypatch.setitem(sys.modules, "pdomain_book_tools.ocr.page", fake_page_mod)
 
     inner_page_dict = {"items": []}
     outer_page_dict = {

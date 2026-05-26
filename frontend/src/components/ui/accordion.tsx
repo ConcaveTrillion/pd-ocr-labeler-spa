@@ -3,8 +3,8 @@ import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import {
   Accordion as PdAccordion,
   AccordionItem as PdAccordionItem,
-} from "@concavetrillion/pd-ui/primitives";
-import { ChevronDown } from "@concavetrillion/pd-ui/icons";
+} from "@pdomain/pdomain-ui/primitives";
+import { ChevronDown } from "@pdomain/pdomain-ui/icons";
 
 import { cn } from "@/lib/utils";
 import { KeyCap } from "./KeyCap";
@@ -19,7 +19,7 @@ const tagClasses: Record<AccordionTagVariant, string> = {
 
 const defaultItemClasses = "border border-border-1 rounded-md";
 
-// LabelerAccordionItem: wraps pd-ui AccordionItem with the labeler's `tag`
+// LabelerAccordionItem: wraps pdomain-ui AccordionItem with the labeler's `tag`
 // variant (colored left-border stripe). When `tag` is absent the default
 // border/rounded style is applied instead.
 type AccordionItemProps = React.ComponentPropsWithoutRef<typeof PdAccordionItem> & {
@@ -38,9 +38,9 @@ const AccordionItem = React.forwardRef<
 ));
 AccordionItem.displayName = "AccordionItem";
 
-// AccordionTrigger: the labeler's trigger has a richer layout than pd-ui's
+// AccordionTrigger: the labeler's trigger has a richer layout than pdomain-ui's
 // AccordionTrigger (hint text, keycap chip, custom chevron, uppercase label).
-// pd-ui's AccordionTrigger internally wraps with AccordionPrimitive.Header AND
+// pdomain-ui's AccordionTrigger internally wraps with AccordionPrimitive.Header AND
 // appends its own chevron span, making it incompatible with the labeler layout.
 // We build on the Radix primitives directly here; @radix-ui/react-accordion
 // remains an explicit dep for this reason.
@@ -90,9 +90,9 @@ const AccordionTrigger = React.forwardRef<
 ));
 AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName;
 
-// AccordionContent: built directly on Radix Content rather than pd-ui's wrapper
+// AccordionContent: built directly on Radix Content rather than pdomain-ui's wrapper
 // because the labeler's bg-bg-sunk + animation classes are applied at this layer
-// and pd-ui's AccordionContent adds its own 'acc-body' class that would conflict.
+// and pdomain-ui's AccordionContent adds its own 'acc-body' class that would conflict.
 const AccordionContent = React.forwardRef<
   React.ComponentRef<typeof AccordionPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
@@ -111,7 +111,7 @@ const AccordionContent = React.forwardRef<
 ));
 AccordionContent.displayName = AccordionPrimitive.Content.displayName;
 
-// Accordion root: adopted from pd-ui (replaces AccordionPrimitive.Root directly).
+// Accordion root: adopted from pdomain-ui (replaces AccordionPrimitive.Root directly).
 // Compound namespace export for dot-syntax compatibility.
 // Dot-syntax is kept (not migrated to named imports at callsites) because the
 // 2 callsites both use it and the trigger/content wrappers carry labeler-specific

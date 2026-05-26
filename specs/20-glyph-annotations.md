@@ -2,7 +2,7 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#44
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#44
 
 How the SPA records and edits **typographic features** (ct/st ligatures,
 long-s positions, swash caps, …) that the canonical GT text deliberately
@@ -17,8 +17,8 @@ it: GT stays "perfect" ASCII; annotations are a parallel structure.
 > 18 covers _which glyphs map to which ASCII_; 20 covers _how
 > typographic features are preserved as data_ even after the glyph
 > itself is normalized away.
-> Data-model owner — **pd-book-tools**
-> (`pd_book_tools.ocr.glyph_annotations` — NEW, not yet shipped).
+> Data-model owner — **pdomain-book-tools**
+> (`pdomain_book_tools.ocr.glyph_annotations` — NEW, not yet shipped).
 > Predictions producer — **pd-ocr-trainer**
 > (glyph-feature classifier — NEW, not yet shipped).
 > Driver consumer — **pd-ocr-labeler-driver**
@@ -62,7 +62,7 @@ counts toward "reviewed".
 
 | Concern | Owner | Status |
 |---|---|---|
-| `GlyphAnnotations` data model + JSON shape | `pd_book_tools.ocr.glyph_annotations` | NEW — needs delegation to pd-book-tools |
+| `GlyphAnnotations` data model + JSON shape | `pdomain_book_tools.ocr.glyph_annotations` | NEW — needs delegation to pdomain-book-tools |
 | Per-word predictions producer | pd-ocr-trainer (glyph-feature classifier) | NEW — needs delegation to pd-ocr-trainer |
 | Envelope schema bump (v2.1 → v2.2) | THIS SPEC + [`01-data-models.md`](../docs/architecture/01-data-models.md) §3, §4 | NEW |
 | `<GlyphAnnotationPanel>` + chip widget | THIS SPEC | NEW |
@@ -75,12 +75,12 @@ operates in pure manual mode.
 
 ---
 
-## 3. Shared data model (defined in pd-book-tools)
+## 3. Shared data model (defined in pdomain-book-tools)
 
 The Pydantic shape consumed by the envelope and wire types:
 
 ```python
-# pd_book_tools.ocr.glyph_annotations
+# pdomain_book_tools.ocr.glyph_annotations
 class LigatureKind(StrEnum):
     CT = "CT"     # c + t
     ST = "ST"     # s + t  (printed-s + t, i.e. the st-ligature)
@@ -312,7 +312,7 @@ Three preset recipes ship in v1:
   AND not before `b/k/h/f` (typesetter rules), add to
   `long_s_positions`. (Off by default, opt-in: this is heuristic.)
 
-The recipe list is data-driven; pd-book-tools may add more profiles
+The recipe list is data-driven; pdomain-book-tools may add more profiles
 later (e.g., per-typeface). v1 ships only the three above.
 
 This is the surface the **pd-ocr-labeler-driver** agent will automate
@@ -531,7 +531,7 @@ exactly the same.
   Both specs reference future "fraktur"/"gaelic" profiles. The glyph
   classifier and the normalization map should share a profile name
   (so a "fraktur" project gets both fraktur normalization and a
-  fraktur-trained classifier). Resolution lives in pd-book-tools.
+  fraktur-trained classifier). Resolution lives in pdomain-book-tools.
 - **Cross-page bulk mark** is out of v1 scope. If the driver needs it,
   it iterates per-page. A future M with project-wide bulk + SSE
   progress could add it.

@@ -2,7 +2,7 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#30
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#30
 
 The `pd-ocr-labeler-driver` agent operates the labeler UI through
 Playwright. It uses **stable `data-testid` attributes** and **stable
@@ -413,7 +413,7 @@ paths exactly once (the SSE backend dispatches; sonner consumes).
 | Page | `page_index` (0-based, matches `image_paths` ordering) |
 | Line | `line_index` (0-based, matches `page.lines[]` ordering) |
 | Word | `(line_index, word_index)` tuple |
-| Word (across edits) | `word_id` from `pd_book_tools.Word.id` (stable across moves but new on splits) |
+| Word (across edits) | `word_id` from `pdomain_book_tools.Word.id` (stable across moves but new on splits) |
 | Job | `job_id` from `core/jobs/runner.py` |
 | Notification | `notification_id` |
 

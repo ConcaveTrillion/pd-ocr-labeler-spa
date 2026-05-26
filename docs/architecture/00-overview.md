@@ -2,12 +2,12 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#4
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#4
 
-`pd-ocr-labeler-spa` reimplements the existing
+`pdomain-ocr-labeler-spa` reimplements the existing
 `pd-ocr-labeler` (NiceGUI, server-rendered Quasar UI) as a
 **FastAPI + React/Vite/TypeScript SPA**, structurally modelled on
-`pd-prep-for-pgdp`.
+`pdomain-prep-for-pgdp`.
 
 This document is the entry point for every other spec. Read it once,
 then jump to the per-area spec for whatever you're implementing.
@@ -27,7 +27,7 @@ then jump to the per-area spec for whatever you're implementing.
    FastAPI endpoint; the SPA consumes it via a generated TS client.
    ([`02-backend.md`](02-backend.md))
 4. **Single-wheel distribution.** End users still install with
-   `uv tool install pd-ocr-labeler-spa` and get a single binary that
+   `uv tool install pdomain-ocr-labeler-spa` and get a single binary that
    serves both API and SPA. ([`15-deployment-dev.md`](15-deployment-dev.md))
 5. **Milestone-implementable by AI agents.** Each milestone in
    [`16-milestones.md`](../../specs/16-milestones.md) is bounded enough that a
@@ -55,7 +55,7 @@ then jump to the per-area spec for whatever you're implementing.
   and the driver agent are the only known consumers.
 - **No NiceGUI / Quasar.** Drop the entire NiceGUI stack. UI = React,
   styling = Tailwind + shadcn/ui ([D-004](../../specs/17-decisions.md)).
-- **No DocTR replacement in v1.** OCR continues through `pd-book-tools` →
+- **No DocTR replacement in v1.** OCR continues through `pdomain-book-tools` →
   DocTR via `local_doctr`. The full `IOCREngine` adapter axis
   (`local_doctr | modal | shared_container`) is wired in v1 with the
   latter two as `NotImplementedYet` stubs ([D-018](../../specs/17-decisions.md)).
@@ -64,7 +64,7 @@ then jump to the per-area spec for whatever you're implementing.
   ([`09-persistence.md`](09-persistence.md)).
 - **No new image formats / coordinate systems.** Bbox geometry,
   refine algorithms, coordinate transforms are delegated unchanged to
-  `pd-book-tools` ([D-026](../../specs/17-decisions.md); refactor delegated).
+  `pdomain-book-tools` ([D-026](../../specs/17-decisions.md); refactor delegated).
 
 ## Tech stack
 
@@ -77,7 +77,7 @@ then jump to the per-area spec for whatever you're implementing.
 | Persistence | **Filesystem only** | Single-user; no DB needed for v1. Schema seam ready if we ever add one. |
 | Storage adapter | **`IStorage` Protocol** with `filesystem` impl + `s3` `NotImplementedYet` stub | Image cache served via the adapter, not raw StaticFiles. ([D-019](../../specs/17-decisions.md)) |
 | Auth | **`IAuth` Protocol**, `none` impl only | Seam in place; no JWT for v1. ([D-005](../../specs/17-decisions.md)) |
-| OCR | `IOCREngine` Protocol + `local_doctr` impl + `modal` / `shared_container` `NotImplementedYet` stubs | Wraps `pd_book_tools.ocr.document.Document.from_image_ocr_via_doctr`. ([D-018](../../specs/17-decisions.md)) |
+| OCR | `IOCREngine` Protocol + `local_doctr` impl + `modal` / `shared_container` `NotImplementedYet` stubs | Wraps `pdomain_book_tools.ocr.document.Document.from_image_ocr_via_doctr`. ([D-018](../../specs/17-decisions.md)) |
 | Long jobs | **In-process job runner**, SSE for progress | Mirrors pgdp-prep `core/job_runner.py` minus DB persistence (in-memory dict is enough since we have no batch path). ([D-006](../../specs/17-decisions.md)) |
 | Logging | stdlib JSON + `RequestIdMiddleware` | Verbatim port from pgdp-prep. |
 
@@ -107,7 +107,7 @@ then jump to the per-area spec for whatever you're implementing.
 | Tool | Notes |
 |---|---|
 | Python build | `hatchling` + `hatch-vcs` (pgdp-prep). |
-| Wheel-with-SPA | `force-include = src/pd_ocr_labeler_spa/static` + `build_hooks/spa_check.py`. |
+| Wheel-with-SPA | `force-include = src/pdomain_ocr_labeler_spa/static` + `build_hooks/spa_check.py`. |
 | Lockfile | `uv.lock`. |
 | Lint | `ruff` (Python) + `eslint` flat config (TS) — pgdp-prep is missing the eslint config; we add one. |
 | Format | `ruff format` + `prettier`. |
@@ -152,7 +152,7 @@ then jump to the per-area spec for whatever you're implementing.
 └──────────────────────────┼───────────────────────────┘
                            │ Python imports
                   ┌────────▼─────────┐
-                  │  pd-book-tools   │
+                  │  pdomain-book-tools   │
                   │  (Page, Block,   │
                   │   Word, BBox,    │
                   │   PGDPResults,   │
@@ -199,7 +199,7 @@ The legacy labeler has three nested state objects:
   — knows projects-root, selected project, OCR config, notifications.
 - `ProjectState` (per project) — knows the loaded `Project`, the
   current page index, the per-page-index `PageState` map, the GT map.
-- `PageState` (per page) — knows the `pd_book_tools.ocr.page.Page`
+- `PageState` (per page) — knows the `pdomain_book_tools.ocr.page.Page`
   object, dirty flags, line/word selection sets, the in-memory image,
   per-line / per-word event hooks.
 
@@ -262,7 +262,7 @@ format:
 **Outcome.** One paragraph describing what works at end of milestone.
 
 **Files to create / modify.**
-- src/pd_ocr_labeler_spa/api/...
+- src/pdomain_ocr_labeler_spa/api/...
 - frontend/src/pages/...
 - tests/...
 

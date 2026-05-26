@@ -9,7 +9,7 @@
 
 import { useCallback } from "react";
 import { useSyncExternalStore } from "react";
-import { Search } from "@concavetrillion/pd-ui/icons";
+import { Search } from "@pdomain/pdomain-ui/icons";
 import { dialogStore } from "../../stores/dialog-store";
 import { worklistStore } from "../../stores/worklist-store";
 

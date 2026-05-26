@@ -16,7 +16,7 @@ else
         pre-commit-check test integration e2e exercise-real build clean ci dev run \
         frontend-install frontend-build frontend-dev frontend-test frontend-knip \
         frontend-lint frontend-format frontend-format-check \
-        openapi-export update-pd-deps upgrade-pd-book-tools upgrade-deps upgrade-deps-local \
+        openapi-export update-pd-deps upgrade-pdomain-book-tools upgrade-deps upgrade-deps-local \
         local-setup local-dev local-check local-upgrade-deps local-run \
         mise-download mise-trust-worktrees mise-setup mise-doctor \
         docker-build docker-run docker-shell \
@@ -43,22 +43,22 @@ setup: ## Sync deps + install pre-commit hooks + refresh version
 	@echo "Setup complete!"
 
 refresh-version: ## Force hatch-vcs to re-derive version from current git state
-	@echo "Reinstalling pd-ocr-labeler-spa so hatch-vcs picks up HEAD/tags..."
-	@# Hatchling's `force-include` of src/pd_ocr_labeler_spa/static refuses to
+	@echo "Reinstalling pdomain-ocr-labeler-spa so hatch-vcs picks up HEAD/tags..."
+	@# Hatchling's `force-include` of src/pdomain_ocr_labeler_spa/static refuses to
 	@# resolve when the directory is missing (FileNotFoundError during the
 	@# editable build), so make sure it exists before the editable install.
 	@# The wheel-side SPA check (build_hooks/spa_check.py) still gates real
 	@# wheel builds on the bundled index.html being present.
-	@mkdir -p src/pd_ocr_labeler_spa/static
-	@UV_LINK_MODE=copy uv pip install -e . --reinstall-package pd-ocr-labeler-spa
+	@mkdir -p src/pdomain_ocr_labeler_spa/static
+	@UV_LINK_MODE=copy uv pip install -e . --reinstall-package pdomain-ocr-labeler-spa
 	@uv run pd-ocr-labeler-ui --version 2>/dev/null || true
 
 install: ## Install pd-ocr-labeler-ui as a uv tool from local source
 	uv tool install --reinstall .
 	@echo "pd-ocr-labeler-ui installed. Run: pd-ocr-labeler-ui --version"
 
-uninstall: ## Remove the installed pd-ocr-labeler-spa uv tool
-	@uv tool uninstall pd-ocr-labeler-spa || true
+uninstall: ## Remove the installed pdomain-ocr-labeler-spa uv tool
+	@uv tool uninstall pdomain-ocr-labeler-spa || true
 
 remove-venv: ## Remove the virtual environment
 	rm -rf .venv
@@ -67,8 +67,8 @@ reset: clean remove-venv setup ## Rebuild the virtual environment
 	@echo "Environment Reset!"
 
 upgrade-deps: ## Upgrade dependency lockfile (refuses in a dev-local venv)
-	@if uv pip show pd-book-tools 2>/dev/null | grep -q "Editable project location"; then \
-		echo "upgrade-deps refused: editable pd-book-tools detected (probe 1)."; \
+	@if uv pip show pdomain-book-tools 2>/dev/null | grep -q "Editable project location"; then \
+		echo "upgrade-deps refused: editable pdomain-book-tools detected (probe 1)."; \
 		echo "  'make upgrade-deps' would silently revert it to the pinned release."; \
 		echo "  Use 'make upgrade-deps-local' to upgrade and re-install editable."; \
 		exit 1; \
@@ -94,15 +94,15 @@ upgrade-deps-local: ## [deprecated] Use 'make local-upgrade-deps' instead
 	@$(MAKE) --no-print-directory local-upgrade-deps
 
 # ---------------------------------------------------------------------------
-# Local-dev mode — editable sibling pd-* deps (pd-book-tools + pd-ui)
+# Local-dev mode — editable sibling pd-* deps (pdomain-book-tools + pdomain-ui)
 # ---------------------------------------------------------------------------
-# 5-script SPA pattern: Python sibling pd-book-tools; npm sibling pd-ui.
+# 5-script SPA pattern: Python sibling pdomain-book-tools; npm sibling pdomain-ui.
 # Scripts live in scripts/local-*.sh (idempotent; safe to re-run).
 
-local-setup: ## Clone any missing sibling pd-* repos (pd-book-tools, pd-ui)
+local-setup: ## Clone any missing sibling pd-* repos (pdomain-book-tools, pdomain-ui)
 	@./scripts/local-setup.sh
 
-local-dev: ## Switch to local-dev mode (editable pd-book-tools + linked pd-ui; writes marker)
+local-dev: ## Switch to local-dev mode (editable pdomain-book-tools + linked pdomain-ui; writes marker)
 	@./scripts/local-dev.sh
 
 local-check: ## Print local-dev mode status (marker + editable / linked state)
@@ -117,7 +117,7 @@ local-run: ## Run the SPA against local-dev workspace (requires local-dev mode)
 # ---------------------------------------------------------------------------
 # Sibling-dep refresh (spec #363) — update-pd-deps
 # ---------------------------------------------------------------------------
-# Queries pd-index-pip + pd-index-npm for each sibling, bumps minimum-version
+# Queries pdomain-index-pip + pdomain-index-npm for each sibling, bumps minimum-version
 # pins in pyproject.toml and frontend/package.json, then leaves the diff for
 # human review. Does NOT commit. Idempotent.
 # See ../docs/process/update-pd-deps.md for full workflow.
@@ -125,12 +125,12 @@ local-run: ## Run the SPA against local-dev workspace (requires local-dev mode)
 update-pd-deps: ## Bump all sibling pd-* deps (Python + npm) to registry latest; leaves diff for review
 	@./scripts/update-pd-deps.sh
 
-upgrade-pd-book-tools: ## DEPRECATED: use update-pd-deps
-	@echo "warning: 'upgrade-pd-book-tools' is deprecated; use 'make update-pd-deps'"
+upgrade-pdomain-book-tools: ## DEPRECATED: use update-pd-deps
+	@echo "warning: 'upgrade-pdomain-book-tools' is deprecated; use 'make update-pd-deps'"
 	@$(MAKE) --no-print-directory update-pd-deps
 
 # ---------------------------------------------------------------------------
-# Optional: mise-managed tool versions (mirrors pd-prep-for-pgdp pattern)
+# Optional: mise-managed tool versions (mirrors pdomain-prep-for-pgdp pattern)
 # ---------------------------------------------------------------------------
 # `mise.toml` pins node/python. `make mise-setup` downloads the mise binary
 # (locally, no .bashrc edit) and pulls the toolchain. Other targets dispatch
@@ -218,14 +218,14 @@ frontend-install: ## Install frontend dependencies
 	@echo "Installing frontend deps..."
 	@$(call _npm,install --frozen-lockfile)
 
-frontend-build: ## Build the SPA into src/pd_ocr_labeler_spa/static/ (so the wheel includes it)
+frontend-build: ## Build the SPA into src/pdomain_ocr_labeler_spa/static/ (so the wheel includes it)
 	@echo "Building frontend..."
 	@$(call _npm,install)
 	@$(call _npm,run build)
-	@mkdir -p src/pd_ocr_labeler_spa/static
-	@rm -rf src/pd_ocr_labeler_spa/static/*
-	cp -r frontend/dist/. src/pd_ocr_labeler_spa/static/
-	@echo "Frontend bundled into src/pd_ocr_labeler_spa/static/"
+	@mkdir -p src/pdomain_ocr_labeler_spa/static
+	@rm -rf src/pdomain_ocr_labeler_spa/static/*
+	cp -r frontend/dist/. src/pdomain_ocr_labeler_spa/static/
+	@echo "Frontend bundled into src/pdomain_ocr_labeler_spa/static/"
 
 frontend-dev: ## Run Vite dev server (frontend only)
 	@$(call _npm,install)
@@ -262,7 +262,7 @@ frontend-format-check: ## Check SPA formatting with Prettier (blocking; CI gate)
 
 openapi-export: ## Regenerate frontend/src/api/types.ts from /openapi.json
 	@echo "Exporting OpenAPI schema and regenerating TS types..."
-	uv run python -c "import json, logging; logging.disable(logging.CRITICAL); from pd_ocr_labeler_spa.bootstrap import build_app; \
+	uv run python -c "import json, logging; logging.disable(logging.CRITICAL); from pdomain_ocr_labeler_spa.bootstrap import build_app; \
 print(json.dumps(build_app().openapi(), indent=2))" > frontend/openapi.json
 	@if $(HAVE_MISE); then \
 		cd frontend && $(MISE) exec -- npx --yes openapi-typescript openapi.json -o src/api/types.ts; \
@@ -275,13 +275,13 @@ print(json.dumps(build_app().openapi(), indent=2))" > frontend/openapi.json
 # Lint / format / test / build
 # ---------------------------------------------------------------------------
 
-typecheck: ## Run basedpyright recommended on src/pd_ocr_labeler_spa (--level error, warnings suppressed)
-	uv run basedpyright src/pd_ocr_labeler_spa --level error
+typecheck: ## Run basedpyright recommended on src/pdomain_ocr_labeler_spa (--level error, warnings suppressed)
+	uv run basedpyright src/pdomain_ocr_labeler_spa --level error
 
 lint: ## Run ruff + basedpyright + eslint + tsc --noEmit (backend + frontend)
 	uv run ruff check --select I --fix
 	uv run ruff check --fix
-	uv run basedpyright src/pd_ocr_labeler_spa --level error
+	uv run basedpyright src/pdomain_ocr_labeler_spa --level error
 	@if [ -f frontend/node_modules/.bin/eslint ]; then \
 		echo "  Running eslint..."; \
 		$(call _npm,run lint); \
@@ -331,7 +331,7 @@ EXERCISE_HEADED ?= $(if $(filter 1,$(HEADED)),--headed,)
 
 exercise-real: ## Run Playwright exercise against the 8-page exercise-fixture project
 	@echo "Running exercise harness (8 pages, real OCR data)..."
-	@if [ ! -f src/pd_ocr_labeler_spa/static/index.html ]; then \
+	@if [ ! -f src/pdomain_ocr_labeler_spa/static/index.html ]; then \
 		echo "SPA bundle missing — running frontend-build first..."; \
 		$(MAKE) --no-print-directory frontend-build; \
 	fi
@@ -348,7 +348,7 @@ dev: ## Run uvicorn with --reload against a Vite dev server on :5173
 # ---------------------------------------------------------------------------
 # Distinct from `make dev` (which assumes you're hacking on the frontend
 # and want HMR via Vite on :5173). `run` serves the bundled SPA from
-# src/pd_ocr_labeler_spa/static/ directly via FastAPI — no Vite, no
+# src/pdomain_ocr_labeler_spa/static/ directly via FastAPI — no Vite, no
 # --reload, browser tab opens automatically. The startup banner
 # (printed by __main__.main via core.device_info.describe_device)
 # announces whether torch picked up the local GPU.
@@ -358,18 +358,18 @@ dev: ## Run uvicorn with --reload against a Vite dev server on :5173
 # every invocation. To force a rebuild, run `make frontend-build` first.
 
 run: ## Build SPA if missing, then serve via pd-ocr-labeler-ui (production-style; opens browser)
-	@if [ ! -f src/pd_ocr_labeler_spa/static/index.html ]; then \
+	@if [ ! -f src/pdomain_ocr_labeler_spa/static/index.html ]; then \
 		echo "SPA bundle missing; running frontend-build first..."; \
 		$(MAKE) --no-print-directory frontend-build; \
 	else \
-		echo "SPA bundle present at src/pd_ocr_labeler_spa/static/index.html (run 'make frontend-build' to refresh)."; \
+		echo "SPA bundle present at src/pdomain_ocr_labeler_spa/static/index.html (run 'make frontend-build' to refresh)."; \
 	fi
 	uv run pd-ocr-labeler-ui
 
 build: frontend-build ## Build the wheel (with frontend bundled)
 	# `--wheel` skips the sdist step. The build hook in
 	# build_hooks/spa_check.py refuses to build a wheel without
-	# src/pd_ocr_labeler_spa/static/index.html, and that directory is
+	# src/pdomain_ocr_labeler_spa/static/index.html, and that directory is
 	# .gitignore'd — so the default `uv build` (sdist -> wheel-from-sdist)
 	# fails because the unpacked sdist has no SPA. Wheel-only is supported.
 	uv build --wheel
@@ -379,13 +379,13 @@ clean: ## Clean cache + build artifacts
 	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
-	rm -rf dist/ src/pd_ocr_labeler_spa/static/ frontend/dist/ 2>/dev/null || true
+	rm -rf dist/ src/pdomain_ocr_labeler_spa/static/ frontend/dist/ 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
 # Security audit (F-021) — pip-audit with non-PyPI manifest
 # ---------------------------------------------------------------------------
 # pip-audit cannot query advisories for packages served from private registries
-# (e.g. pd-book-tools from pd-index-pip). Passing such packages to pip-audit
+# (e.g. pdomain-book-tools from pdomain-index-pip). Passing such packages to pip-audit
 # causes it to fail or silently skip them. This target:
 #   1. Parses uv.lock to find every non-PyPI source package.
 #   2. Prints an explicit manifest of those packages so nothing is invisible.
@@ -407,7 +407,7 @@ ci: setup frontend-install pre-commit-check typecheck openapi-export frontend-bu
 # ---------------------------------------------------------------------------
 # Docker
 # ---------------------------------------------------------------------------
-# Mirrors `pd-prep-for-pgdp/Makefile` docker-* shape so cross-repo muscle
+# Mirrors `pdomain-prep-for-pgdp/Makefile` docker-* shape so cross-repo muscle
 # memory works: `docker-build` depends on `frontend-build` (the
 # Dockerfile's wheel stage requires a populated `static/` regardless,
 # but the wheel-from-source `make build` path needs it locally too, and
@@ -421,7 +421,7 @@ ci: setup frontend-install pre-commit-check typecheck openapi-export frontend-bu
 # in `tests/unit/test_makefile_docker.py` asserts those three values
 # stay in lockstep.
 
-DOCKER_IMAGE ?= pd-ocr-labeler-spa
+DOCKER_IMAGE ?= pdomain-ocr-labeler-spa
 DOCKER_TAG   ?= dev
 DOCKER_PORT  ?= 8080
 

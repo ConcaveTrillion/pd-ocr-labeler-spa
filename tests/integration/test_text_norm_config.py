@@ -4,7 +4,7 @@ Acceptance criteria:
 - A1: POST GT containing fi-ligature (U+FB01) returns 400 validation_error
 - A2: normalize_for_gt_matching: true in config.yaml persists and is read on startup
 - A3: With flag true: OCR long-s-hall vs GT shall -> match_status=exact, normalized_match=true
-- A4: When pd-book-tools normalize module absent: flag silently ignored (no 500)
+- A4: When pdomain-book-tools normalize module absent: flag silently ignored (no 500)
 
 Spec authority:
 - docs/specs/2026-05-12-text-normalization-design.md - GT validation contract
@@ -20,8 +20,8 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path, **overrides: Any) -> Settings:
@@ -128,7 +128,7 @@ def test_gt_update_accepts_normal_text(loaded_client: TestClient) -> None:
 
 def test_normalize_for_gt_matching_field_in_app_config() -> None:
     """AppConfig must expose normalize_for_gt_matching as a bool field."""
-    from pd_ocr_labeler_spa.core.persistence.config_yaml import AppConfig
+    from pdomain_ocr_labeler_spa.core.persistence.config_yaml import AppConfig
 
     cfg = AppConfig()
     assert cfg.normalize_for_gt_matching is False  # default off
@@ -136,7 +136,7 @@ def test_normalize_for_gt_matching_field_in_app_config() -> None:
 
 def test_normalize_plaintext_tabs_field_in_app_config() -> None:
     """AppConfig must expose normalize_plaintext_tabs as a bool field."""
-    from pd_ocr_labeler_spa.core.persistence.config_yaml import AppConfig
+    from pdomain_ocr_labeler_spa.core.persistence.config_yaml import AppConfig
 
     cfg = AppConfig()
     assert cfg.normalize_plaintext_tabs is False  # default off
@@ -144,7 +144,7 @@ def test_normalize_plaintext_tabs_field_in_app_config() -> None:
 
 def test_normalize_profile_field_in_app_config() -> None:
     """AppConfig must expose normalize_profile with default 'ascii'."""
-    from pd_ocr_labeler_spa.core.persistence.config_yaml import AppConfig
+    from pdomain_ocr_labeler_spa.core.persistence.config_yaml import AppConfig
 
     cfg = AppConfig()
     assert cfg.normalize_profile == "ascii"
@@ -154,7 +154,7 @@ def test_normalize_fields_persist_in_config_yaml(tmp_path: Path) -> None:
     """normalize_for_gt_matching: true written to config.yaml survives a load_config cycle."""
     import yaml
 
-    from pd_ocr_labeler_spa.core.persistence.config_yaml import AppConfig, load_config, save_config
+    from pdomain_ocr_labeler_spa.core.persistence.config_yaml import AppConfig, load_config, save_config
 
     config_root = tmp_path / "config"
     config_root.mkdir()
@@ -177,7 +177,7 @@ def test_normalize_fields_round_trip_on_startup(tmp_path: Path) -> None:
     The AppConfig (from config.yaml) is read at startup and must include
     the normalize_for_gt_matching flag when it was previously saved as true.
     """
-    from pd_ocr_labeler_spa.core.persistence.config_yaml import AppConfig, save_config
+    from pdomain_ocr_labeler_spa.core.persistence.config_yaml import AppConfig, save_config
 
     config_root = tmp_path / "config"
     config_root.mkdir()
@@ -200,7 +200,7 @@ def test_legacy_config_yaml_without_normalize_fields_loads_cleanly(tmp_path: Pat
     must use the field defaults. A legacy config.yaml with only
     source_projects_root must still yield normalize_for_gt_matching=False.
     """
-    from pd_ocr_labeler_spa.core.persistence.config_yaml import load_config
+    from pdomain_ocr_labeler_spa.core.persistence.config_yaml import load_config
 
     config_root = tmp_path / "config"
     config_root.mkdir()
@@ -226,7 +226,7 @@ def test_normalized_match_field_on_word_match() -> None:
     The spec adds this field to carry the 'match was only exact after
     normalization' signal used by the '≈' badge in the UI.
     """
-    from pd_ocr_labeler_spa.core.models import BBox, MatchStatus, WordMatch
+    from pdomain_ocr_labeler_spa.core.models import BBox, MatchStatus, WordMatch
 
     wm = WordMatch(
         line_index=0,
@@ -240,12 +240,12 @@ def test_normalized_match_field_on_word_match() -> None:
 
 
 def test_normalize_flag_absent_module_no_500(tmp_path: Path, projects_root: Path) -> None:
-    """When pd-book-tools normalize module is absent, flag is silently ignored (no 500).
+    """When pdomain-book-tools normalize module is absent, flag is silently ignored (no 500).
 
     A4 acceptance: the app must not 500 when normalize_for_gt_matching=True
-    but pd_book_tools.text.normalize is not importable.
+    but pdomain_book_tools.text.normalize is not importable.
     """
-    from pd_ocr_labeler_spa.core.persistence.config_yaml import AppConfig, save_config
+    from pdomain_ocr_labeler_spa.core.persistence.config_yaml import AppConfig, save_config
 
     config_root = tmp_path / "config"
     config_root.mkdir()

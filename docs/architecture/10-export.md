@@ -2,7 +2,7 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#24
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#24
 
 The Export dialog drives the DocTR training-export pipeline against
 labeled-projects. Output: per-page detection + recognition training
@@ -172,11 +172,11 @@ async def handle_export(runner: JobRunner, job: Job) -> None:
             )
 ```
 
-The pd-book-tools API used:
+The pdomain-book-tools API used:
 
 - `Page.generate_doctr_detection_training_set`
 - `Page.generate_doctr_recognition_training_set`
-- `pd_ocr_labeler_spa.export.WordFilter` (port from legacy)
+- `pdomain_ocr_labeler_spa.export.WordFilter` (port from legacy)
 
 ---
 
@@ -200,7 +200,7 @@ The pd-book-tools API used:
 
 `<prefix>` defaults to `<project_id>`.
 
-`labels.json` schema is owned by `pd_book_tools` (DocTR convention);
+`labels.json` schema is owned by `pdomain_book_tools` (DocTR convention);
 SPA doesn't reshape it.
 
 ---
@@ -211,7 +211,7 @@ The legacy ships `pd-ocr-labeler-export` as a separate console script
 for headless training-data generation. The SPA ships the same:
 
 ```sh
-pd-ocr-labeler-spa-export <labeled_dir> <output_dir> \
+pdomain-ocr-labeler-spa-export <labeled_dir> <output_dir> \
     [--prefix PREFIX] \
     [--all-pages | --require-gt] \
     [--style STYLE | --component COMPONENT | --classification] \
@@ -219,7 +219,7 @@ pd-ocr-labeler-spa-export <labeled_dir> <output_dir> \
     [-v]
 ```
 
-Implementation: `src/pd_ocr_labeler_spa/operations/export/cli.py`.
+Implementation: `src/pdomain_ocr_labeler_spa/operations/export/cli.py`.
 Reuses the same `DocTRExportOperations` driver as the dialog. Doesn't
 boot the FastAPI server; reads envelopes directly from disk.
 

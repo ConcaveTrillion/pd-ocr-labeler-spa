@@ -1,6 +1,6 @@
 // Worklist.tsx — Worklist tab inside the Drawer panel.
 // Spec: docs/specs/2026-05-15-hifi-redesign-plan.md Slice 11, P5.a, P5.b.
-// Phase 2.3: internals replaced with pd-ui <WordList>; labeler-specific
+// Phase 2.3: internals replaced with pdomain-ui <WordList>; labeler-specific
 //   rendering lives in the renderRow prop. See cross-cut design §7.3.
 //
 // P5.a (Gap 20): each row shows a 4px color bar + mono ID stamp + status pip +
@@ -14,12 +14,12 @@
 //   We adapt via LineMatchWordItem (adds `text = ocr_line_text`, stub
 //   `bounding_box`). The renderRow override means the stub is never displayed.
 //
-// GAP-2: pd-ui WordList renders its own role=listbox div without a data-testid.
+// GAP-2: pdomain-ui WordList renders its own role=listbox div without a data-testid.
 //   We wrap it in a div[data-testid="worklist-queue"] with no role= so there
-//   is only one listbox in the subtree (the pd-ui one).
+//   is only one listbox in the subtree (the pdomain-ui one).
 
-import type { WordListItem, WordRowProps } from "@concavetrillion/pd-ui/worklist";
-import { WordList } from "@concavetrillion/pd-ui/worklist";
+import type { WordListItem, WordRowProps } from "@pdomain/pdomain-ui/worklist";
+import { WordList } from "@pdomain/pdomain-ui/worklist";
 import { useSyncExternalStore } from "react";
 import type { components } from "../../api/types";
 import { cn } from "@/lib/utils";
@@ -34,13 +34,13 @@ type MatchStatus = components["schemas"]["MatchStatus"];
 
 // ─── GAP-1 adapter: LineMatch → WordListItem-compatible ───────────────────────
 //
-// pd-ui WordList requires TWord extends WordListItem which needs `text` and
+// pdomain-ui WordList requires TWord extends WordListItem which needs `text` and
 // `bounding_box`. LineMatch has neither. We extend with these fields so the
 // structural constraint is satisfied; renderRow overrides all presentation.
 
 interface LineMatchWordItem extends WordListItem {
-  // --- WordListItem shim fields (required by pd-ui type constraint) ---
-  // text mirrors ocr_line_text so any pd-ui default rendering falls back
+  // --- WordListItem shim fields (required by pdomain-ui type constraint) ---
+  // text mirrors ocr_line_text so any pdomain-ui default rendering falls back
   // gracefully (though renderRow below always wins).
   text: string;
   bounding_box: {
@@ -253,8 +253,8 @@ function FilterRow({ counts, activeFilter, sort, onFilter, onSort }: FilterRowPr
 
 // ─── renderRow: WorklistRow content (P5.a) ────────────────────────────────
 //
-// This function satisfies pd-ui's renderRow: (props: WordRowProps<LineMatchWordItem>) => ReactNode.
-// It receives the adapted item and the selection state from pd-ui.
+// This function satisfies pdomain-ui's renderRow: (props: WordRowProps<LineMatchWordItem>) => ReactNode.
+// It receives the adapted item and the selection state from pdomain-ui.
 
 interface WorklistRowInnerProps {
   item: LineMatchWordItem;
@@ -274,7 +274,7 @@ function WorklistRowInner({ item, isSelected, isChecked }: WorklistRowInnerProps
   const idStamp = `L-${String(lineNum).padStart(3, "0")}`;
 
   return (
-    // Note: pd-ui WordList renders the outer div[role=option] wrapping this.
+    // Note: pdomain-ui WordList renders the outer div[role=option] wrapping this.
     // We render only the inner content here.
     <div
       data-testid={`worklist-row-${line.line_index}`}
@@ -381,11 +381,11 @@ export function Worklist({ lineMatches = [], projectId, pageIndex }: WorklistPro
   // Counts are always computed from the full unfiltered list for the chip row.
   const counts = computeCounts(lineMatches);
 
-  // Adapt LineMatch[] → WordListItem-compatible items for pd-ui WordList (GAP-1).
+  // Adapt LineMatch[] → WordListItem-compatible items for pdomain-ui WordList (GAP-1).
   const wordItems: LineMatchWordItem[] = filtered.map(adaptLineMatch);
 
   // Map line_index → display index for controlled selectedIndex prop.
-  // pd-ui WordList uses a 0-based index into the *displayed* items array.
+  // pdomain-ui WordList uses a 0-based index into the *displayed* items array.
   const displaySelectedIndex =
     selectedLineIndex != null
       ? wordItems.findIndex((w) => w._lineMatch.line_index === selectedLineIndex)
@@ -406,8 +406,8 @@ export function Worklist({ lineMatches = [], projectId, pageIndex }: WorklistPro
         }}
       />
 
-      {/* Queue list — wrapper keeps data-testid; pd-ui WordList owns role=listbox.
-          GAP-2: pd-ui WordList does not accept data-testid as a prop; the
+      {/* Queue list — wrapper keeps data-testid; pdomain-ui WordList owns role=listbox.
+          GAP-2: pdomain-ui WordList does not accept data-testid as a prop; the
           wrapper div carries the testid without a conflicting role=. */}
       <div data-testid="worklist-queue" className="flex-1 min-h-0" aria-label="Line worklist queue">
         {filtered.length === 0 ? (

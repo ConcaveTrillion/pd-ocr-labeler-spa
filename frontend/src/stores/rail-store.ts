@@ -11,12 +11,12 @@
 // Phase 2.5 (cross-cut-design §7.5): migrated from hand-rolled reactive
 // store to Zustand's vanilla `createStore`. External API preserved intact.
 //
-// GAP-4: Cannot use a pd-ui store factory for rail state.
-//   No pd-ui factory covers the Rail tool-mode concept: labeler-specific
+// GAP-4: Cannot use a pdomain-ui store factory for rail state.
+//   No pdomain-ui factory covers the Rail tool-mode concept: labeler-specific
 //   target (block/para/line/word) that persists to localStorage, and an
 //   interaction mode (view/region/annotate/erase) that resets on reload.
-//   This is labeler-domain UI state that pd-ui explicitly excludes per
-//   §3 "What pd-ui does not include".
+//   This is labeler-domain UI state that pdomain-ui explicitly excludes per
+//   §3 "What pdomain-ui does not include".
 
 import { createStore } from "zustand/vanilla";
 

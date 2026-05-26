@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 from typing import ClassVar
 
-from pd_ocr_labeler_spa.core.page_to_line_matches import page_to_line_matches
+from pdomain_ocr_labeler_spa.core.page_to_line_matches import page_to_line_matches
 
 IMAGE_PATH = Path("/fake/image.png")
 
@@ -23,7 +23,7 @@ class _NoLines:
 
 def test_wrong_type_logs_warning(caplog):
     """Non-None page without .lines logs WARNING, returns empty line_matches."""
-    with caplog.at_level(logging.WARNING, logger="pd_ocr_labeler_spa.core.page_to_line_matches"):
+    with caplog.at_level(logging.WARNING, logger="pdomain_ocr_labeler_spa.core.page_to_line_matches"):
         _record, lms = page_to_line_matches(_NoLines(), 0, IMAGE_PATH)
     assert lms == []
     assert any("no 'lines' attribute" in m or "lines" in m.lower() for m in caplog.messages), (
@@ -33,7 +33,7 @@ def test_wrong_type_logs_warning(caplog):
 
 def test_none_page_returns_empty_no_warning(caplog):
     """None page is the documented degraded path — no warning emitted."""
-    with caplog.at_level(logging.WARNING, logger="pd_ocr_labeler_spa.core.page_to_line_matches"):
+    with caplog.at_level(logging.WARNING, logger="pdomain_ocr_labeler_spa.core.page_to_line_matches"):
         _record, lms = page_to_line_matches(None, 0, IMAGE_PATH)
     assert lms == []
     # No warning for the documented None case
@@ -62,7 +62,7 @@ def test_word_missing_bbox_logs_warning(caplog):
         paragraphs: ClassVar[list] = []
         items: ClassVar[list] = []
 
-    with caplog.at_level(logging.WARNING, logger="pd_ocr_labeler_spa.core.page_to_line_matches"):
+    with caplog.at_level(logging.WARNING, logger="pdomain_ocr_labeler_spa.core.page_to_line_matches"):
         _record, lms = page_to_line_matches(_Page(), 0, IMAGE_PATH)
 
     assert lms == []
@@ -99,7 +99,7 @@ def test_fuzz_scorer_raises_logs_warning(caplog):
         paragraphs: ClassVar[list] = []
         items: ClassVar[list] = []
 
-    with caplog.at_level(logging.WARNING, logger="pd_ocr_labeler_spa.core.page_to_line_matches"):
+    with caplog.at_level(logging.WARNING, logger="pdomain_ocr_labeler_spa.core.page_to_line_matches"):
         _record, lms = page_to_line_matches(_Page(), 0, IMAGE_PATH)
 
     assert len(lms) == 1  # word still appears (MISMATCH with score 0)
@@ -110,7 +110,7 @@ def test_fuzz_scorer_raises_logs_warning(caplog):
 
 def test_paragraph_lookup_failure_logs_warning(caplog, monkeypatch):
     """When _build_line_to_paragraph_lookup raises, logs WARNING."""
-    import pd_ocr_labeler_spa.core.page_to_line_matches as _mod
+    import pdomain_ocr_labeler_spa.core.page_to_line_matches as _mod
 
     def _bad_lookup(page):
         raise RuntimeError("lookup broken")
@@ -140,7 +140,7 @@ def test_paragraph_lookup_failure_logs_warning(caplog, monkeypatch):
         paragraphs: ClassVar[list] = []
         items: ClassVar[list] = []
 
-    with caplog.at_level(logging.WARNING, logger="pd_ocr_labeler_spa.core.page_to_line_matches"):
+    with caplog.at_level(logging.WARNING, logger="pdomain_ocr_labeler_spa.core.page_to_line_matches"):
         _record, _lms = page_to_line_matches(_Page(), 0, IMAGE_PATH)
 
     assert any("paragraph" in m.lower() or "lookup" in m.lower() for m in caplog.messages), (

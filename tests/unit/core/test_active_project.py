@@ -44,7 +44,7 @@ from pathlib import Path
 
 import pytest
 
-from pd_ocr_labeler_spa.core.active_project import (
+from pdomain_ocr_labeler_spa.core.active_project import (
     ActiveProject,
     ActiveProjectCarrier,
     InvalidProjectDirError,
@@ -139,7 +139,7 @@ def test_set_active_project_emits_structured_log(tmp_path: Path, caplog: pytest.
     Mirrors slice 1's logging discipline so the active-project lifecycle
     is testable without parsing message strings.
     """
-    caplog.set_level(logging.INFO, logger="pd_ocr_labeler_spa.core.active_project")
+    caplog.set_level(logging.INFO, logger="pdomain_ocr_labeler_spa.core.active_project")
     ActiveProjectCarrier().set_active_project(tmp_path)
     matching = [
         r for r in caplog.records if getattr(r, "active_project_path", None) == str(tmp_path.resolve())

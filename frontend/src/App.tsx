@@ -1,7 +1,7 @@
 // App.tsx — SPA root: router, QueryClient provider, and route table.
 // Spec: docs/specs/2026-05-12-frontend-shell-design.md §Routing
 // Issue #240
-// Phase 2.4: replaced local AppShell wrapper with pd-ui AppShell (issue #262).
+// Phase 2.4: replaced local AppShell wrapper with pdomain-ui AppShell (issue #262).
 //
 // Route table (from routes.ts):
 //   /                                              → RootPage (session-state redirect or EmptyProjectState)
@@ -16,7 +16,7 @@
 // GAP-2: POST /api/ui-prefs backend endpoint not yet implemented — same as GAP-1.
 // GAP-3: GET /api/suite/installed + POST /api/suite/launch backend endpoints not
 //        yet implemented. SuiteSiblingsProvider fetchInstalled returns [] (no-op);
-//        postLaunch returns requires-host-config. Real wiring blocked on pd-ocr-ops
+//        postLaunch returns requires-host-config. Real wiring blocked on pdomain-ocr-ops
 //        mounting /api/suite/* routes in the FastAPI app.
 
 import { BrowserRouter, Routes, Route, Navigate, useParams, useMatch } from "react-router-dom";
@@ -30,7 +30,7 @@ import {
   type UIPrefsConfig,
   type InstalledApp,
   type LaunchResult,
-} from "@concavetrillion/pd-ui/shell";
+} from "@pdomain/pdomain-ui/shell";
 import HeaderBar from "./components/HeaderBar";
 import type { PageMetrics } from "./components/HeaderBar";
 import ProjectNavigationControls from "./components/ProjectNavigationControls";
@@ -164,10 +164,10 @@ function AppInner() {
 
   return (
     /*
-     * Phase 2.4: pd-ui AppShell replaces the local layout wrapper.
+     * Phase 2.4: pdomain-ui AppShell replaces the local layout wrapper.
      *
      * The outer div preserves data-testid="app-shell" for Playwright driver
-     * contract compatibility (specs/13-driver-contract.md). pd-ui AppShell
+     * contract compatibility (specs/13-driver-contract.md). pdomain-ui AppShell
      * does not inject its own data-testid so the wrapper is the stable anchor.
      *
      * Slot mapping vs former local layout:
@@ -179,13 +179,13 @@ function AppInner() {
      * filled by StudioShell inside ProjectPage for the per-page layout.
      * StudioShell continues to manage the 5-zone canvas grid.
      *
-     * launcherSlot="header": pd-ui AppShell injects LauncherSlot into the
+     * launcherSlot="header": pdomain-ui AppShell injects LauncherSlot into the
      * header zone. The SuiteSiblingsProvider (wrapped in App()) supplies the
      * sibling list via fetchInstalled / postLaunch callbacks.
      */
     <div data-testid="app-shell" className="h-screen w-full">
       <AppShell
-        appId="pd-ocr-labeler-spa"
+        appId="pdomain-ocr-labeler-spa"
         appDisplayName="OCR Labeler"
         appIconUrl="/static/icon.svg"
         launcherSlot="header"
@@ -364,7 +364,7 @@ const UI_PREFS_CONFIG: UIPrefsConfig = {
 // postLaunch returns requires-host-config so the launcher shows an error
 // rather than a crash if somehow invoked.
 async function fetchInstalled(): Promise<InstalledApp[]> {
-  // GAP-3: when pd-ocr-ops mounts /api/suite/* in FastAPI, replace with:
+  // GAP-3: when pdomain-ocr-ops mounts /api/suite/* in FastAPI, replace with:
   //   const res = await fetch("/api/suite/installed");
   //   if (!res.ok) return [];
   //   return (await res.json()) as InstalledApp[];
@@ -372,7 +372,7 @@ async function fetchInstalled(): Promise<InstalledApp[]> {
 }
 
 async function postLaunch(id: string): Promise<LaunchResult> {
-  // GAP-3: when pd-ocr-ops mounts /api/suite/* in FastAPI, replace with:
+  // GAP-3: when pdomain-ocr-ops mounts /api/suite/* in FastAPI, replace with:
   //   const res = await fetch(`/api/suite/launch`, {
   //     method: "POST", body: JSON.stringify({ id }),
   //     headers: { "Content-Type": "application/json" },
@@ -387,8 +387,8 @@ export default function App() {
       <BrowserRouter>
         {/*
          * Phase 2.4: SuiteSiblingsProvider supplies the launcher context
-         * that pd-ui AppShell's LauncherSlot reads via useSuiteSiblingsContext().
-         * fetchInstalled / postLaunch are shims (GAP-3) until pd-ocr-ops
+         * that pdomain-ui AppShell's LauncherSlot reads via useSuiteSiblingsContext().
+         * fetchInstalled / postLaunch are shims (GAP-3) until pdomain-ocr-ops
          * mounts /api/suite/* in the FastAPI app.
          */}
         <SuiteSiblingsProvider value={{ fetchInstalled, postLaunch }}>

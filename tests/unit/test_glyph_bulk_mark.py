@@ -1,10 +1,10 @@
 """Tests for glyph bulk-mark recipes.
 
 Spec: specs/20-glyph-annotations.md §6.2
-Issue: ConcaveTrillion/pd-ocr-labeler-spa#268
+Issue: pdomain/pdomain-ocr-labeler-spa#268
 """
 
-from pd_ocr_labeler_spa.core.glyph.bulk_mark import (
+from pdomain_ocr_labeler_spa.core.glyph.bulk_mark import (
     GlyphBulkMarkParams,
     apply_bulk_mark,
 )

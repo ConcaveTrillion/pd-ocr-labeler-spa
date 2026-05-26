@@ -19,8 +19,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path, **overrides: object) -> Settings:
@@ -93,7 +93,7 @@ def test_reload_ocr_pipeline_no_envelope_lift_warning(
     If the warning fires, the envelope->Page lift failed — meaning page_to_line_matches
     received a UserPageEnvelope instead of a Page (the C2/C3 bug class).
     """
-    with caplog.at_level(logging.WARNING, logger="pd_ocr_labeler_spa"):
+    with caplog.at_level(logging.WARNING, logger="pdomain_ocr_labeler_spa"):
         resp = ocr_client.post("/api/projects/ocr_test/pages/0/reload-ocr", json={})
         assert resp.status_code == 202, resp.text
         job_id = resp.json()["job_id"]

@@ -1,4 +1,4 @@
-# Lint-rule Deviations — pd-ocr-labeler-spa
+# Lint-rule Deviations — pdomain-ocr-labeler-spa
 
 Standing suppressions and per-file rule overrides in this repo.
 Each entry records: the rule, the tool, the file(s) affected, and
@@ -115,7 +115,7 @@ The specific sites are documented in the inline comments where they occur.
 
 **Suppression form:** `# noqa: T201` inline.
 
-**Files:** `src/pd_ocr_labeler_spa/__main__.py` — five call sites:
+**Files:** `src/pdomain_ocr_labeler_spa/__main__.py` — five call sites:
 
 - line 297: `--version` flag; version output goes to stdout by convention.
 - line 326: CLI error notice to stderr.
@@ -128,7 +128,7 @@ route them through the structured logging pipeline and away from stdout,
 breaking the convention for version flags and startup notices.
 
 Also suppressed project-wide for `scripts/*.py` and
-`src/pd_ocr_labeler_spa/core/jobs/handlers/export_cli.py` via
+`src/pdomain_ocr_labeler_spa/core/jobs/handlers/export_cli.py` via
 `per-file-ignores` — developer scripts and the headless export CLI where
 print() is the output mechanism.
 
@@ -138,7 +138,7 @@ print() is the output mechanism.
 
 **Suppression form:** `# noqa: N818` inline.
 
-**Files:** `src/pd_ocr_labeler_spa/core/exceptions.py:37` —
+**Files:** `src/pdomain_ocr_labeler_spa/core/exceptions.py:37` —
 `NotImplementedYet(NotImplementedError)`.
 
 **Justification.** `NotImplementedYet` is intentionally non-`Error`-suffixed:
@@ -153,10 +153,10 @@ error condition. The name is more descriptive than `NotImplementedYetError`.
 
 **Files:**
 
-- `src/pd_ocr_labeler_spa/api/jobs.py:13` — `Job, JobProgress, JobType`
+- `src/pdomain_ocr_labeler_spa/api/jobs.py:13` — `Job, JobProgress, JobType`
   re-exported from the public API surface so callers can import them from
   the `api.jobs` namespace.
-- `src/pd_ocr_labeler_spa/api/projects.py:766` — lazy import of
+- `src/pdomain_ocr_labeler_spa/api/projects.py:766` — lazy import of
   `detect_best_rotation` inside a `try` block to check availability;
   the import itself is the probe, not the return value.
 
@@ -168,7 +168,7 @@ error condition. The name is more descriptive than `NotImplementedYetError`.
 
 **Suppression form:** `# noqa: PLW0603` inline.
 
-**Files:** `src/pd_ocr_labeler_spa/core/persistence/user_page_envelope.py:698`
+**Files:** `src/pdomain_ocr_labeler_spa/core/persistence/user_page_envelope.py:698`
 — `global _v22_warn_emitted`.
 
 **Justification.** Emit-once warning flag — module-level boolean that flips
@@ -186,17 +186,17 @@ standard pattern for this; `PLW0603` is suppressed with an inline comment.
 | `tests/**/*.py` | `S101, S105, S106, S311, S603, S607, S108, S104, ANN, D, PLR2004, PLR0133, PLW2901, PLR0911, PLR0912, PLR0913, PT011, PT006, TC001–TC003, PLC0415, BLE001, PERF401, TRY003/300/301, RET504, PLW1510, PT018, PLR1714, PLW0108, PLC0414, C408, E402, E741` | Test idioms: assert, magic numbers, no annotation/docstring requirement; coordinate names (E741); security rules relaxed; TC deferred in test scope |
 | `tests/*` | `E741` | Spec-aligned coordinate names (L/R/T/B) in tests |
 | `scripts/*.py` | `T201, S603, S607, ANN, D` | Developer helper scripts; print() is the output mechanism; no docstrings/annotations required |
-| `src/pd_ocr_labeler_spa/core/jobs/handlers/export_cli.py` | `T201` | Headless export CLI; print() for user-facing output |
-| `src/pd_ocr_labeler_spa/api/*.py` | `ANN, D, BLE001, TRY, TID252, S101, TC001–TC003, PLC0415, RET504, PT018, PLR0911, PLR0912, PLR0915` | API router annotation/docstring debt; assert-narrowing in FastAPI dependencies; deferred TC/PLC0415 |
-| `src/pd_ocr_labeler_spa/core/*.py` and `core/**/*.py` | `ANN, D, TID252, TC001–TC003, PLC0415, BLE001, TRY, RET504` | Core domain annotation/docstring debt; TC/PLC0415 deferred; implicit-return-in-try is project style |
-| `src/pd_ocr_labeler_spa/adapters/**/*.py` | `ANN, D, TRY, BLE001, TID252, S101, TC001–TC003, PLC0415` | Adapter layer annotation/docstring debt; S101 asserts used as invariant guards |
-| `src/pd_ocr_labeler_spa/*.py` | `ANN, D, TC001–TC003, PLC0415, PLR0911, PLR0912, PLR0915, S101` | Top-level module files (`__main__`, bootstrap, settings, `__init__`); PLC0415 deferred imports are intentional in `__main__`; PLR09xx complexity in bootstrap/main |
+| `src/pdomain_ocr_labeler_spa/core/jobs/handlers/export_cli.py` | `T201` | Headless export CLI; print() for user-facing output |
+| `src/pdomain_ocr_labeler_spa/api/*.py` | `ANN, D, BLE001, TRY, TID252, S101, TC001–TC003, PLC0415, RET504, PT018, PLR0911, PLR0912, PLR0915` | API router annotation/docstring debt; assert-narrowing in FastAPI dependencies; deferred TC/PLC0415 |
+| `src/pdomain_ocr_labeler_spa/core/*.py` and `core/**/*.py` | `ANN, D, TID252, TC001–TC003, PLC0415, BLE001, TRY, RET504` | Core domain annotation/docstring debt; TC/PLC0415 deferred; implicit-return-in-try is project style |
+| `src/pdomain_ocr_labeler_spa/adapters/**/*.py` | `ANN, D, TRY, BLE001, TID252, S101, TC001–TC003, PLC0415` | Adapter layer annotation/docstring debt; S101 asserts used as invariant guards |
+| `src/pdomain_ocr_labeler_spa/*.py` | `ANN, D, TC001–TC003, PLC0415, PLR0911, PLR0912, PLR0915, S101` | Top-level module files (`__main__`, bootstrap, settings, `__init__`); PLC0415 deferred imports are intentional in `__main__`; PLR09xx complexity in bootstrap/main |
 
 ---
 
 ### 16. `TC` — ruff (type-checking imports)
 
-**Config:** suppressed on all `src/pd_ocr_labeler_spa/**/*.py` in the
+**Config:** suppressed on all `src/pdomain_ocr_labeler_spa/**/*.py` in the
 api/core/adapters layers.
 
 **Justification.** ruff's `TC` auto-fix moves runtime imports into
@@ -217,13 +217,13 @@ until the Pydantic models are migrated.
 
 **Files:**
 
-- `src/pd_ocr_labeler_spa/api/dependencies.py:93` — `get_storage` returns `storage`
+- `src/pdomain_ocr_labeler_spa/api/dependencies.py:93` — `get_storage` returns `storage`
   typed as the narrow adapter concrete type rather than the protocol.
-- `src/pd_ocr_labeler_spa/api/dependencies.py:99` — `get_auth` same pattern.
-- `src/pd_ocr_labeler_spa/api/dependencies.py:105` — `get_ocr` same pattern.
-- `src/pd_ocr_labeler_spa/api/jobs.py:95` — `JSONResponse` short-circuit path
+- `src/pdomain_ocr_labeler_spa/api/dependencies.py:99` — `get_auth` same pattern.
+- `src/pdomain_ocr_labeler_spa/api/dependencies.py:105` — `get_ocr` same pattern.
+- `src/pdomain_ocr_labeler_spa/api/jobs.py:95` — `JSONResponse` short-circuit path
   in a route typed as returning a Pydantic model.
-- `src/pd_ocr_labeler_spa/api/pages.py:1168` and `:1179` — same `JSONResponse`
+- `src/pdomain_ocr_labeler_spa/api/pages.py:1168` and `:1179` — same `JSONResponse`
   short-circuit pattern.
 
 **Justification.** FastAPI dependency injectors retrieve adapters from
@@ -240,11 +240,11 @@ declared model return type.
 
 **Files:**
 
-- `src/pd_ocr_labeler_spa/adapters/storage/filesystem.py:78, :94, :123` —
+- `src/pdomain_ocr_labeler_spa/adapters/storage/filesystem.py:78, :94, :123` —
   `anyio.to_thread.run_sync` call attribute.
-- `src/pd_ocr_labeler_spa/core/jobs/handlers/save_project.py:108` —
+- `src/pdomain_ocr_labeler_spa/core/jobs/handlers/save_project.py:108` —
   `settings.data_root` dynamic attribute on `app.state`.
-- `src/pd_ocr_labeler_spa/core/logging_config.py:149` —
+- `src/pdomain_ocr_labeler_spa/core/logging_config.py:149` —
   `handler._pdlabeler_managed = True`.
 
 **Justification.**
@@ -266,12 +266,12 @@ declared model return type.
 
 **Files:**
 
-- `src/pd_ocr_labeler_spa/api/projects.py:297` — `config_source` argument
+- `src/pdomain_ocr_labeler_spa/api/projects.py:297` — `config_source` argument
   typed wider than the callee expects.
-- `src/pd_ocr_labeler_spa/api/static_mounts.py:258` —
+- `src/pdomain_ocr_labeler_spa/api/static_mounts.py:258` —
   `resources.as_file(traversable)` context-manager entry typed as `Path`
   by importlib.resources stubs but the stack expects `str | Path`.
-- `src/pd_ocr_labeler_spa/api/pages.py:586, :587` — `char_bboxes_map` /
+- `src/pdomain_ocr_labeler_spa/api/pages.py:586, :587` — `char_bboxes_map` /
   `char_ranges_map` conditional expressions: `x if x else None` produces a
   wider type than the callee expects; guarded at runtime.
 
@@ -287,12 +287,12 @@ expectations. The runtime types are compatible.
 
 **Files:**
 
-- `src/pd_ocr_labeler_spa/core/text_normalize.py:21` —
-  `pd_book_tools.text.normalize`.
-- `src/pd_ocr_labeler_spa/core/persistence/config_yaml.py:92, :128` —
+- `src/pdomain_ocr_labeler_spa/core/text_normalize.py:21` —
+  `pdomain_book_tools.text.normalize`.
+- `src/pdomain_ocr_labeler_spa/core/persistence/config_yaml.py:92, :128` —
   `import yaml`.
 
-**Justification.** `pd_book_tools` is not installed in the basedpyright dev
+**Justification.** `pdomain_book_tools` is not installed in the basedpyright dev
 venv (stubs absent during type-checking only; works at runtime). `yaml`
 (`PyYAML`) is an optional dependency; its stubs are absent in the dev venv.
 
@@ -304,9 +304,9 @@ venv (stubs absent during type-checking only; works at runtime). `yaml`
 
 **Files:**
 
-- `src/pd_ocr_labeler_spa/core/text_normalize.py:27` —
+- `src/pdomain_ocr_labeler_spa/core/text_normalize.py:27` —
   `_AVAILABLE = False` reassigned in a `try/except` block.
-- `src/pd_ocr_labeler_spa/api/ocr_config.py:89` —
+- `src/pdomain_ocr_labeler_spa/api/ocr_config.py:89` —
   `_AUTO_ROTATE_AVAILABLE = False` reassigned in a `try/except` block.
 
 **Justification.** Module-level booleans are initialised as `False` then
@@ -322,7 +322,7 @@ intentionally reassigned once.
 
 **Files:**
 
-- `src/pd_ocr_labeler_spa/core/text_normalize.py:28` —
+- `src/pdomain_ocr_labeler_spa/core/text_normalize.py:28` —
   `_pd_normalize = None` assigned to a callable-typed module-level name.
 
 **Justification.** `_pd_normalize` is `None` initially and replaced by the
@@ -337,7 +337,7 @@ widens the declared type; the assignment suppression covers the initialisation.
 
 **Files:**
 
-- `src/pd_ocr_labeler_spa/core/model_selection.py:83` —
+- `src/pdomain_ocr_labeler_spa/core/model_selection.py:83` —
   `_selection_reason_annotation.__args__`.
 
 **Justification.** `__args__` exists on `Union` types at runtime but is
@@ -352,19 +352,19 @@ the annotation structure; the suppression covers the union-member access.
 
 **Files:**
 
-- `src/pd_ocr_labeler_spa/api/normalize.py:45` — `install_normalize_router(app)`
-- `src/pd_ocr_labeler_spa/api/export.py:138` — `install_export_router(app)`
-- `src/pd_ocr_labeler_spa/api/projects.py:793` — `install_projects_router(app)`
-- `src/pd_ocr_labeler_spa/api/jobs.py:149` — `install_jobs_router(app)`
-- `src/pd_ocr_labeler_spa/api/env_js.py:48` — `install_env_js(app)`
-- `src/pd_ocr_labeler_spa/api/notifications.py:82` — `install_notifications_router(app)`
-- `src/pd_ocr_labeler_spa/api/pages.py:1191` — `install_pages_router(app)`
-- `src/pd_ocr_labeler_spa/api/ocr_config.py:532` — `install_ocr_config_router(app)`
-- `src/pd_ocr_labeler_spa/api/lines_paragraphs.py:1395` — `install_lines_paragraphs_router(app)`
-- `src/pd_ocr_labeler_spa/api/session_state.py:77` — `install_session_state_router(app)`
-- `src/pd_ocr_labeler_spa/api/healthz.py:32` — `install_healthz(app)`
-- `src/pd_ocr_labeler_spa/api/refine.py:162` — `install_refine_router(app)`
-- `src/pd_ocr_labeler_spa/api/words.py:1341` — `install_words_router(app)`
+- `src/pdomain_ocr_labeler_spa/api/normalize.py:45` — `install_normalize_router(app)`
+- `src/pdomain_ocr_labeler_spa/api/export.py:138` — `install_export_router(app)`
+- `src/pdomain_ocr_labeler_spa/api/projects.py:793` — `install_projects_router(app)`
+- `src/pdomain_ocr_labeler_spa/api/jobs.py:149` — `install_jobs_router(app)`
+- `src/pdomain_ocr_labeler_spa/api/env_js.py:48` — `install_env_js(app)`
+- `src/pdomain_ocr_labeler_spa/api/notifications.py:82` — `install_notifications_router(app)`
+- `src/pdomain_ocr_labeler_spa/api/pages.py:1191` — `install_pages_router(app)`
+- `src/pdomain_ocr_labeler_spa/api/ocr_config.py:532` — `install_ocr_config_router(app)`
+- `src/pdomain_ocr_labeler_spa/api/lines_paragraphs.py:1395` — `install_lines_paragraphs_router(app)`
+- `src/pdomain_ocr_labeler_spa/api/session_state.py:77` — `install_session_state_router(app)`
+- `src/pdomain_ocr_labeler_spa/api/healthz.py:32` — `install_healthz(app)`
+- `src/pdomain_ocr_labeler_spa/api/refine.py:162` — `install_refine_router(app)`
+- `src/pdomain_ocr_labeler_spa/api/words.py:1341` — `install_words_router(app)`
 
 **Status — needs review / annotation backlog.** These are mypy-style
 suppressions (`# type: ignore[no-untyped-def]`). basedpyright uses
@@ -381,13 +381,13 @@ FastAPI`) in a future annotation pass.
 
 **Files:**
 
-- `src/pd_ocr_labeler_spa/api/pages.py:225` — `return loader` in a route
+- `src/pdomain_ocr_labeler_spa/api/pages.py:225` — `return loader` in a route
   typed to return a specific Pydantic model.
-- `src/pd_ocr_labeler_spa/api/pages.py:856` — `loader=loader` argument.
-- `src/pd_ocr_labeler_spa/api/pages.py:1146` — `return err`.
-- `src/pd_ocr_labeler_spa/api/jobs.py:95` — `JSONResponse` short-circuit (see §17).
-- `src/pd_ocr_labeler_spa/core/envelope_lift.py:54` — `return payload`.
-- `src/pd_ocr_labeler_spa/core/jobs/handlers/reload_ocr.py:134` — `return loader`.
+- `src/pdomain_ocr_labeler_spa/api/pages.py:856` — `loader=loader` argument.
+- `src/pdomain_ocr_labeler_spa/api/pages.py:1146` — `return err`.
+- `src/pdomain_ocr_labeler_spa/api/jobs.py:95` — `JSONResponse` short-circuit (see §17).
+- `src/pdomain_ocr_labeler_spa/core/envelope_lift.py:54` — `return payload`.
+- `src/pdomain_ocr_labeler_spa/core/jobs/handlers/reload_ocr.py:134` — `return loader`.
 
 **Status — needs review.** These use only the mypy-compat code form;
 basedpyright ignores them. They should be audited and converted to

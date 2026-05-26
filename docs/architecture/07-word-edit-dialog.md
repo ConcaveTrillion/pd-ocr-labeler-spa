@@ -2,7 +2,7 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#18
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#18
 
 A modal dialog focused on a single word: preview, image-with-marker,
 merge/split/delete, crop, refine, fine-tune nudge, drag-erase, tag

@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from pd_ocr_labeler_spa.core.persistence.paths import (
+from pdomain_ocr_labeler_spa.core.persistence.paths import (
     CONFIG_YAML_FILENAME,
     LOGS_DIRNAME,
     PAGE_IMAGES_DIRNAME,
@@ -156,7 +156,7 @@ def test_paths_module_does_not_call_os_or_platform() -> None:
     src = (
         _Path(__file__).parent.parent.parent.parent.parent
         / "src"
-        / "pd_ocr_labeler_spa"
+        / "pdomain_ocr_labeler_spa"
         / "core"
         / "persistence"
         / "paths.py"

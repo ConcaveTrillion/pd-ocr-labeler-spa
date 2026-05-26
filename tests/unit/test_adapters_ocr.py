@@ -20,7 +20,7 @@ import pytest
 
 
 def test_iocrengine_protocol_module_exports() -> None:
-    from pd_ocr_labeler_spa.adapters import ocr
+    from pdomain_ocr_labeler_spa.adapters import ocr
 
     assert hasattr(ocr, "IOCREngine"), "IOCREngine must be re-exported"
     assert hasattr(ocr, "LocalDoctrOCR"), "LocalDoctrOCR stub must be re-exported"
@@ -29,7 +29,7 @@ def test_iocrengine_protocol_module_exports() -> None:
 
 
 def test_iocrengine_protocol_method_set() -> None:
-    from pd_ocr_labeler_spa.adapters.ocr.base import IOCREngine
+    from pdomain_ocr_labeler_spa.adapters.ocr.base import IOCREngine
 
     methods = {
         name for name, _ in inspect.getmembers(IOCREngine, predicate=callable) if not name.startswith("_")
@@ -47,10 +47,10 @@ def test_ocr_impls_conform_structurally_not_by_inheritance() -> None:
     default-argument resolution). ``isinstance(impl, IOCREngine)`` still
     works at runtime via ``@runtime_checkable``.
     """
-    from pd_ocr_labeler_spa.adapters.ocr.base import IOCREngine
-    from pd_ocr_labeler_spa.adapters.ocr.local_doctr import LocalDoctrOCR
-    from pd_ocr_labeler_spa.adapters.ocr.modal import ModalOCR
-    from pd_ocr_labeler_spa.adapters.ocr.shared_container import SharedContainerOCR
+    from pdomain_ocr_labeler_spa.adapters.ocr.base import IOCREngine
+    from pdomain_ocr_labeler_spa.adapters.ocr.local_doctr import LocalDoctrOCR
+    from pdomain_ocr_labeler_spa.adapters.ocr.modal import ModalOCR
+    from pdomain_ocr_labeler_spa.adapters.ocr.shared_container import SharedContainerOCR
 
     for impl in (LocalDoctrOCR, ModalOCR, SharedContainerOCR):
         assert IOCREngine not in impl.__mro__, (
@@ -65,8 +65,8 @@ def test_modal_ocr_raises_not_implemented_yet() -> None:
     """Spec §7: ``modal.py`` raises ``NotImplementedYet``."""
     import asyncio
 
-    from pd_ocr_labeler_spa.adapters.ocr.modal import ModalOCR
-    from pd_ocr_labeler_spa.core.exceptions import NotImplementedYet
+    from pdomain_ocr_labeler_spa.adapters.ocr.modal import ModalOCR
+    from pdomain_ocr_labeler_spa.core.exceptions import NotImplementedYet
 
     eng = ModalOCR()
 
@@ -85,8 +85,8 @@ def test_modal_ocr_raises_not_implemented_yet() -> None:
 def test_shared_container_ocr_raises_not_implemented_yet() -> None:
     import asyncio
 
-    from pd_ocr_labeler_spa.adapters.ocr.shared_container import SharedContainerOCR
-    from pd_ocr_labeler_spa.core.exceptions import NotImplementedYet
+    from pdomain_ocr_labeler_spa.adapters.ocr.shared_container import SharedContainerOCR
+    from pdomain_ocr_labeler_spa.core.exceptions import NotImplementedYet
 
     eng = SharedContainerOCR()
 
@@ -113,7 +113,7 @@ def test_local_doctr_ocr_is_stub_until_m3() -> None:
     """
     import asyncio
 
-    from pd_ocr_labeler_spa.adapters.ocr.local_doctr import LocalDoctrOCR
+    from pdomain_ocr_labeler_spa.adapters.ocr.local_doctr import LocalDoctrOCR
 
     eng = LocalDoctrOCR()
 
@@ -137,6 +137,6 @@ def test_not_implemented_yet_is_distinct_exception() -> None:
     while letting callers grep the spec-named class for "wired-later"
     seams without confusion with one-off TODOs.
     """
-    from pd_ocr_labeler_spa.core.exceptions import NotImplementedYet
+    from pdomain_ocr_labeler_spa.core.exceptions import NotImplementedYet
 
     assert issubclass(NotImplementedYet, NotImplementedError)

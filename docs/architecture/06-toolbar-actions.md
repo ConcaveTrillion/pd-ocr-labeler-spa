@@ -2,7 +2,7 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#16
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#16
 
 The 14-column grid above the matches view, with one row per scope
 (page / paragraph / line / word). Plus the Apply Style row and the
@@ -15,7 +15,7 @@ Add Word row.
 > `pd-ocr-labeler/docs/architecture/ui-action-buttons.md` §4a-4d
 > Backend endpoints — [`02-backend.md`](02-backend.md) §5.4–§5.7
 > Allowed labels —
-> `pd_book_tools.ocr.label_normalization.ALLOWED_TEXT_STYLE_LABELS`,
+> `pdomain_book_tools.ocr.label_normalization.ALLOWED_TEXT_STYLE_LABELS`,
 > `ALLOWED_WORD_COMPONENT_LABELS`
 
 ---

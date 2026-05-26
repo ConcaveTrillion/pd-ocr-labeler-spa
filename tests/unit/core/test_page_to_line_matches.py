@@ -16,8 +16,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, ClassVar
 
-from pd_ocr_labeler_spa.core.models import BBox, MatchStatus, PageSource
-from pd_ocr_labeler_spa.core.page_to_line_matches import page_to_line_matches
+from pdomain_ocr_labeler_spa.core.models import BBox, MatchStatus, PageSource
+from pdomain_ocr_labeler_spa.core.page_to_line_matches import page_to_line_matches
 
 # ── Stub types ──────────────────────────────────────────────────────────
 
@@ -332,7 +332,7 @@ def test_fuzz_threshold_default_boundary() -> None:
 
 def test_fuzz_threshold_app_config_field() -> None:
     """AppConfig.fuzz_threshold field: default 0.8, configurable, round-trips."""
-    from pd_ocr_labeler_spa.core.persistence.config_yaml import AppConfig
+    from pdomain_ocr_labeler_spa.core.persistence.config_yaml import AppConfig
 
     # Default must be 0.8 (legacy parity).
     cfg_default = AppConfig()

@@ -10,12 +10,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pd_ocr_labeler_spa.core.persistence.config_yaml import (
+from pdomain_ocr_labeler_spa.core.persistence.config_yaml import (
     AppConfig,
     load_config,
     save_config,
 )
-from pd_ocr_labeler_spa.core.persistence.paths import config_yaml_path
+from pdomain_ocr_labeler_spa.core.persistence.paths import config_yaml_path
 
 # ──────────────────────────────────────────────────────────────────────
 # AppConfig model

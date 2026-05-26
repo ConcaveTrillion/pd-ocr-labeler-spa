@@ -10,12 +10,12 @@
 // store to Zustand's vanilla `createStore`. External API preserved intact
 // so all call sites compile unchanged.
 //
-// GAP-3: Cannot use pd-ui's `createWorklistStore()` factory.
-//   pd-ui offers: `activeIndex: number|null, filter: string, setActiveIndex,
+// GAP-3: Cannot use pdomain-ui's `createWorklistStore()` factory.
+//   pdomain-ui offers: `activeIndex: number|null, filter: string, setActiveIndex,
 //   setFilter, clearFilter`.
 //   This store needs: labeler-specific MatchFilter enum (unvalidated/
 //   mismatched/all), WorklistSort (index/confidence/status), selectedIds for
-//   bulk operations (Slice 23), and searchQuery for text filtering. The pd-ui
+//   bulk operations (Slice 23), and searchQuery for text filtering. The pdomain-ui
 //   factory covers a generic "which item is active" pattern that does not
 //   accommodate the labeler's domain-specific filter cycle or bulk-selection
 //   semantics.

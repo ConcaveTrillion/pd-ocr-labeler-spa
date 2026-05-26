@@ -18,7 +18,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 
 
 def test_iauth_protocol_module_exports() -> None:
-    from pd_ocr_labeler_spa.adapters import auth
+    from pdomain_ocr_labeler_spa.adapters import auth
 
     assert hasattr(auth, "IAuth"), "IAuth must be re-exported from adapters.auth"
     assert hasattr(auth, "UserContext"), "UserContext must be re-exported"
@@ -26,7 +26,7 @@ def test_iauth_protocol_module_exports() -> None:
 
 
 def test_iauth_protocol_method_set() -> None:
-    from pd_ocr_labeler_spa.adapters.auth.base import IAuth
+    from pdomain_ocr_labeler_spa.adapters.auth.base import IAuth
 
     methods = {name for name, _ in inspect.getmembers(IAuth, predicate=callable) if not name.startswith("_")}
     assert "verify" in methods
@@ -48,7 +48,7 @@ def test_iauth_verify_signature_matches_spec() -> None:
     """
     import typing
 
-    from pd_ocr_labeler_spa.adapters.auth.base import IAuth, UserContext
+    from pdomain_ocr_labeler_spa.adapters.auth.base import IAuth, UserContext
 
     sig = inspect.signature(IAuth.verify)
     # Parameters: ``self`` + the named credentials kwarg.
@@ -69,7 +69,7 @@ def test_iauth_verify_signature_matches_spec() -> None:
 
 def test_user_context_shape() -> None:
     """Spec §7: ``UserContext(user_id, display_name)`` — both required strings."""
-    from pd_ocr_labeler_spa.adapters.auth.base import UserContext
+    from pdomain_ocr_labeler_spa.adapters.auth.base import UserContext
 
     ctx = UserContext(user_id="alice", display_name="Alice Example")
     assert ctx.user_id == "alice"
@@ -80,7 +80,7 @@ def test_none_auth_returns_local_user() -> None:
     """Spec §7: ``NoneAuth.verify`` always returns ``UserContext("local", "Local User")``."""
     import asyncio
 
-    from pd_ocr_labeler_spa.adapters.auth.none_ import NoneAuth
+    from pdomain_ocr_labeler_spa.adapters.auth.none_ import NoneAuth
 
     auth = NoneAuth()
     bearer = HTTPAuthorizationCredentials(scheme="Bearer", credentials="ignored")

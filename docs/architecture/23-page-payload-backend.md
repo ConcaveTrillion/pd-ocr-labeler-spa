@@ -1,7 +1,7 @@
 # 23 — Backend page payload + mutation endpoints
 
 > **Status**: Active (shipped — all spec-23-* child issues closed 2026-05-15).
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#291
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#291
 > **Depends on**: M3 OCR loader (shipped); `core/page_state.ensure_page_model`
 > dispatcher (shipped); `persist_page_to_file` (shipped #284).
 > **Last updated**: 2026-05-14
@@ -157,7 +157,7 @@ Wired in `_HANDLERS` dict in `runner.py:279`.
 **Today.** 501 stub.
 
 **Target.** Re-run `core/ground_truth_matcher.rematch_page` (a thin
-wrapper over `pd_book_tools.matching` calls already used during
+wrapper over `pdomain_book_tools.matching` calls already used during
 initial OCR). Replaces `page.line_matches` with freshly-matched
 results; per-word GT edits are discarded (legacy semantics, per
 [`how-to-label-a-page.md`](../../../pd-ocr-labeler/docs/usage/how-to-label-a-page.md)
@@ -192,8 +192,8 @@ state. Each needs:
 1. Resolve target word / line / paragraph from URL path params.
 2. Validate request body (already done via Pydantic).
 3. Call the mutation method on `Page` / `Line` / `Word` (from
-   `pd_book_tools.ocr`) — most are already implemented in
-   pd-book-tools (`Word.set_ground_truth_text`, `Line.merge_words`,
+   `pdomain_book_tools.ocr`) — most are already implemented in
+   pdomain-book-tools (`Word.set_ground_truth_text`, `Line.merge_words`,
    `Page.split_line`, `Word.apply_style`, `Word.set_validated`, etc.).
 4. Bump `ProjectState.page_states[idx].generation`.
 5. Trigger autosave (write cached envelope to disk via
@@ -204,7 +204,7 @@ Endpoint catalog (each is ~30 LOC handler):
 
 **Word (`api/words.py`).**
 
-| URL | pd-book-tools call |
+| URL | pdomain-book-tools call |
 |---|---|
 | `.../words/{l}/{w}/gt` | `word.set_ground_truth_text(text)` |
 | `.../words/{l}/{w}/style` | `word.apply_style(style_id, scope)` |
@@ -237,8 +237,8 @@ Endpoint catalog (each is ~30 LOC handler):
 | `.../paragraphs/{p}/split-after-line` | `paragraph.split_after_line(l)` |
 
 The handlers themselves are mechanical; the heavy lifting is in
-`pd_book_tools` (already exists). Any missing methods in
-pd-book-tools become tracking issues against that repo's agent.
+`pdomain_book_tools` (already exists). Any missing methods in
+pdomain-book-tools become tracking issues against that repo's agent.
 
 ---
 
@@ -268,7 +268,7 @@ after drag.
 `POST /api/projects/{id}/pages/{idx}/refine` already has a real
 job handler per `api/refine.py:83`. **Verify** during this spec's
 acceptance that it works end-to-end; M7 spec covers the actual refine
-algorithm in `pd_book_tools`.
+algorithm in `pdomain_book_tools`.
 
 ---
 
@@ -341,7 +341,7 @@ Pydantic models change.
    Acceptance: page reload + project save complete; SSE notifications fire.
 3. **spec-23-C** — Word mutation handlers (`api/words.py`).
    Acceptance: GT edit, validate, style/component, rebox, erase all
-   round-trip through pd-book-tools.
+   round-trip through pdomain-book-tools.
 4. **spec-23-D** — Line / paragraph mutation handlers
    (`api/lines_paragraphs.py`).
 5. **spec-23-E** — Selection endpoint + `core/selection.py` set ops.
@@ -359,4 +359,4 @@ A → B can run in parallel. C/D/E can run in parallel after A lands
 - Spec 02 (backend): [`02-backend.md`](02-backend.md) §5
 - Spec 09 (persistence): [`09-persistence.md`](09-persistence.md)
 - Spec 11 (notifications): [`11-notifications.md`](11-notifications.md)
-- pd-book-tools: `Word`, `Line`, `Page` mutation methods (delegated).
+- pdomain-book-tools: `Word`, `Line`, `Page` mutation methods (delegated).

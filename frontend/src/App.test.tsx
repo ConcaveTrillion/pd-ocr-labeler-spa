@@ -8,11 +8,11 @@ import { http, HttpResponse } from "msw";
 import { server } from "./test/server";
 import type * as React from "react";
 
-// Phase 2.4: Mock @concavetrillion/pd-ui/shell so AppShell renders a
+// Phase 2.4: Mock @pdomain/pdomain-ui/shell so AppShell renders a
 // transparent pass-through in jsdom — no Zustand store setup, no real
 // grid layout. The mock preserves the slot-forwarding contract (header,
 // main, children) so downstream tests can assert on HeaderBar + Routes.
-vi.mock("@concavetrillion/pd-ui/shell", () => ({
+vi.mock("@pdomain/pdomain-ui/shell", () => ({
   AppShell: ({
     header,
     main,
@@ -28,9 +28,9 @@ vi.mock("@concavetrillion/pd-ui/shell", () => ({
     deployMode?: string;
     uiPrefsConfig?: unknown;
   }) => (
-    <div data-testid="pd-ui-app-shell">
-      <div data-testid="pd-ui-app-shell-header">{header}</div>
-      <main className="h-full min-h-0 overflow-hidden" data-testid="pd-ui-app-shell-main">
+    <div data-testid="pdomain-ui-app-shell">
+      <div data-testid="pdomain-ui-app-shell-header">{header}</div>
+      <main className="h-full min-h-0 overflow-hidden" data-testid="pdomain-ui-app-shell-main">
         {main}
       </main>
       {children}
@@ -43,11 +43,11 @@ vi.mock("@concavetrillion/pd-ui/shell", () => ({
   // TypeScript import side-effects compile cleanly.
 }));
 
-// Phase 2.2: PageImageCanvas now imports @concavetrillion/pd-ui/canvas which
-// bundles react-konva. Mock pd-ui/canvas first so konva's Node.js entry never
+// Phase 2.2: PageImageCanvas now imports @pdomain/pdomain-ui/canvas which
+// bundles react-konva. Mock pdomain-ui/canvas first so konva's Node.js entry never
 // loads (it would require('canvas'), a native addon unavailable in jsdom).
 // The react-konva mock below is kept for any other transitive imports.
-vi.mock("@concavetrillion/pd-ui/canvas", () => ({
+vi.mock("@pdomain/pdomain-ui/canvas", () => ({
   PageImageCanvas: ({
     page,
     children,
@@ -216,16 +216,16 @@ describe("App: routing shell", () => {
     await waitFor(() => {
       expect(screen.getByTestId("header-bar")).toBeInTheDocument();
     });
-    // Phase 2.4: `<main>` is now rendered inside pd-ui AppShell's main slot.
-    // The pd-ui-app-shell-main wrapper carries the overflow-hidden + min-h-0
+    // Phase 2.4: `<main>` is now rendered inside pdomain-ui AppShell's main slot.
+    // The pdomain-ui-app-shell-main wrapper carries the overflow-hidden + min-h-0
     // classes that were formerly on the local <main> element.
-    const appShellMain = screen.getByTestId("pd-ui-app-shell-main");
+    const appShellMain = screen.getByTestId("pdomain-ui-app-shell-main");
     expect(appShellMain).not.toBeNull();
     expect(appShellMain.className).toMatch(/overflow-hidden/);
     expect(appShellMain.className).toMatch(/min-h-0/);
   });
 
-  it("Phase 2.4: pd-ui AppShell wrapper is present (data-testid=app-shell)", async () => {
+  it("Phase 2.4: pdomain-ui AppShell wrapper is present (data-testid=app-shell)", async () => {
     withNoSession();
     render(<App />);
     await waitFor(() => {
@@ -233,8 +233,8 @@ describe("App: routing shell", () => {
     });
     // Outer wrapper preserves data-testid=app-shell for driver contract.
     expect(screen.getByTestId("app-shell")).toBeInTheDocument();
-    // pd-ui AppShell mock renders inside it.
-    expect(screen.getByTestId("pd-ui-app-shell")).toBeInTheDocument();
+    // pdomain-ui AppShell mock renders inside it.
+    expect(screen.getByTestId("pdomain-ui-app-shell")).toBeInTheDocument();
   });
 
   it("Phase 2.4: HeaderBar renders inside AppShell header slot", async () => {
@@ -243,7 +243,7 @@ describe("App: routing shell", () => {
     await waitFor(() => {
       expect(screen.getByTestId("header-bar")).toBeInTheDocument();
     });
-    const headerSlot = screen.getByTestId("pd-ui-app-shell-header");
+    const headerSlot = screen.getByTestId("pdomain-ui-app-shell-header");
     // HeaderBar is a descendant of the AppShell header slot.
     expect(headerSlot.querySelector('[data-testid="header-bar"]')).not.toBeNull();
   });

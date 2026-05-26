@@ -1,7 +1,7 @@
-# pd-ocr-labeler-spa installer (Windows PowerShell)
+# pdomain-ocr-labeler-spa installer (Windows PowerShell)
 #
 # Usage:
-#   irm https://raw.githubusercontent.com/ConcaveTrillion/pd-ocr-labeler-spa/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/pdomain/pdomain-ocr-labeler-spa/main/install.ps1 | iex
 #
 # Downloads the prebuilt wheel attached to the latest GitHub Release and
 # runs `uv tool install` against it. The wheel ships with the React SPA
@@ -14,7 +14,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$repo = "ConcaveTrillion/pd-ocr-labeler-spa"
+$repo = "pdomain/pdomain-ocr-labeler-spa"
 
 # B-32: explicit boolean return. The earlier form piped Get-Command
 # through ForEach-Object and relied on PowerShell's pipeline-return
@@ -85,7 +85,7 @@ if (Test-Command -Name "python") {
         } else {
             $sysPy = & python -c "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')" 2>$null
             if ($sysPy -and $sysPy -ne "3.13") {
-                Write-Host "Note: system python is ${sysPy}; pd-ocr-labeler-spa requires 3.13."
+                Write-Host "Note: system python is ${sysPy}; pdomain-ocr-labeler-spa requires 3.13."
                 Write-Host "      uv will download Python 3.13 automatically — no action needed."
             }
         }
@@ -111,7 +111,7 @@ if (-not ($release -and $release.tag_name)) {
     throw "Could not resolve the latest release tag from GitHub. (Has a release been published yet?)"
 }
 $latestTag = $release.tag_name
-Write-Host "Installing pd-ocr-labeler-spa $latestTag..."
+Write-Host "Installing pdomain-ocr-labeler-spa $latestTag..."
 
 # 4. Find the wheel asset attached to the latest release.
 $wheelAsset = $null
@@ -122,7 +122,7 @@ if (-not $wheelAsset) {
     # Hard-fail rather than fall back to `git+...`. The git+ path requires
     # Node + npm on the user's machine to build the React SPA at install
     # time, which is exactly the requirement this script is designed to
-    # avoid. See peer pd-prep-for-pgdp/install.ps1 for the same rationale.
+    # avoid. See peer pdomain-prep-for-pgdp/install.ps1 for the same rationale.
     throw @"
 No .whl asset attached to release $latestTag.
 Expected a wheel uploaded by .github/workflows/release.yml.

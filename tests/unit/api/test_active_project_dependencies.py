@@ -29,16 +29,16 @@ import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.api.dependencies import (
+from pdomain_ocr_labeler_spa.api.dependencies import (
     get_active_project,
     get_active_project_carrier,
 )
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.active_project import (
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.active_project import (
     ActiveProject,
     ActiveProjectCarrier,
 )
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 @pytest.fixture

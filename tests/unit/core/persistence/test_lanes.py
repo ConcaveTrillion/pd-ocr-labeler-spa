@@ -16,12 +16,12 @@ from pathlib import Path
 
 import pytest
 
-from pd_ocr_labeler_spa.core.persistence.lanes import (
+from pdomain_ocr_labeler_spa.core.persistence.lanes import (
     LaneReadResult,
     LaneResolver,
     SourceLaneReadOnlyError,
 )
-from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
     UserPageEnvelope,
     parse_envelope,
 )
@@ -217,7 +217,7 @@ def test_write_cached_does_not_raise_on_io_error(tmp_path: Path, monkeypatch) ->
 
     Spec: 'Cached lane writes swallow I/O errors (WARNING log only)'.
     """
-    from pd_ocr_labeler_spa.core.persistence import atomic
+    from pdomain_ocr_labeler_spa.core.persistence import atomic
 
     def _fail(*_args, **_kwargs) -> None:
         raise OSError("simulated disk full")
@@ -267,7 +267,7 @@ def test_write_labeled_raises_for_path_outside_labeled_root(tmp_path: Path) -> N
     envelope = _make_minimal_envelope("test-proj", 0)
 
     # Monkeypatch labeled_envelope_path to return a path outside labeled-projects/
-    from pd_ocr_labeler_spa.core.persistence import user_page_envelope as upe
+    from pdomain_ocr_labeler_spa.core.persistence import user_page_envelope as upe
 
     original = upe.labeled_envelope_path
 
@@ -275,7 +275,7 @@ def test_write_labeled_raises_for_path_outside_labeled_root(tmp_path: Path) -> N
         # Return a path outside labeled-projects/
         return data_root / "source-projects" / project_id / f"{project_id}_{page_index}.json"
 
-    import pd_ocr_labeler_spa.core.persistence.lanes as lanes_mod
+    import pdomain_ocr_labeler_spa.core.persistence.lanes as lanes_mod
 
     monkeypatch = pytest.MonkeyPatch()
     monkeypatch.setattr(lanes_mod, "labeled_envelope_path", _bad_path)

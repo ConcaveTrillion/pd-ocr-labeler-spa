@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 @pytest.mark.parametrize(
@@ -63,7 +63,7 @@ def test_settings_has_spec_section_3_fields_with_correct_defaults(
     s = Settings()
     assert hasattr(s, field_name), (
         f"Settings is missing spec-§3 field {field_name!r} — drift "
-        "between docs/architecture/02-backend.md §3 and src/pd_ocr_labeler_spa/"
+        "between docs/architecture/02-backend.md §3 and src/pdomain_ocr_labeler_spa/"
         "settings.py."
     )
     assert getattr(s, field_name) == expected_default, (
@@ -167,7 +167,7 @@ def test_main_does_not_mutate_settings_post_construction() -> None:
     import ast
     import inspect
 
-    from pd_ocr_labeler_spa import __main__ as main_mod
+    from pdomain_ocr_labeler_spa import __main__ as main_mod
 
     src = inspect.getsource(main_mod)
     tree = ast.parse(src)

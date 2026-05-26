@@ -2,7 +2,7 @@
 
 Verifies the acceptance criteria for issue #252:
 - `make docker-build` produces a running image
-- `docker run -p 8080:8080 pd-ocr-labeler-spa` serves SPA at `/`
+- `docker run -p 8080:8080 pdomain-ocr-labeler-spa` serves SPA at `/`
 - `/healthz` returns 200 from the container
 - Image does not include build tools or node_modules in the runtime stage
 """
@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DOCKER_IMAGE = "pd-ocr-labeler-spa:dev"
+DOCKER_IMAGE = "pdomain-ocr-labeler-spa:dev"
 
 
 def _have_docker() -> bool:
@@ -136,7 +136,7 @@ class TestDockerBuild:
         assert _image_exists(DOCKER_IMAGE), f"Image {DOCKER_IMAGE} not found after build"
 
     def test_docker_run_serves_spa_at_root(self) -> None:
-        """Verify `docker run -p 8080:8080 pd-ocr-labeler-spa` serves SPA at `/`."""
+        """Verify `docker run -p 8080:8080 pdomain-ocr-labeler-spa` serves SPA at `/`."""
         _run_make_docker_build()
 
         # Start container and verify SPA is served

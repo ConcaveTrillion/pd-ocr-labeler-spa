@@ -2,7 +2,7 @@
 
 Iter-5 review B-03: ``allow_origins=["*"]`` paired with
 ``allow_credentials=True`` is invalid per the CORS spec — browsers
-reject the response. ``pd-prep-for-pgdp`` (the declared structural
+reject the response. ``pdomain-prep-for-pgdp`` (the declared structural
 model) sets only ``allow_origins``/``allow_methods``/``allow_headers``;
 spec ``docs/architecture/02-backend.md §step-7`` matches.
 
@@ -20,8 +20,8 @@ from __future__ import annotations
 
 from fastapi.middleware.cors import CORSMiddleware
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _cors_kwargs(app):
