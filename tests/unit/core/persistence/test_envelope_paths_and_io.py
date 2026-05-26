@@ -28,7 +28,7 @@ import json
 import logging
 from pathlib import Path
 
-from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
     USER_PAGE_SCHEMA_NAME,
     cached_envelope_path,
     labeled_envelope_path,

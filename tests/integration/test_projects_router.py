@@ -63,8 +63,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 # ──────────────────────────────────────────────────────────────────────
 # Fixtures
@@ -596,7 +596,7 @@ def test_post_load_session_state_save_error_does_not_fail_request(
     app = build_app(settings)
 
     # Patch the imported reference inside the route module.
-    from pd_ocr_labeler_spa.api import projects as projects_mod
+    from pdomain_ocr_labeler_spa.api import projects as projects_mod
 
     def _boom(*_a: object, **_kw: object) -> None:
         raise OSError("disk full")
@@ -728,7 +728,7 @@ def test_post_source_root_sets_root_and_returns_list(tmp_path: Path) -> None:
 
 def test_post_source_root_persists_to_config_yaml(tmp_path: Path) -> None:
     """POST /source-root writes config.yaml so the root survives restart."""
-    from pd_ocr_labeler_spa.core.persistence.config_yaml import load_config
+    from pdomain_ocr_labeler_spa.core.persistence.config_yaml import load_config
 
     projects_root = tmp_path / "projects"
     projects_root.mkdir()

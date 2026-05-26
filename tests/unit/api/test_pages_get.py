@@ -24,15 +24,15 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.api.pages import (
+from pdomain_ocr_labeler_spa.api.pages import (
     _build_image_url,
     _build_provenance_summary,  # GAP-1
     _page_payload,
     _render_plaintext,
 )
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.models import EncodedDims, PageRecord, PageSource
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.models import EncodedDims, PageRecord, PageSource
+from pdomain_ocr_labeler_spa.settings import Settings
 
 # Path to the tiny-fixture project shipped under tests/e2e/fixtures —
 # 3 real 1x1 PNGs that PIL can open (size = (1, 1)).
@@ -215,7 +215,7 @@ def test_page_payload_helper_is_exported() -> None:
     then call ``_page_payload(project_id, page_index, project_state, settings)``
     to refresh the response payload.
     """
-    from pd_ocr_labeler_spa.api import pages as pages_module
+    from pdomain_ocr_labeler_spa.api import pages as pages_module
 
     assert callable(pages_module._page_payload)
 
@@ -309,7 +309,7 @@ def test_provenance_summary_unknown_engine_omitted() -> None:
 
 def test_provenance_summary_from_ocr_provenance_fallback() -> None:
     """Falls back to ocr_provenance when saved_provenance is absent."""
-    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+    from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
         OCRModelProvenance,
         OCRProvenance,
     )
@@ -329,12 +329,12 @@ def test_provenance_summary_app_version_included() -> None:
     """App name + version from saved_provenance.app appear in the summary."""
     rec = _make_page_record(
         saved_provenance={
-            "app": {"name": "pd_ocr_labeler_spa", "version": "0.1.0"},
+            "app": {"name": "pdomain_ocr_labeler_spa", "version": "0.1.0"},
         },
     )
     summary = _build_provenance_summary(rec)
     assert summary is not None
-    assert "pd_ocr_labeler_spa" in summary
+    assert "pdomain_ocr_labeler_spa" in summary
     assert "0.1.0" in summary
 
 

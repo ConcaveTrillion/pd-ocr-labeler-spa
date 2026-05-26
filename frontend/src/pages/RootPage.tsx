@@ -15,7 +15,7 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Search, ChevronDown } from "@concavetrillion/pd-ui/icons";
+import { Search, ChevronDown } from "@pdomain/pdomain-ui/icons";
 import { FolderOpen } from "@/icons/local-shims";
 import type { components } from "../api/types";
 import { Button } from "../components/ui/button";

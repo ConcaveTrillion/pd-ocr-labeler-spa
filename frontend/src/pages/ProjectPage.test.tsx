@@ -38,10 +38,10 @@ vi.mock("react-router-dom", async (importOriginal) => {
 });
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
-// Phase 2.2: PageImageCanvas now imports @concavetrillion/pd-ui/canvas which
-// bundles react-konva. Mock pd-ui/canvas first to prevent konva's Node.js
+// Phase 2.2: PageImageCanvas now imports @pdomain/pdomain-ui/canvas which
+// bundles react-konva. Mock pdomain-ui/canvas first to prevent konva's Node.js
 // entry from trying to require('canvas'), a native addon not in jsdom.
-vi.mock("@concavetrillion/pd-ui/canvas", () => ({
+vi.mock("@pdomain/pdomain-ui/canvas", () => ({
   PageImageCanvas: ({
     page,
     children,

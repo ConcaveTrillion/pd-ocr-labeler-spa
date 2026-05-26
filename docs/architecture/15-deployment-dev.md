@@ -2,12 +2,12 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#34
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#34
 
-How `pd-ocr-labeler-spa` is built, packaged, distributed, and developed.
+How `pdomain-ocr-labeler-spa` is built, packaged, distributed, and developed.
 
 > Cross-refs:
-> Architecture template — `pd-prep-for-pgdp/` (Makefile, install.sh, Dockerfile)
+> Architecture template — `pdomain-prep-for-pgdp/` (Makefile, install.sh, Dockerfile)
 > CI gates — [`14-testing.md`](14-testing.md) §7
 > Drift checks — [`01-data-models.md`](01-data-models.md) §6
 
@@ -20,7 +20,7 @@ Single-line GitHub-Release wheel installer, mirroring pgdp-prep's flow.
 ### Linux / macOS
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/<org>/pd-ocr-labeler-spa/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/<org>/pdomain-ocr-labeler-spa/main/install.sh | bash
 ```
 
 `install.sh` does:
@@ -33,7 +33,7 @@ curl -fsSL https://raw.githubusercontent.com/<org>/pd-ocr-labeler-spa/main/insta
 ### Windows
 
 ```pwsh
-iwr -useb https://raw.githubusercontent.com/<org>/pd-ocr-labeler-spa/main/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/<org>/pdomain-ocr-labeler-spa/main/install.ps1 | iex
 ```
 
 Same flow, PowerShell-flavoured.
@@ -48,9 +48,9 @@ Declared in `pyproject.toml`:
 
 ```toml
 [project.scripts]
-pd-ocr-labeler-ui = "pd_ocr_labeler_spa.__main__:main"
-pd-ocr-labeler-spa-export = "pd_ocr_labeler_spa.operations.export.cli:main"
-pd-ocr-labeler-spa-prefetch = "pd_ocr_labeler_spa.prefetch:main"
+pd-ocr-labeler-ui = "pdomain_ocr_labeler_spa.__main__:main"
+pdomain-ocr-labeler-spa-export = "pdomain_ocr_labeler_spa.operations.export.cli:main"
+pdomain-ocr-labeler-spa-prefetch = "pdomain_ocr_labeler_spa.prefetch:main"
 ```
 
 The legacy `pd-ocr-labeler-ui` console script name is preserved so
@@ -118,7 +118,7 @@ on a first `npm run dev` before the server has started).
 
 ```sh
 git clone <repo>
-cd pd-ocr-labeler-spa
+cd pdomain-ocr-labeler-spa
 make setup            # uv sync + npm install + pre-commit + playwright install
 ```
 
@@ -197,8 +197,8 @@ pre-commit run --all     # everything
 make build               # frontend-build + uv build --wheel
 ```
 
-Produces `dist/pd_ocr_labeler_spa-<version>-py3-none-any.whl` containing
-the built SPA under `pd_ocr_labeler_spa/static/`.
+Produces `dist/pdomain_ocr_labeler_spa-<version>-py3-none-any.whl` containing
+the built SPA under `pdomain_ocr_labeler_spa/static/`.
 
 `pyproject.toml` highlights:
 
@@ -208,7 +208,7 @@ requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pd-ocr-labeler-spa"
+name = "pdomain-ocr-labeler-spa"
 dynamic = ["version"]
 requires-python = ">=3.13,<4.0"
 dependencies = [
@@ -220,7 +220,7 @@ dependencies = [
     "anyio",
     "sse-starlette",
     "huggingface_hub>=0.24",
-    "pd-book-tools>=0.1.0",
+    "pdomain-book-tools>=0.1.0",
     "PyYAML",
     "numpy",
     "opencv-python",
@@ -232,13 +232,13 @@ dependencies = [
 cuda = []                # placeholder
 
 [tool.uv.sources]
-pd-book-tools = { git = "https://github.com/<org>/pd-book-tools.git", tag = "v0.10.0" }
+pdomain-book-tools = { git = "https://github.com/<org>/pdomain-book-tools.git", tag = "v0.10.0" }
 
 [tool.hatch.version]
 source = "vcs"
 
 [tool.hatch.build.targets.wheel.force-include]
-"src/pd_ocr_labeler_spa/static" = "pd_ocr_labeler_spa/static"
+"src/pdomain_ocr_labeler_spa/static" = "pdomain_ocr_labeler_spa/static"
 
 [tool.hatch.build.hooks.custom]
 path = "build_hooks/spa_check.py"
@@ -256,7 +256,7 @@ class SpaCheckHook(BuildHookInterface):
             return  # editable installs without static/ are fine
         if os.environ.get("PD_LABELER_SKIP_SPA_CHECK") == "1":
             return
-        index = Path("src/pd_ocr_labeler_spa/static/index.html")
+        index = Path("src/pdomain_ocr_labeler_spa/static/index.html")
         if not index.exists():
             raise RuntimeError(
                 "SPA bundle not found. Run `make frontend-build` first."
@@ -290,7 +290,7 @@ FROM python:3.13-slim AS wheel
 WORKDIR /work
 COPY pyproject.toml uv.lock README.md /work/
 COPY src/ /work/src/
-COPY --from=spa /work/dist/ /work/src/pd_ocr_labeler_spa/static/
+COPY --from=spa /work/dist/ /work/src/pdomain_ocr_labeler_spa/static/
 RUN pip install uv && uv build --wheel -o /dist/
 
 # 3) Runtime
@@ -303,8 +303,8 @@ ENTRYPOINT ["pd-ocr-labeler-ui", "--host", "0.0.0.0", "--no-browser"]
 
 For local Docker dev:
 ```sh
-make docker-build        # docker build -t pd-ocr-labeler-spa .
-make docker-run          # docker run -p 8080:8080 -v ~/data:/data pd-ocr-labeler-spa
+make docker-build        # docker build -t pdomain-ocr-labeler-spa .
+make docker-run          # docker run -p 8080:8080 -v ~/data:/data pdomain-ocr-labeler-spa
 ```
 
 ---
@@ -437,7 +437,7 @@ all language tools are pre-installed.
 By default: `<data_root>/logs/session_<YYYYMMDD_HHMMSS>.log` per server
 boot. Plain text format with `[rid=...]` request-id tags.
 
-`--verbose -vv` enables `pd_book_tools` DEBUG; `-vvv` enables
+`--verbose -vv` enables `pdomain_book_tools` DEBUG; `-vvv` enables
 `urllib3`, `engineio`, `socketio` DEBUG.
 
 `--log-format json` switches to NDJSON for log aggregators.
@@ -494,7 +494,7 @@ standard agreed 2026-05-07; mirrored across all `pd-*` repos.
 
 A workspace developer can opt into **dev-local mode** for the venv:
 editable installs of sibling `pd-*` checkouts (notably
-[`pd-book-tools`](../../pd-book-tools/)), GPU/CUDA torch wheels, and
+[`pdomain-book-tools`](../../pdomain-book-tools/)), GPU/CUDA torch wheels, and
 `doctr` from git. None of that state is captured in `uv.lock` — it's
 applied imperatively after `uv sync`. So the obvious recipe
 
@@ -506,7 +506,7 @@ upgrade-deps:
 
 silently reverts a dev-local venv back to canonical published / CPU
 the moment it runs `uv sync`. The developer's editable
-`pd-book-tools` checkout becomes a published wheel; the GPU torch
+`pdomain-book-tools` checkout becomes a published wheel; the GPU torch
 becomes CPU torch; and the next `make test` run is testing something
 materially different from what the developer thinks they're testing.
 
@@ -521,8 +521,8 @@ recipe above.
    determine whether it is in dev-local or canonical mode, before
    running the sync.
 2. **Detection probes**, in order:
-   1. Run `uv pip show pd-book-tools` and look for an
-      `Editable project location:` line. `pd-book-tools` is the
+   1. Run `uv pip show pdomain-book-tools` and look for an
+      `Editable project location:` line. `pdomain-book-tools` is the
       cross-repo anchor — every `pd-*` repo depends on it, so its
       editable-vs-wheel state is the load-bearing signal. If editable
       → dev-local.
@@ -570,9 +570,9 @@ detect-and-refuse contract.
 ### 15.4 Acceptance criteria
 
 - In a canonical venv: `make upgrade-deps` runs lock + sync to
-  completion; `uv pip show pd-book-tools` continues to show a
+  completion; `uv pip show pdomain-book-tools` continues to show a
   published wheel; nothing prompts.
-- In a dev-local venv (editable `pd-book-tools` sibling installed):
+- In a dev-local venv (editable `pdomain-book-tools` sibling installed):
   `make upgrade-deps` exits **without** mutating the venv, prints the
   refusal message, and names the probe that fired.
 - `make upgrade-deps-local` in either mode produces a dev-local venv

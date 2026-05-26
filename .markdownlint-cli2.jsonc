@@ -1,7 +1,7 @@
 {
   // Project-wide markdownlint configuration.
   //
-  // Mirrors pd-prep-for-pgdp/.markdownlint-cli2.jsonc — same docs
+  // Mirrors pdomain-prep-for-pgdp/.markdownlint-cli2.jsonc — same docs
   // shape (long-form `specs/00-NN` design docs with tables, fenced
   // code, and prose paragraphs that wrap at sentence boundaries),
   // same need to ignore the bundled SPA + caches.
@@ -28,7 +28,7 @@
     "node_modules/**",
     "frontend/node_modules/**",
     "frontend/dist/**",
-    "src/pd_ocr_labeler_spa/static/**",
+    "src/pdomain_ocr_labeler_spa/static/**",
     ".pytest_cache/**",
     "docs/plans/**",
     "docs/archive/**",

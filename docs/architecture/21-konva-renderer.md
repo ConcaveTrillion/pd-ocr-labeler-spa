@@ -1,7 +1,7 @@
 # 21 — Konva renderer for the image viewport
 
 > **Status**: Active (shipped — supersedes D-020 deferral via D-043).
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#289
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#289
 > **Replaces**: `04-image-viewport.md` §0
 > **Last updated**: 2026-05-14
 

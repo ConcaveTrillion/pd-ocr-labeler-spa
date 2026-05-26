@@ -10,7 +10,7 @@ the resulting ``PageLoadOutcome`` on
 Issue: #307 (spec-23-B1).
 
 These tests inject a fake ``page_loader`` onto ``runner.context`` so the
-handler can be exercised end-to-end without pulling DocTR / pd_book_tools
+handler can be exercised end-to-end without pulling DocTR / pdomain_book_tools
 into the test process.
 
 The SSE HTTP stream is race-prone in tests — the job often finishes
@@ -30,14 +30,14 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.jobs import JobEventBroker
-from pd_ocr_labeler_spa.core.jobs.handlers.reload_ocr import _get_page_loader
-from pd_ocr_labeler_spa.core.notifications import NotificationKind
-from pd_ocr_labeler_spa.core.ocr.predictor import PredictorCache
-from pd_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
-from pd_ocr_labeler_spa.core.project_state import ProjectState
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.jobs import JobEventBroker
+from pdomain_ocr_labeler_spa.core.jobs.handlers.reload_ocr import _get_page_loader
+from pdomain_ocr_labeler_spa.core.notifications import NotificationKind
+from pdomain_ocr_labeler_spa.core.ocr.predictor import PredictorCache
+from pdomain_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
+from pdomain_ocr_labeler_spa.core.project_state import ProjectState
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path, **overrides: object) -> Settings:
@@ -276,7 +276,7 @@ def test_get_page_loader_raises_when_project_not_loaded() -> None:
     """
     from unittest.mock import MagicMock
 
-    from pd_ocr_labeler_spa.core.ocr_config_state import OCRConfigCarrier
+    from pdomain_ocr_labeler_spa.core.ocr_config_state import OCRConfigCarrier
 
     runner = MagicMock()
     project_state = ProjectState()  # loaded_project is None

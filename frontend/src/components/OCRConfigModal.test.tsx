@@ -85,7 +85,7 @@ describe("OCRConfigModal — basic rendering", () => {
   });
 });
 
-describe("OCRConfigModal — normalize toggles (pd-book-tools available)", () => {
+describe("OCRConfigModal — normalize toggles (pdomain-book-tools available)", () => {
   it("gt-matching checkbox unchecked by default", () => {
     renderModal();
     const cb = screen.getByTestId("normalize-gt-matching-checkbox");
@@ -140,7 +140,7 @@ describe("OCRConfigModal — normalize toggles (pd-book-tools available)", () =>
   });
 });
 
-describe("OCRConfigModal — toggles disabled when pd-book-tools absent", () => {
+describe("OCRConfigModal — toggles disabled when pdomain-book-tools absent", () => {
   beforeEach(() => {
     // Override default handler: normalize NOT available
     server.use(http.get("/api/normalize/available", () => HttpResponse.json({ available: false })));
@@ -199,7 +199,7 @@ describe("OCRConfigModal — close behaviour", () => {
   // via onOpenChange → onClose. The old test fired a click on ocr-config-modal (which
   // was the backdrop wrapper div). With Radix, ocr-config-modal is on DialogContent
   // (the inner panel), so that click path is no longer the backdrop-dismiss route.
-  // Radix Dialog's native Escape + overlay-click behaviour is tested in the pd-ui
+  // Radix Dialog's native Escape + overlay-click behaviour is tested in the pdomain-ui
   // primitives package and doesn't need re-testing here.
 });
 

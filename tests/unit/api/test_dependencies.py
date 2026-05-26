@@ -26,19 +26,19 @@ import pytest
 from fastapi import Depends, FastAPI, Request
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.adapters.auth import IAuth, NoneAuth
-from pd_ocr_labeler_spa.adapters.ocr import IOCREngine, LocalDoctrOCR
-from pd_ocr_labeler_spa.adapters.storage import FilesystemStorage, IStorage
-from pd_ocr_labeler_spa.api.dependencies import (
+from pdomain_ocr_labeler_spa.adapters.auth import IAuth, NoneAuth
+from pdomain_ocr_labeler_spa.adapters.ocr import IOCREngine, LocalDoctrOCR
+from pdomain_ocr_labeler_spa.adapters.storage import FilesystemStorage, IStorage
+from pdomain_ocr_labeler_spa.api.dependencies import (
     get_app_state,
     get_auth,
     get_ocr_engine,
     get_settings,
     get_storage,
 )
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.app_state import AppState
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.app_state import AppState
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 @pytest.fixture

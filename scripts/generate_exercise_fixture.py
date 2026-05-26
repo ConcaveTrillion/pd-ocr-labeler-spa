@@ -18,7 +18,7 @@ line cards to click, validate, and edit.
 
 Usage::
 
-    cd /workspaces/ocr-container/pd-ocr-labeler-spa
+    cd /workspaces/ocr-container/pdomain-ocr-labeler-spa
     uv run python scripts/generate_exercise_fixture.py
 
 The script is idempotent — re-running overwrites the fixture in-place.
@@ -315,13 +315,13 @@ _ENVELOPE_TEMPLATE = {
         "saved_by": "Save Page",
         "source_lane": "labeled",
         "app": {
-            "name": "pd_ocr_labeler_spa",
+            "name": "pdomain_ocr_labeler_spa",
             "version": "0.1.0",
             "git_commit": "exercise-fixture",
         },
         "toolchain": {
             "python": "3.13.0",
-            "pd_book_tools": "0.9.0",
+            "pdomain_book_tools": "0.9.0",
             "opencv_python": "4.10.0.84",
         },
         "ocr": {

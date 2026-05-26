@@ -1,6 +1,6 @@
 """Tests for ``core/ocr/predictor.py`` — keyed predictor cache.
 
-Hermetic: the actual ``pd_book_tools.ocr.doctr_support`` factories
+Hermetic: the actual ``pdomain_book_tools.ocr.doctr_support`` factories
 are stubbed via ``sys.modules`` injection (same pattern as
 ``tests/unit/core/test_hf_probe.py``) so the suite never pulls in
 torch/DocTR weights or hits HF.
@@ -14,8 +14,8 @@ from typing import Any
 
 import pytest
 
-from pd_ocr_labeler_spa.core.ocr import predictor as predictor_mod
-from pd_ocr_labeler_spa.core.ocr.predictor import (
+from pdomain_ocr_labeler_spa.core.ocr import predictor as predictor_mod
+from pdomain_ocr_labeler_spa.core.ocr.predictor import (
     PredictorBuildError,
     PredictorCache,
     PredictorKey,
@@ -24,7 +24,7 @@ from pd_ocr_labeler_spa.core.ocr.predictor import (
 
 @pytest.fixture
 def stub_doctr_support(monkeypatch: pytest.MonkeyPatch):
-    """Inject a fake ``pd_book_tools.ocr.doctr_support`` module.
+    """Inject a fake ``pdomain_book_tools.ocr.doctr_support`` module.
 
     Returns the namespace so individual tests can swap factory
     behavior. ``call_log`` records every factory invocation.
@@ -51,7 +51,7 @@ def stub_doctr_support(monkeypatch: pytest.MonkeyPatch):
         get_default_doctr_predictor=_make_stock,
         get_finetuned_torch_doctr_predictor=_make_finetuned,
     )
-    monkeypatch.setitem(sys.modules, "pd_book_tools.ocr.doctr_support", fake_module)
+    monkeypatch.setitem(sys.modules, "pdomain_book_tools.ocr.doctr_support", fake_module)
     return SimpleNamespace(module=fake_module, calls=call_log)
 
 

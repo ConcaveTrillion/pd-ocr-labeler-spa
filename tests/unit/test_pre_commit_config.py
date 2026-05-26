@@ -43,7 +43,7 @@ def _hook_ids_for(config: dict, repo_url: str) -> list[str]:
 
 
 def test_pre_commit_hooks_repo_present(config: dict) -> None:
-    """The standard pre-commit-hooks set mirrors pd-prep-for-pgdp."""
+    """The standard pre-commit-hooks set mirrors pdomain-prep-for-pgdp."""
     ids = _hook_ids_for(config, "https://github.com/pre-commit/pre-commit-hooks")
     assert ids, "pre-commit/pre-commit-hooks repo entry missing"
     expected = {"trailing-whitespace", "end-of-file-fixer", "check-yaml", "check-json"}
@@ -204,12 +204,12 @@ def _local_hook_ids(config: dict) -> list[str]:
 def test_frontend_tsc_hook_present(config: dict) -> None:
     """Issue #279: frontend-tsc hook must be in the local-repo entry.
 
-    Mirrors pd-prep-for-pgdp/.pre-commit-config.yaml. Without this hook
+    Mirrors pdomain-prep-for-pgdp/.pre-commit-config.yaml. Without this hook
     TypeScript errors only surface in `make lint`, not at commit time.
     """
     ids = _local_hook_ids(config)
     assert "frontend-tsc" in ids, (
-        "frontend-tsc hook missing from local repo — add it to mirror pd-prep-for-pgdp"
+        "frontend-tsc hook missing from local repo — add it to mirror pdomain-prep-for-pgdp"
     )
 
 
@@ -217,7 +217,7 @@ def test_frontend_eslint_hook_present(config: dict) -> None:
     """Issue #279: frontend-eslint hook must be in the local-repo entry."""
     ids = _local_hook_ids(config)
     assert "frontend-eslint" in ids, (
-        "frontend-eslint hook missing from local repo — add it to mirror pd-prep-for-pgdp"
+        "frontend-eslint hook missing from local repo — add it to mirror pdomain-prep-for-pgdp"
     )
 
 
@@ -225,7 +225,7 @@ def test_frontend_prettier_hook_present(config: dict) -> None:
     """Issue #279: frontend-prettier hook must be in the local-repo entry."""
     ids = _local_hook_ids(config)
     assert "frontend-prettier" in ids, (
-        "frontend-prettier hook missing from local repo — add it to mirror pd-prep-for-pgdp"
+        "frontend-prettier hook missing from local repo — add it to mirror pdomain-prep-for-pgdp"
     )
 
 

@@ -29,13 +29,13 @@ from fastapi.testclient import TestClient
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from pd_ocr_labeler_spa.api.middleware.error_handler import (
+from pdomain_ocr_labeler_spa.api.middleware.error_handler import (
     ApiError,
     install_error_handlers,
 )
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.exceptions import BoundingBoxGeometryError
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.exceptions import BoundingBoxGeometryError
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _probe_app() -> FastAPI:
@@ -219,7 +219,7 @@ def test_unhandled_exception_emits_full_traceback_log(caplog) -> None:
     the ``exc_info`` carries the original ``RuntimeError`` traceback
     (which contains the ``"internal secret"`` token from the route).
     """
-    error_logger = "pd_ocr_labeler_spa.api.middleware.error_handler"
+    error_logger = "pdomain_ocr_labeler_spa.api.middleware.error_handler"
     with caplog.at_level(logging.ERROR, logger=error_logger), _client() as client:
         client.get("/_probe/boom")
     error_records = [r for r in caplog.records if r.name == error_logger and r.levelno >= logging.ERROR]

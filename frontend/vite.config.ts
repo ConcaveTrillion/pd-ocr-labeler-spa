@@ -35,9 +35,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // pd-ui 0.2.1 was published with a dev-mode JSX transform: its dist files
+      // pdomain-ui 0.2.1 was published with a dev-mode JSX transform: its dist files
       // import `jsxDEV` from "react/jsx-dev-runtime". In production, React's
-      // jsx-dev-runtime exports `jsxDEV = undefined`, so any pd-ui component call
+      // jsx-dev-runtime exports `jsxDEV = undefined`, so any pdomain-ui component call
       // throws "TypeError: jsxDEV is not a function", preventing React from
       // mounting into #root.
       //
@@ -46,18 +46,18 @@ export default defineConfig({
       // "react/jsx-runtime" would not work because jsx-runtime doesn't export
       // `jsxDEV`, leaving `f.jsxDEV` as undefined in inlined call sites.
       //
-      // Remove this alias (and the shim file) once pd-ui is rebuilt with a
+      // Remove this alias (and the shim file) once pdomain-ui is rebuilt with a
       // production JSX transform.
-      // Tracked: pd-ui issue (cross-repo recommendation filed 2026-05-26).
+      // Tracked: pdomain-ui issue (cross-repo recommendation filed 2026-05-26).
       "react/jsx-dev-runtime": path.resolve(__dirname, "./src/jsx-dev-runtime-shim.ts"),
     },
     // Force single instances of all React-ecosystem packages when pnpm symlink
     // scoping creates multiple paths for the same package.
     //
-    // react/react-dom: @concavetrillion/pd-ui resolves from its own pnpm scope
-    //   (node_modules/.pnpm/@concavetrillion+pd-ui@.../node_modules/react).
+    // react/react-dom: @pdomain/pdomain-ui resolves from its own pnpm scope
+    //   (node_modules/.pnpm/@pdomain+pdomain-ui@.../node_modules/react).
     //
-    // react-konva: pd-ui declares peerDeps: "react-konva": "^18.0.0" and brings
+    // react-konva: pdomain-ui declares peerDeps: "react-konva": "^18.0.0" and brings
     //   in react-konva@18.2.16 via its pnpm scope, while the labeler-spa uses
     //   react-konva@19.2.4. Both get bundled; each creates its own
     //   react-reconciler with conflicting internal state, causing the runtime

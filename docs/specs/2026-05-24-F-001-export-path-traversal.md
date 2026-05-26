@@ -2,7 +2,7 @@
 
 > **Status**: Draft
 > **Last updated**: 2026-05-24
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#406
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#406
 
 ## TL;DR
 
@@ -17,7 +17,7 @@ labels as identifier-safe strings at the API boundary (Pydantic validator on
 
 The vulnerability sits at two layers.
 
-**API layer** — `src/pd_ocr_labeler_spa/api/export.py:54`
+**API layer** — `src/pdomain_ocr_labeler_spa/api/export.py:54`
 
 ```python
 style_filters: list[str] = []
@@ -26,7 +26,7 @@ style_filters: list[str] = []
 No validation. Any string is accepted and propagated verbatim into the job
 payload.
 
-**Handler layer** — `src/pd_ocr_labeler_spa/core/jobs/handlers/export.py:190-197`
+**Handler layer** — `src/pdomain_ocr_labeler_spa/core/jobs/handlers/export.py:190-197`
 
 ```python
 def export_output_dir(data_root: Path, project_id: str, subfolder: str) -> Path:
@@ -125,7 +125,7 @@ containment guard.
 
 Concretely:
 
-1. **`ExportRequest` field validator** — add to `src/pd_ocr_labeler_spa/api/export.py`:
+1. **`ExportRequest` field validator** — add to `src/pdomain_ocr_labeler_spa/api/export.py`:
 
 ```python
 import re
@@ -157,7 +157,7 @@ def _validate_component_filter(cls, v: object) -> str | None:
 ```
 
 1. **Containment guard in `export_output_dir`** — add to
-   `src/pd_ocr_labeler_spa/core/jobs/handlers/export.py`:
+   `src/pdomain_ocr_labeler_spa/core/jobs/handlers/export.py`:
 
 ```python
 def export_output_dir(data_root: Path, project_id: str, subfolder: str) -> Path:
@@ -202,9 +202,9 @@ Slice 1 (test-first):
 Slice 2 (implementation):
 
 - Add `_SAFE_LABEL_RE` and the two `@field_validator` methods to
-  `ExportRequest` in `src/pd_ocr_labeler_spa/api/export.py`.
+  `ExportRequest` in `src/pdomain_ocr_labeler_spa/api/export.py`.
 - Add the containment guard to `export_output_dir` in
-  `src/pd_ocr_labeler_spa/core/jobs/handlers/export.py`.
+  `src/pdomain_ocr_labeler_spa/core/jobs/handlers/export.py`.
 - Run `make test AI=1` to confirm the new tests pass and no existing
   tests regress.
 
@@ -213,7 +213,7 @@ Slice 3 (regression + cleanup):
 - Add parameterised regression tests for valid labels that must not be
   rejected: `"italics"`, `"small caps"`, `"drop cap"`, `"footnote marker"`,
   `"all"`.
-- Update `src/pd_ocr_labeler_spa/api/export.py` module docstring to mention
+- Update `src/pdomain_ocr_labeler_spa/api/export.py` module docstring to mention
   the validation.
 - Close #406 in the commit message.
 
@@ -234,7 +234,7 @@ def test_traversal_via_style_filter(test_client):
 
 def test_export_output_dir_containment_guard(tmp_path):
     """export_output_dir must raise ValueError for a traversal subfolder."""
-    from pd_ocr_labeler_spa.core.jobs.handlers.export import export_output_dir
+    from pdomain_ocr_labeler_spa.core.jobs.handlers.export import export_output_dir
     with pytest.raises(ValueError, match="resolves outside"):
         export_output_dir(tmp_path, "proj", "../../evil")
 ```
@@ -253,7 +253,7 @@ def test_valid_style_filters_accepted(test_client, label):
 
 @pytest.mark.parametrize("label", ["italics", "small caps", "all"])
 def test_export_output_dir_valid_subfolders(tmp_path, label):
-    from pd_ocr_labeler_spa.core.jobs.handlers.export import export_output_dir
+    from pdomain_ocr_labeler_spa.core.jobs.handlers.export import export_output_dir
     result = export_output_dir(tmp_path, "proj", label)
     assert str(result).startswith(str(tmp_path))
 ```

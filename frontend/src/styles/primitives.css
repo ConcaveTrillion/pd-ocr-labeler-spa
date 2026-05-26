@@ -545,7 +545,7 @@
 }
 
 /* ─── dialog overlay (backdrop) ──────────────────────────────── */
-/* pd-ui's DialogContent / AlertDialogContent render a <*Overlay> with
+/* pdomain-ui's DialogContent / AlertDialogContent render a <*Overlay> with
  * class "dialog-overlay". Without a local definition the backdrop is
  * invisible. This rule restores the visual scrim for all three Radix-
  * backed dialogs (ConfirmDialog, HotkeyHelpModal, SourceFolderDialog). */
@@ -556,14 +556,14 @@
   z-index: 49;
 }
 
-/* ─── Banner (pd-ui primitive) ────────────────────────────────── */
-/* pd-ui Banner renders <section class="banner" data-tone="…">. Without
+/* ─── Banner (pdomain-ui primitive) ────────────────────────────────── */
+/* pdomain-ui Banner renders <section class="banner" data-tone="…">. Without
  * local rules the element has no layout or tone tinting. These rules
  * match the former hand-rolled AlertBanner visual: border, rounded
  * corners, small gap, and tone-mapped color-mix tinting via the same
  * --status-* tokens the old component used.
  *
- * Tone → token mapping (mirrors pd-ui Banner docstring):
+ * Tone → token mapping (mirrors pdomain-ui Banner docstring):
  *   danger  → var(--status-mismatch)
  *   warning → var(--status-fuzzy)
  *   info    → var(--status-ocr)

@@ -13,7 +13,7 @@ Endpoints under test (8):
 1. ``POST .../lines/{li}/copy-gt-to-ocr`` — ``Block.copy_ground_truth_to_ocr()``
 2. ``POST .../lines/{li}/copy-ocr-to-gt`` — ``Block.copy_ocr_to_ground_truth()``
 3. ``POST .../lines/{li}/validate`` — sets ``Block.is_validated`` on the
-   line and on every contained word (workaround for pd-book-tools#52).
+   line and on every contained word (workaround for pdomain-book-tools#52).
 4. ``POST .../lines/{li}/delete`` — ``Page.delete_lines([li])``.
 5. ``POST .../lines/merge`` — ``Page.merge_lines(line_indices)``.
 6. ``POST .../lines/{li}/split-after-word`` —
@@ -43,11 +43,11 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
-from pd_ocr_labeler_spa.core.persistence.user_page_envelope import cached_envelope_path
-from pd_ocr_labeler_spa.core.project_state import PageState
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
+from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import cached_envelope_path
+from pdomain_ocr_labeler_spa.core.project_state import PageState
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path, **overrides: object) -> Settings:
@@ -84,14 +84,14 @@ class _StubWord:
     is_validated: bool = False
 
     def copy_ground_truth_to_ocr(self) -> bool:
-        """Mirror of ``pd_book_tools.ocr.word.Word.copy_ground_truth_to_ocr``."""
+        """Mirror of ``pdomain_book_tools.ocr.word.Word.copy_ground_truth_to_ocr``."""
         if self.ground_truth_text:
             self.text = self.ground_truth_text
             return True
         return False
 
     def copy_ocr_to_ground_truth(self) -> bool:
-        """Mirror of ``pd_book_tools.ocr.word.Word.copy_ocr_to_ground_truth``."""
+        """Mirror of ``pdomain_book_tools.ocr.word.Word.copy_ocr_to_ground_truth``."""
         if self.text:
             self.ground_truth_text = self.text
             return True
@@ -108,7 +108,7 @@ class _StubWord:
 
 @dataclass
 class _StubLine:
-    """Mimics ``pd_book_tools.ocr.block.Block`` line-level surface."""
+    """Mimics ``pdomain_book_tools.ocr.block.Block`` line-level surface."""
 
     words: list[_StubWord] = field(default_factory=list)
     is_validated: bool = False
@@ -126,7 +126,7 @@ class _StubLine:
 
 @dataclass
 class _StubPage:
-    """Mimics ``pd_book_tools.ocr.page.Page`` line-mutation surface."""
+    """Mimics ``pdomain_book_tools.ocr.page.Page`` line-mutation surface."""
 
     lines_: list[_StubLine] = field(default_factory=list)
     label: str = "stub"
@@ -341,7 +341,7 @@ def test_merge_two_lines(loaded_client: TestClient) -> None:
     body = resp.json()
     assert body["project_id"] == "book1"
 
-    # pd-book-tools method invoked with the requested indices.
+    # pdomain-book-tools method invoked with the requested indices.
     assert page.merge_lines_calls == [[0, 1]]
     # After merge: one line with four words (stub preserves order).
     assert len(page.lines_) == 1
@@ -363,7 +363,7 @@ def test_split_by_words_produces_two_lines(loaded_client: TestClient) -> None:
     Asserts (spec §9 — ``page.split_line_by_words(targets)``, actual API
     ``Page.split_line_with_selected_words``):
     - 200 PagePayload response.
-    - pd-book-tools method invoked with the (li, wi) tuples.
+    - pdomain-book-tools method invoked with the (li, wi) tuples.
     - Resulting page has +1 line (stub appends the extracted line).
     - ``pstate.generation`` advanced by 1.
     - Cached envelope file written.
@@ -382,7 +382,7 @@ def test_split_by_words_produces_two_lines(loaded_client: TestClient) -> None:
     body = resp.json()
     assert body["project_id"] == "book1"
 
-    # pd-book-tools method invoked.
+    # pdomain-book-tools method invoked.
     assert page.split_by_words_calls == [[(0, 1)]]
     # Stub appended a new line containing the extracted word.
     assert len(page.lines_) == lines_before + 1
@@ -429,7 +429,7 @@ def test_validate_line(loaded_client: TestClient) -> None:
     )
     assert resp.status_code == 200, resp.text
     assert page.lines_[0].is_validated is True
-    # Propagates to words (workaround for pd-book-tools#52 — same pattern
+    # Propagates to words (workaround for pdomain-book-tools#52 — same pattern
     # as words.py validate-batch).
     assert page.lines_[0].words[0].is_validated is True
     assert page.lines_[0].words[1].is_validated is True
@@ -516,7 +516,7 @@ def test_merge_lines_rejects_single_index(loaded_client: TestClient) -> None:
 
 
 def test_split_after_word_404_for_bad_line(loaded_client: TestClient) -> None:
-    """Bad line_index → 404 line_not_found before pd-book-tools call."""
+    """Bad line_index → 404 line_not_found before pdomain-book-tools call."""
     page = _make_two_line_page()
     _seed_page_state(loaded_client, page_index=0, page=page)
     resp = loaded_client.post(

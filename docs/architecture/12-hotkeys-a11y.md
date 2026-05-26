@@ -2,7 +2,7 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#28
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#28
 
 The complete keymap and accessibility contract.
 

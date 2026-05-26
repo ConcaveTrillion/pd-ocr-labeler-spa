@@ -1,6 +1,6 @@
 # Deep Code Review and Security Scan - 2026-05-22
 
-Repository: `ConcaveTrillion/pd-ocr-labeler-spa`
+Repository: `pdomain/pdomain-ocr-labeler-spa`
 
 Scope: backend/API, frontend, dependency/supply-chain, CI/release, repo conventions, driver contract, and scanner-backed security findings. Subagents reviewed independent slices and the parent pass deduplicated overlapping findings into the canonical items below.
 
@@ -22,7 +22,7 @@ Scope: backend/API, frontend, dependency/supply-chain, CI/release, repo conventi
 
 Severity: High security
 
-Evidence: `src/pd_ocr_labeler_spa/api/export.py:52`, `src/pd_ocr_labeler_spa/api/export.py:90`, `src/pd_ocr_labeler_spa/core/jobs/handlers/export.py:190`, `src/pd_ocr_labeler_spa/core/jobs/handlers/export.py:236`, `src/pd_ocr_labeler_spa/core/jobs/handlers/export.py:341`.
+Evidence: `src/pdomain_ocr_labeler_spa/api/export.py:52`, `src/pdomain_ocr_labeler_spa/api/export.py:90`, `src/pdomain_ocr_labeler_spa/core/jobs/handlers/export.py:190`, `src/pdomain_ocr_labeler_spa/core/jobs/handlers/export.py:236`, `src/pdomain_ocr_labeler_spa/core/jobs/handlers/export.py:341`.
 
 `style_filters` are accepted as arbitrary strings, passed into the export job payload, and later used as path segments under `data_root / "doctr-export" / project_id / subfolder`. Absolute labels and `../` segments are not rejected before directories and output files are written.
 
@@ -30,13 +30,13 @@ Impact: A crafted export request can create or write training output outside the
 
 Recommended fix: Validate style/component labels as data, not paths. Reject absolute paths, separators, `.`, `..`, empty strings, and overly long labels. Resolve the final output path and require it to remain under `data_root / "doctr-export" / project_id`.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/406.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/406.
 
 ### F-002 - Wildcard CORS plus no-auth filesystem routes exposes local filesystem metadata
 
 Severity: High security
 
-Evidence: `src/pd_ocr_labeler_spa/bootstrap.py:258`, `src/pd_ocr_labeler_spa/adapters/auth/none_.py:15`, `src/pd_ocr_labeler_spa/api/fs.py:1`, `src/pd_ocr_labeler_spa/api/projects.py:619`.
+Evidence: `src/pdomain_ocr_labeler_spa/bootstrap.py:258`, `src/pdomain_ocr_labeler_spa/adapters/auth/none_.py:15`, `src/pdomain_ocr_labeler_spa/api/fs.py:1`, `src/pdomain_ocr_labeler_spa/api/projects.py:619`.
 
 CORS allows all origins, methods, and headers. The v1 auth adapter accepts every caller as the local user. `/api/fs/ls` explicitly lists arbitrary local directories without path restriction, and `/api/projects/source-root` persists any existing directory as the source root.
 
@@ -44,13 +44,13 @@ Impact: A malicious website can reach a running localhost labeler from the brows
 
 Recommended fix: Default to same-origin only, allow the Vite dev origin explicitly in dev, and require a local CSRF/API token for filesystem and state-changing routes. Consider gating `/api/fs/*` and `/api/projects/source-root` behind an explicit local-trust setting.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/407.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/407.
 
 ### F-003 - Default 500 responses leak exception messages and traceback tail
 
 Severity: Medium security
 
-Evidence: `src/pd_ocr_labeler_spa/settings.py:124`, `src/pd_ocr_labeler_spa/api/middleware/error_handler.py:153`, `tests/unit/core/test_error_handler.py:175`.
+Evidence: `src/pdomain_ocr_labeler_spa/settings.py:124`, `src/pdomain_ocr_labeler_spa/api/middleware/error_handler.py:153`, `tests/unit/core/test_error_handler.py:175`.
 
 `debug_unhandled_traceback` defaults to true, the catch-all handler returns `message=str(exc)`, and tests assert sensitive exception text appears in the response body.
 
@@ -58,13 +58,13 @@ Impact: Internal paths, exception text, and potentially sensitive values can cro
 
 Recommended fix: Default `debug_unhandled_traceback` to false. Expose detailed errors only under an explicit dev/debug setting and keep full tracebacks server-side with request-id correlation.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/408.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/408.
 
 ### F-004 - Page image resize endpoint has no bounds
 
 Severity: Medium security
 
-Evidence: `src/pd_ocr_labeler_spa/api/pages.py:1122`.
+Evidence: `src/pdomain_ocr_labeler_spa/api/pages.py:1122`.
 
 The image endpoint accepts `w: int | None = None` without `Query` bounds, then resizes the full image to `(w, new_h)` and encodes into memory.
 
@@ -72,13 +72,13 @@ Impact: Very large positive `w` values can force excessive memory allocation and
 
 Recommended fix: Constrain `w` with `Query(ge=64, le=4096)` or similar and enforce a maximum output pixel count before resizing.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/409.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/409.
 
 ### F-005 - Export request accepts contradictory modes and invalid current-page indexes
 
 Severity: Medium correctness
 
-Evidence: `src/pd_ocr_labeler_spa/api/export.py:52`, `src/pd_ocr_labeler_spa/core/jobs/handlers/export.py:309`, `src/pd_ocr_labeler_spa/core/jobs/handlers/export.py:321`.
+Evidence: `src/pdomain_ocr_labeler_spa/api/export.py:52`, `src/pdomain_ocr_labeler_spa/core/jobs/handlers/export.py:309`, `src/pdomain_ocr_labeler_spa/core/jobs/handlers/export.py:321`.
 
 `detection_only` and `recognition_only` can both be true, disabling both outputs. `page_index` is optional and unconstrained; negative current-page exports simply produce no candidate file.
 
@@ -86,7 +86,7 @@ Impact: The API can report success for nonsensical requests and produce no usabl
 
 Recommended fix: Add Pydantic validation to reject `detection_only && recognition_only`, require at least one output mode, and require `page_index >= 0` for current-page export scope.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/410.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/410.
 
 ### F-006 - Python dependency advisory: `idna` CVE-2026-45409
 
@@ -98,7 +98,7 @@ Impact: Specially crafted inputs to `idna.encode()` can consume significant reso
 
 Recommended fix: Run `uv lock --upgrade-package idna`, verify tests, and keep the lockfile updated.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/411.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/411.
 
 ### F-007 - Python dependency advisory: `starlette` PYSEC-2026-161
 
@@ -110,7 +110,7 @@ Impact: Host header handling can cause inconsistent URL interpretation in Starle
 
 Recommended fix: Upgrade Starlette/FastAPI lock entries to a fixed version and verify app tests.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/412.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/412.
 
 ### F-008 - Python dependency advisory: `urllib3` PYSEC-2026-141/PYSEC-2026-142
 
@@ -122,7 +122,7 @@ Impact: HTTP client dependency exposure in dev/all-groups environments.
 
 Recommended fix: Upgrade `urllib3` to `2.7.0` or later and verify backend/dev tooling tests.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/413.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/413.
 
 ### F-009 - Frontend dev dependency advisory: `esbuild` GHSA-67mh-4wv8-2f99
 
@@ -134,7 +134,7 @@ Impact: A website can abuse the development server to send requests and read res
 
 Recommended fix: Upgrade Vitest/Vite or add a package-manager override so the transitive esbuild tree is patched.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/414.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/414.
 
 ### F-010 - Frontend dev dependency advisory: transitive `vite@5.4.21`
 
@@ -146,7 +146,7 @@ Impact: Vite optimized dependency sourcemap handling can expose files through pa
 
 Recommended fix: Upgrade Vitest/Vite so all Vite lock entries are patched.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/415.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/415.
 
 ### F-011 - CI, release, and Docker ignore the tracked pnpm lockfile
 
@@ -158,7 +158,7 @@ Impact: GitHub and Docker builds can resolve a different dependency graph from l
 
 Recommended fix: Switch CI, release, Docker, and related tests to `pnpm install --frozen-lockfile`; copy `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `.npmrc` into Docker build stages.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/416.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/416.
 
 ### F-012 - Tests preserve obsolete npm/package-lock behavior
 
@@ -170,7 +170,7 @@ Impact: Tests would reject a correct migration to the repo's documented pnpm/fro
 
 Recommended fix: Update tests to assert pnpm/frozen-lockfile behavior and remove npm package-lock fallback expectations.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/417.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/417.
 
 ### F-013 - Docker image and tool sources use mutable tags
 
@@ -182,7 +182,7 @@ Impact: Rebuilds can silently consume changed base images or tools.
 
 Recommended fix: Pin base images and the uv image to immutable digests or specific versioned tags plus digests.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/418.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/418.
 
 ### F-014 - Runtime container runs as root
 
@@ -194,7 +194,7 @@ Impact: A container compromise gets root inside the container.
 
 Recommended fix: Create a non-root runtime user, chown needed app paths, and switch to `USER` before entrypoint.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/419.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/419.
 
 ### F-015 - GitHub Actions are tag-pinned instead of SHA-pinned
 
@@ -206,7 +206,7 @@ Impact: Mutable action tags can be retargeted or compromised.
 
 Recommended fix: Pin actions to full commit SHAs and use Dependabot/Renovate or a scheduled process for updates.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/420.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/420.
 
 ### F-016 - Runtime Docker install strips lockfile hashes before pip install
 
@@ -218,7 +218,7 @@ Impact: Runtime install loses hash verification even though `uv.lock` contains h
 
 Recommended fix: Prefer installing from the uv lock directly or preserve and enforce hashes where pip is used.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/421.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/421.
 
 ### F-017 - Install paths execute remote scripts without checksum or signature verification
 
@@ -230,7 +230,7 @@ Impact: Upstream, DNS, or CDN compromise becomes local code execution for users 
 
 Recommended fix: Avoid piping remote scripts directly. Pin release assets and verify checksums/signatures before execution.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/422.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/422.
 
 ### F-018 - Bandit B310: screenshot helper opens URLs without scheme validation
 
@@ -242,7 +242,7 @@ Impact: If URL input becomes attacker-controlled, `file:` or other unexpected sc
 
 Recommended fix: Validate `http`/`https` and loopback host before opening, or document/suppress if the helper is strictly internal.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/423.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/423.
 
 ### F-019 - Build backend requirements are unpinned
 
@@ -254,7 +254,7 @@ Impact: Build isolation can pull new build tooling unexpectedly.
 
 Recommended fix: Pin build backend requirements to reviewed version ranges and update deliberately.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/424.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/424.
 
 ### F-020 - Pre-commit hooks are tag-pinned instead of SHA-pinned
 
@@ -266,19 +266,19 @@ Impact: Local hook execution trusts mutable tags.
 
 Recommended fix: Pin hook repos to commit SHAs or explicitly document the accepted risk.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/425.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/425.
 
 ### F-021 - Git and non-PyPI dependencies are skipped by pip-audit
 
 Severity: Low supply-chain
 
-Evidence: `uv.lock:1436` (`pd-book-tools`) and `uv.lock:1985` (`python-doctr`) are not auditable by standard PyPI advisory matching.
+Evidence: `uv.lock:1436` (`pdomain-book-tools`) and `uv.lock:1985` (`python-doctr`) are not auditable by standard PyPI advisory matching.
 
 Impact: Standard dependency scanning has blind spots for important runtime dependencies.
 
 Recommended fix: Add separate monitoring for Git/non-PyPI dependencies, SBOM review, or upstream advisory tracking.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/426.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/426.
 
 ### F-022 - Ignored temporary issue cache files are committed
 
@@ -290,31 +290,31 @@ Impact: Current files expose issue metadata only, but future temp cache contents
 
 Recommended fix: Remove the ignored temp files from git history/index where appropriate and keep the ignore.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/427.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/427.
 
 ### F-023 - Runtime asserts in non-test code disappear under optimized Python
 
 Severity: Low security/correctness
 
-Evidence: Bandit B101 reported runtime asserts in `src/pd_ocr_labeler_spa/adapters/ocr/local_doctr.py:281`, `src/pd_ocr_labeler_spa/api/dependencies.py`, `src/pd_ocr_labeler_spa/api/pages.py`, `src/pd_ocr_labeler_spa/api/projects.py:465`, `src/pd_ocr_labeler_spa/core/model_selection.py`, and `src/pd_ocr_labeler_spa/core/startup_discovery.py:178`.
+Evidence: Bandit B101 reported runtime asserts in `src/pdomain_ocr_labeler_spa/adapters/ocr/local_doctr.py:281`, `src/pdomain_ocr_labeler_spa/api/dependencies.py`, `src/pdomain_ocr_labeler_spa/api/pages.py`, `src/pdomain_ocr_labeler_spa/api/projects.py:465`, `src/pdomain_ocr_labeler_spa/core/model_selection.py`, and `src/pdomain_ocr_labeler_spa/core/startup_discovery.py:178`.
 
 Impact: Checks disappear under `python -O`, potentially changing runtime behavior.
 
 Recommended fix: Replace runtime asserts with explicit exceptions or document/suppress type-narrowing-only asserts.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/428.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/428.
 
 ### F-024 - Bandit B105 flags `API_TOKEN: None` as a hardcoded token
 
 Severity: Low scanner hygiene
 
-Evidence: `src/pd_ocr_labeler_spa/api/env_js.py:31`.
+Evidence: `src/pdomain_ocr_labeler_spa/api/env_js.py:31`.
 
 Impact: This appears to be a false positive, but it will recur if Bandit is added to CI.
 
 Recommended fix: Add a targeted suppression with rationale or adjust Bandit configuration if security linting becomes a CI gate.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/429.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/429.
 
 ### F-025 - GitHub CI is not equivalent to documented `make ci`
 
@@ -326,7 +326,7 @@ Impact: Required local gates can pass or fail differently from remote CI.
 
 Recommended fix: Add explicit CI jobs for `uv run pre-commit run --all-files` and `make frontend-knip`, or make GitHub CI invoke the same `make ci` contract.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/430.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/430.
 
 ### F-026 - Release workflow is not actually gated by CI
 
@@ -338,7 +338,7 @@ Impact: A manually pushed tag can publish without GitHub-enforced CI.
 
 Recommended fix: Run `make ci` in the release workflow or gate release through required checks, protected tags, or `workflow_run`.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/431.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/431.
 
 ### F-027 - CI uses bare `python3`
 
@@ -350,7 +350,7 @@ Impact: CI bypasses the uv-managed Python/toolchain for that step.
 
 Recommended fix: Use `uv run python -m zipfile`.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/432.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/432.
 
 ### F-028 - OpenAPI drift check compares ignored `frontend/openapi.json`
 
@@ -362,43 +362,43 @@ Impact: Schema-file drift is not actually checked; only generated TypeScript dri
 
 Recommended fix: Track `frontend/openapi.json`, or remove it from the diff and compare against a temporary schema artifact explicitly.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/433.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/433.
 
 ### F-029 - Multiple JSON API routes omit explicit `response_model`
 
 Severity: High API contract
 
-Evidence: `CONVENTIONS.md:165`; examples include `src/pd_ocr_labeler_spa/api/fs.py:23`, `src/pd_ocr_labeler_spa/api/projects.py:344`, `src/pd_ocr_labeler_spa/api/projects.py:513`, `src/pd_ocr_labeler_spa/api/projects.py:561`, `src/pd_ocr_labeler_spa/api/projects.py:729`, `src/pd_ocr_labeler_spa/api/export.py:109`, `src/pd_ocr_labeler_spa/api/export.py:127`, `src/pd_ocr_labeler_spa/api/lines_paragraphs.py:819`, `src/pd_ocr_labeler_spa/api/normalize.py:27`, and `src/pd_ocr_labeler_spa/api/notifications.py:61`.
+Evidence: `CONVENTIONS.md:165`; examples include `src/pdomain_ocr_labeler_spa/api/fs.py:23`, `src/pdomain_ocr_labeler_spa/api/projects.py:344`, `src/pdomain_ocr_labeler_spa/api/projects.py:513`, `src/pdomain_ocr_labeler_spa/api/projects.py:561`, `src/pdomain_ocr_labeler_spa/api/projects.py:729`, `src/pdomain_ocr_labeler_spa/api/export.py:109`, `src/pdomain_ocr_labeler_spa/api/export.py:127`, `src/pdomain_ocr_labeler_spa/api/lines_paragraphs.py:819`, `src/pdomain_ocr_labeler_spa/api/normalize.py:27`, and `src/pdomain_ocr_labeler_spa/api/notifications.py:61`.
 
 Impact: FastAPI does not validate responses, OpenAPI degrades to `{}`/`unknown`, and generated frontend types lose useful contracts.
 
 Recommended fix: Add concrete Pydantic response models for JSON routes, `response_model=None` for no-body routes, and explicit binary response metadata for image routes. Add a conformance test that fails on untyped JSON responses.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/434.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/434.
 
 ### F-030 - OpenAPI advertises 200 for routes that return 202 or 204
 
 Severity: High API contract
 
-Evidence: `src/pd_ocr_labeler_spa/api/refine.py:110`, `src/pd_ocr_labeler_spa/api/pages.py:869`, `src/pd_ocr_labeler_spa/api/pages.py:1023`, `src/pd_ocr_labeler_spa/api/projects.py:684`, `src/pd_ocr_labeler_spa/api/projects.py:729`, and `src/pd_ocr_labeler_spa/api/notifications.py:61`.
+Evidence: `src/pdomain_ocr_labeler_spa/api/refine.py:110`, `src/pdomain_ocr_labeler_spa/api/pages.py:869`, `src/pdomain_ocr_labeler_spa/api/pages.py:1023`, `src/pdomain_ocr_labeler_spa/api/projects.py:684`, `src/pdomain_ocr_labeler_spa/api/projects.py:729`, and `src/pdomain_ocr_labeler_spa/api/notifications.py:61`.
 
 Impact: Generated clients and docs disagree with runtime behavior, especially for long-running job routes.
 
 Recommended fix: Add `status_code=202` or `status_code=204, response_model=None` to decorators as appropriate and regenerate OpenAPI types.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/435.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/435.
 
 ### F-031 - Page image endpoint OpenAPI advertises JSON unknown instead of image/jpeg
 
 Severity: Medium API contract
 
-Evidence: `src/pd_ocr_labeler_spa/api/pages.py:1122` returns `Response(..., media_type="image/jpeg")` without response-class/schema metadata; generated types advertise JSON `unknown`.
+Evidence: `src/pdomain_ocr_labeler_spa/api/pages.py:1122` returns `Response(..., media_type="image/jpeg")` without response-class/schema metadata; generated types advertise JSON `unknown`.
 
 Impact: API docs and generated clients lie about the content type.
 
 Recommended fix: Declare `response_class=Response` and explicit OpenAPI `responses` for `image/jpeg` plus error JSON responses.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/436.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/436.
 
 ### F-032 - Route/OpenAPI tests check presence, not schema quality
 
@@ -410,31 +410,31 @@ Impact: Untyped response schemas and status-code mismatches pass CI.
 
 Recommended fix: Add a conformance test that fails on `{}` response schemas for JSON routes and verifies documented success status codes/content types.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/437.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/437.
 
 ### F-033 - Missing SPA bundle returns 404 instead of the workspace-required 503
 
 Severity: Low deployment
 
-Evidence: `src/pd_ocr_labeler_spa/api/static_mounts.py:314`, `tests/unit/api/test_static_mounts.py:417`, workspace guidance in `/workspaces/ocr-container/CLAUDE.md`.
+Evidence: `src/pdomain_ocr_labeler_spa/api/static_mounts.py:314`, `tests/unit/api/test_static_mounts.py:417`, workspace guidance in `/workspaces/ocr-container/CLAUDE.md`.
 
 Impact: Deployment diagnostics cannot distinguish “SPA not built” from “route not found”.
 
 Recommended fix: Return 503 for non-reserved SPA paths when `index.html` is absent and update tests accordingly.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/438.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/438.
 
 ### F-034 - Atomic writers use deterministic temp filenames
 
 Severity: Low correctness
 
-Evidence: `src/pd_ocr_labeler_spa/core/persistence/atomic.py:128`, `src/pd_ocr_labeler_spa/core/persistence/ocr_config.py:217`, `src/pd_ocr_labeler_spa/core/persistence/session_state.py:347`, `tests/integration/test_concurrent_mutations.py:25`.
+Evidence: `src/pdomain_ocr_labeler_spa/core/persistence/atomic.py:128`, `src/pdomain_ocr_labeler_spa/core/persistence/ocr_config.py:217`, `src/pdomain_ocr_labeler_spa/core/persistence/session_state.py:347`, `tests/integration/test_concurrent_mutations.py:25`.
 
 Impact: Concurrent writes to the same sidecar can clobber temp files, fail during replace, or leave stale temp files.
 
 Recommended fix: Use unique temp files in the same directory, then `os.replace`, with cleanup on failure. Add concurrent tests for config/session/OCR sidecars.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/439.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/439.
 
 ### F-035 - Destructive hotkeys bypass required confirmation flows
 
@@ -448,7 +448,7 @@ Impact: Accidental hotkeys can discard, recompute, or delete page data without u
 
 Recommended fix: Route destructive hotkeys through confirmation dialogs and test that mutations do not fire until confirmation.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/440.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/440.
 
 ### F-036 - Char-fixer debounced GT edits are dropped on unmount or navigation
 
@@ -460,7 +460,7 @@ Impact: Typing a character fix and changing word/page or closing the panel withi
 
 Recommended fix: Flush pending save on cleanup/word change or commit on blur/Enter. Add a regression test that unmounts before the debounce fires.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/441.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/441.
 
 ### F-037 - Char-range edits are local-only and component labels are not serialized
 
@@ -474,7 +474,7 @@ Impact: Users can edit ranges/components in the UI and lose those changes after 
 
 Recommended fix: Persist existing-range edits or add an explicit Apply button, include component labels in the API payload/schema, and add tests for existing range and component persistence.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/442.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/442.
 
 ### F-038 - Project and job IDs are interpolated into URL paths without encoding
 
@@ -486,7 +486,7 @@ Impact: Directory basenames or job IDs containing `#`, `?`, `%`, spaces, or slas
 
 Recommended fix: Centralize URL builders and use `encodeURIComponent` for every path segment. Test IDs containing reserved URL characters.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/443.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/443.
 
 ### F-039 - Page hotkeys remain active behind dialogs
 
@@ -500,7 +500,7 @@ Impact: While a modal is open, keystrokes can mutate/delete the underlying page.
 
 Recommended fix: Compute `anyDialogOpen` and disable all page hotkey hooks while any modal is active. Add modal-open suppression tests.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/444.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/444.
 
 ### F-040 - Modals declare `aria-modal` without focus trapping or consistent Escape handling
 
@@ -512,7 +512,7 @@ Impact: Keyboard and screen-reader users can tab behind modal content or be unab
 
 Recommended fix: Use a dialog primitive with focus trap/restore and Escape handling, or implement those behaviors centrally.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/445.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/445.
 
 ### F-041 - Char-bbox Apply clears dirty state before save succeeds
 
@@ -524,7 +524,7 @@ Impact: A failed save leaves the UI looking clean, so users can navigate away be
 
 Recommended fix: Clear dirty only on mutation success; show an error and keep dirty on failure. Add a failed-request test.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/446.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/446.
 
 ### F-042 - OCR auto-rotate config POST silently ignores HTTP failures
 
@@ -536,7 +536,7 @@ Impact: 4xx/5xx responses appear successful and the UI refetches without surfaci
 
 Recommended fix: Check `resp.ok`, throw with response text, show error state/toast, and disable controls while saving.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/447.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/447.
 
 ### F-043 - Project cards navigate even when project loading fails
 
@@ -548,7 +548,7 @@ Impact: Failed loads send the user to a project route instead of keeping them on
 
 Recommended fix: Navigate only on load success and show failure state/toast on error.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/448.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/448.
 
 ### F-044 - Shared API client drops falsy bodies and always parses success as JSON
 
@@ -560,7 +560,7 @@ Impact: Valid `false`, `0`, `""`, or `null` bodies are not sent, and empty succe
 
 Recommended fix: Send a body when the option key is present, not when it is truthy; handle 204 and empty responses before calling `response.json()`.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/449.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/449.
 
 ### F-045 - Tri-state chips expose no accessible state
 
@@ -572,7 +572,7 @@ Impact: Screen-reader users cannot tell whether a tri-state chip is off, on, or 
 
 Recommended fix: Use a native button with `aria-pressed={true | false | "mixed"}` or a checkbox pattern with `aria-checked`.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/450.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/450.
 
 ### F-046 - Driver-contract E2E test does not cover every documented testid
 
@@ -584,7 +584,7 @@ Impact: Toolbar, page action, per-line, per-word, dialog, export, busy, and rail
 
 Recommended fix: Generate/assert the catalogue from the spec or maintain a complete explicit testid list in E2E.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/451.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/451.
 
 ### F-047 - Apply Style toolbar testids do not match the driver contract
 
@@ -598,7 +598,7 @@ Impact: Driver selectors using documented IDs fail.
 
 Recommended fix: Restore documented IDs or update the contract through the versioning process, then tighten tests.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/452.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/452.
 
 ### F-048 - Per-line/per-word driver IDs are missing or placed on alias attributes
 
@@ -612,7 +612,7 @@ Impact: Driver cannot select required match-view controls.
 
 Recommended fix: Add documented `data-testid` values to real or stubbed controls.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/453.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/453.
 
 ### F-049 - Word edit dialog IDs diverge from the driver contract
 
@@ -626,7 +626,7 @@ Impact: Driver cannot find/open/edit through the documented dialog contract.
 
 Recommended fix: Add the contract IDs while retaining internal IDs only if needed.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/454.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/454.
 
 ### F-050 - Driver URL contract is internally inconsistent
 
@@ -640,7 +640,7 @@ Impact: Driver authors receive conflicting URL instructions.
 
 Recommended fix: Update section 7 to canonical routes and document legacy redirects separately.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/455.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/455.
 
 ### F-051 - RUF002 is globally ignored despite the Unicode convention
 
@@ -654,4 +654,4 @@ Impact: Ambiguous docstring Unicode can enter unchecked.
 
 Recommended fix: Remove the global ignore and escape/name intentional characters, or revise the convention explicitly.
 
-Issue: https://github.com/ConcaveTrillion/pd-ocr-labeler-spa/issues/456.
+Issue: https://github.com/pdomain/pdomain-ocr-labeler-spa/issues/456.

@@ -28,7 +28,7 @@ export default tseslint.config(
     ignores: ["src/**/*.test.{ts,tsx}", "src/test/**/*.{ts,tsx}"],
     rules: {
       ...jsxA11y.flatConfigs.recommended.rules,
-      // Re-promoted from warn → error (2026-05-17, mirrors pd-prep-for-pgdp commit d9c2dcc).
+      // Re-promoted from warn → error (2026-05-17, mirrors pdomain-prep-for-pgdp commit d9c2dcc).
       // Per-site suppressions added inline where genuinely not fixable.
       "jsx-a11y/click-events-have-key-events": "error",
       "jsx-a11y/no-noninteractive-element-interactions": "error",
@@ -142,10 +142,10 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "error",
 
       // Icon import policy (Phase 2.5b): all icon imports must go through
-      // @concavetrillion/pd-ui/icons (for icons in pd-ui) or
-      // @/icons/local-shims (for icons not yet upstreamed to pd-ui).
+      // @pdomain/pdomain-ui/icons (for icons in pdomain-ui) or
+      // @/icons/local-shims (for icons not yet upstreamed to pdomain-ui).
       // Direct lucide-react imports in SPA component code are banned.
-      // lucide-react is a peer dep of pd-ui/icons and must remain in this package's dependencies.
+      // lucide-react is a peer dep of pdomain-ui/icons and must remain in this package's dependencies.
       "no-restricted-imports": [
         "error",
         {
@@ -153,7 +153,7 @@ export default tseslint.config(
             {
               name: "lucide-react",
               message:
-                "Import icons from '@concavetrillion/pd-ui/icons' or '@/icons/local-shims' instead of lucide-react directly.",
+                "Import icons from '@pdomain/pdomain-ui/icons' or '@/icons/local-shims' instead of lucide-react directly.",
             },
           ],
         },

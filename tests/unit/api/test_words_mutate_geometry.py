@@ -3,13 +3,13 @@
 Spec authority:
 - ``specs/23-page-payload-backend.md §9`` — word geometry endpoints (add,
   rebox, nudge, split, merge, erase-pixels): resolve target → call
-  pd-book-tools mutation → bump generation → write cached envelope →
+  pdomain-book-tools mutation → bump generation → write cached envelope →
   return refreshed ``PagePayload``.
 - ``specs/23-page-payload-backend.md §12`` — autosave + cached lane
   best-effort.
 - ``specs/23-page-payload-backend.md §13`` — per-page locking.
 
-pd-book-tools method audit (spec name → actual call):
+pdomain-book-tools method audit (spec name → actual call):
 - ``page.add_word(bbox, text, line_index=None)`` →
   ``Page.add_word_to_page(x1, y1, x2, y2, text)`` (closest-line picked
   automatically; ``line_index`` request field is informational only).
@@ -18,10 +18,10 @@ pd-book-tools method audit (spec name → actual call):
   top, bottom, refine_after)``.
 - ``word.split(orientation, marker_position)`` →
   ``Page.split_word(li, wi, split_fraction)`` (horizontal only).
-- ``page.merge_words(targets)`` — **missing** in pd-book-tools (tracking
-  issue ConcaveTrillion/pd-book-tools#53); SPA route delegates to
+- ``page.merge_words(targets)`` — **missing** in pdomain-book-tools (tracking
+  issue pdomain/pdomain-book-tools#53); SPA route delegates to
   per-line ``Line.merge_word_left`` / ``Line.merge_word_right``.
-- ``page.erase_pixels(bbox, fill_value)`` — **missing** in pd-book-tools
+- ``page.erase_pixels(bbox, fill_value)`` — **missing** in pdomain-book-tools
   (tracking issue #53); SPA handler mutates
   ``page.cv2_numpy_page_image`` in-place, mirroring the legacy labeler's
   inline implementation (``pd_ocr_labeler/state/page_state.py:1802``).
@@ -41,11 +41,11 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
-from pd_ocr_labeler_spa.core.persistence.user_page_envelope import cached_envelope_path
-from pd_ocr_labeler_spa.core.project_state import PageState
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
+from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import cached_envelope_path
+from pdomain_ocr_labeler_spa.core.project_state import PageState
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path, **overrides: object) -> Settings:
@@ -98,7 +98,7 @@ class _StubLine:
 
     Each merge records the (word_index, direction) into ``merge_calls``
     and removes one neighbor — enough for the route to confirm it
-    delegated correctly without dragging in pd-book-tools internals.
+    delegated correctly without dragging in pdomain-book-tools internals.
     """
 
     words_: list[_StubWord] = field(default_factory=list)
@@ -408,7 +408,7 @@ def test_merge_words_right_delegates_to_line(loaded_client: TestClient) -> None:
 def test_merge_words_returns_400_when_pdbooktools_rejects(
     loaded_client: TestClient,
 ) -> None:
-    """e.g. cannot merge first word to the left — pd-book-tools returns False."""
+    """e.g. cannot merge first word to the left — pdomain-book-tools returns False."""
     page = _make_seeded_page()
     _seed_page_state(loaded_client, page_index=0, page=page)
 
@@ -644,7 +644,7 @@ def test_split_word_horizontal_calls_pdbooktools(loaded_client: TestClient) -> N
 
 
 def test_split_word_vertical_returns_400(loaded_client: TestClient) -> None:
-    """pd-book-tools only supports horizontal split today; vertical → 400."""
+    """pdomain-book-tools only supports horizontal split today; vertical → 400."""
     page = _make_seeded_page()
     _seed_page_state(loaded_client, page_index=0, page=page)
 
@@ -654,5 +654,5 @@ def test_split_word_vertical_returns_400(loaded_client: TestClient) -> None:
     )
     assert resp.status_code == 400, resp.text
     assert resp.json()["error"] == "mutation_failed"
-    # And pd-book-tools was never called.
+    # And pdomain-book-tools was never called.
     assert page.split_calls == []

@@ -298,7 +298,7 @@ export interface paths {
          *
          *     Returns 404 when the requested project is not loaded.
          *     Returns 503 when the auto-rotate algorithm (``detect_best_rotation``)
-         *     is not available (pd-book-tools not installed or missing the module).
+         *     is not available (pdomain-book-tools not installed or missing the module).
          */
         post: operations["post_auto_rotate_all_api_projects__project_id__auto_rotate_all_post"];
         delete?: never;
@@ -485,7 +485,7 @@ export interface paths {
          *     Spec authority: ``specs/23-page-payload-backend.md §7``.
          *
          *     Re-runs ``core/ground_truth_matcher.rematch_page`` — a thin wrapper
-         *     over ``pd_book_tools.ocr.ground_truth_matching`` reached via the
+         *     over ``pdomain_book_tools.ocr.ground_truth_matching`` reached via the
          *     ``Page.remove_ground_truth`` / ``Page.add_ground_truth`` pair.
          *     Replaces ``page.line_matches`` with freshly-matched results; per-word
          *     GT edits are *discarded* (legacy semantics, mirrored from
@@ -505,7 +505,7 @@ export interface paths {
          *     - ``rematch_failed`` (400) — the page object lacks the
          *       ``remove_ground_truth`` / ``add_ground_truth`` method pair
          *       (e.g. a legacy page-dict that was never wrapped in
-         *       ``pd_book_tools.ocr.page.Page``).
+         *       ``pdomain_book_tools.ocr.page.Page``).
          *
          *     Body (``RematchGtRequest``) is intentionally empty — the
          *     confirmation prompt is the frontend's responsibility
@@ -907,7 +907,7 @@ export interface paths {
          * @description ``POST .../words/{li}/{wi}/style`` — apply text style label to a word.
          *
          *     Spec 23 §9 row 2: ``word.apply_style(style_id, scope)`` →
-         *     ``word.apply_style_scope(style, scope)`` in pd-book-tools.
+         *     ``word.apply_style_scope(style, scope)`` in pdomain-book-tools.
          */
         post: operations["apply_style_api_projects__project_id__pages__page_index__words__line_index___word_index__style_post"];
         delete?: never;
@@ -930,8 +930,8 @@ export interface paths {
          * @description ``POST .../words/{li}/{wi}/component`` — toggle a word component flag.
          *
          *     Spec 23 §9 row 3: ``word.set_component(component_id)`` →
-         *     ``word.apply_component(component, enabled=enabled)`` in pd-book-tools.
-         *     ``enabled=False`` removes the component (idempotent — pd-book-tools'
+         *     ``word.apply_component(component, enabled=enabled)`` in pdomain-book-tools.
+         *     ``enabled=False`` removes the component (idempotent — pdomain-book-tools'
          *     ``apply_component`` discards if not present).
          */
         post: operations["apply_component_api_projects__project_id__pages__page_index__words__line_index___word_index__component_post"];
@@ -954,10 +954,10 @@ export interface paths {
          * Toggle Validated
          * @description ``POST .../words/{li}/{wi}/validated`` — toggle the validated flag.
          *
-         *     Spec 23 §9 row 4 calls for ``word.set_validated(bool)``. pd-book-tools
+         *     Spec 23 §9 row 4 calls for ``word.set_validated(bool)``. pdomain-book-tools
          *     does not yet expose this method (tracking issue
-         *     ConcaveTrillion/pd-book-tools#52). Until that lands, we set
-         *     ``word.is_validated`` directly on the Python object: pd-book-tools'
+         *     pdomain/pdomain-book-tools#52). Until that lands, we set
+         *     ``word.is_validated`` directly on the Python object: pdomain-book-tools'
          *     ``Word`` is a regular class (not frozen), so attribute assignment
          *     succeeds — but the flag is **lost** on envelope ``from_dict``
          *     round-trip because ``Word.to_dict`` does not serialize it. This
@@ -1022,11 +1022,11 @@ export interface paths {
          * @description ``POST .../words/add`` — insert a new word bbox.
          *
          *     Spec 23 §9 row 6: ``page.add_word(bbox, text, line_index=None)`` →
-         *     ``Page.add_word_to_page(x1, y1, x2, y2, text)`` in pd-book-tools.
+         *     ``Page.add_word_to_page(x1, y1, x2, y2, text)`` in pdomain-book-tools.
          *     The request body's ``line_index`` is informational only:
-         *     pd-book-tools picks the closest line by bbox centroid (see
+         *     pdomain-book-tools picks the closest line by bbox centroid (see
          *     ``Page.add_word_to_page`` at
-         *     ``pd_book_tools/ocr/page.py:2132``).
+         *     ``pdomain_book_tools/ocr/page.py:2132``).
          */
         post: operations["add_word_api_projects__project_id__pages__page_index__words_add_post"];
         delete?: never;
@@ -1049,8 +1049,8 @@ export interface paths {
          * @description ``POST .../words/{li}/{wi}/rebox`` — replace the word's bounding box.
          *
          *     Spec 23 §9 row 7: ``word.rebox(bbox)`` →
-         *     ``Page.rebox_word(li, wi, x1, y1, x2, y2)`` in pd-book-tools
-         *     (``pd_book_tools/ocr/page.py:2043``).
+         *     ``Page.rebox_word(li, wi, x1, y1, x2, y2)`` in pdomain-book-tools
+         *     (``pdomain_book_tools/ocr/page.py:2043``).
          */
         post: operations["rebox_word_api_projects__project_id__pages__page_index__words__line_index___word_index__rebox_post"];
         delete?: never;
@@ -1074,8 +1074,8 @@ export interface paths {
          *
          *     Spec 23 §9 row 8: ``word.nudge(left, right, top, bottom)`` →
          *     ``Page.nudge_word_bbox(li, wi, left, right, top, bottom,
-         *     refine_after)`` in pd-book-tools
-         *     (``pd_book_tools/ocr/page.py:2571``).
+         *     refine_after)`` in pdomain-book-tools
+         *     (``pdomain_book_tools/ocr/page.py:2571``).
          */
         post: operations["nudge_bbox_api_projects__project_id__pages__page_index__words__line_index___word_index__nudge_post"];
         delete?: never;
@@ -1098,8 +1098,8 @@ export interface paths {
          * @description ``POST .../words/{li}/{wi}/split`` — split one word bbox into two.
          *
          *     Spec 23 §9 row 9: ``word.split(orientation, marker_position)`` →
-         *     ``Page.split_word(li, wi, split_fraction)`` in pd-book-tools
-         *     (``pd_book_tools/ocr/page.py:1756``). pd-book-tools only supports
+         *     ``Page.split_word(li, wi, split_fraction)`` in pdomain-book-tools
+         *     (``pdomain_book_tools/ocr/page.py:1756``). pdomain-book-tools only supports
          *     horizontal split today; ``direction='vertical'`` returns 400.
          */
         post: operations["split_word_api_projects__project_id__pages__page_index__words__line_index___word_index__split_post"];
@@ -1123,9 +1123,9 @@ export interface paths {
          * @description ``POST .../words/{li}/{wi}/merge`` — merge with adjacent word.
          *
          *     Spec 23 §9 row 10 names ``page.merge_words(targets)``, which is not
-         *     implemented in pd-book-tools (tracking ConcaveTrillion/pd-book-tools#53).
+         *     implemented in pdomain-book-tools (tracking pdomain/pdomain-book-tools#53).
          *     The route delegates to per-line ``Line.merge_word_left(wi)`` /
-         *     ``Line.merge_word_right(wi)`` from ``pd_book_tools/ocr/block.py:785,789``.
+         *     ``Line.merge_word_right(wi)`` from ``pdomain_book_tools/ocr/block.py:785,789``.
          */
         post: operations["merge_words_api_projects__project_id__pages__page_index__words__line_index___word_index__merge_post"];
         delete?: never;
@@ -1148,8 +1148,8 @@ export interface paths {
          * @description ``POST .../words/{li}/{wi}/erase-pixels`` — erase pixels in a bbox.
          *
          *     Spec 23 §9 row 11 names ``page.erase_pixels(bbox, fill_value=255)``,
-         *     which does not exist in pd-book-tools (tracking ConcaveTrillion/
-         *     pd-book-tools#53). The handler mirrors the legacy labeler's inline
+         *     which does not exist in pdomain-book-tools (tracking ConcaveTrillion/
+         *     pdomain-book-tools#53). The handler mirrors the legacy labeler's inline
          *     implementation at ``pd_ocr_labeler/state/page_state.py:1802``:
          *
          *     1. Resolve ``page.cv2_numpy_page_image`` → numpy ndarray.
@@ -1213,8 +1213,8 @@ export interface paths {
          *     into ``PageState.char_bboxes_map`` and the cached-lane envelope's
          *     ``word_attributes`` dict.
          *
-         *     Unlike most word mutations this does not touch the ``pd_book_tools``
-         *     ``Page`` object — pd-book-tools has no first-class char-bbox concept.
+         *     Unlike most word mutations this does not touch the ``pdomain_book_tools``
+         *     ``Page`` object — pdomain-book-tools has no first-class char-bbox concept.
          *     The data lives entirely in the SPA sidecar layer.
          */
         post: operations["set_char_bboxes_api_projects__project_id__pages__page_index__words__line_index___word_index__char_bboxes_post"];
@@ -1290,7 +1290,7 @@ export interface paths {
          * @description ``POST .../lines/{li}/copy-gt-to-ocr`` — copy GT→OCR for every word.
          *
          *     Spec §9 row 12: ``line.copy_gt_to_ocr()`` → ``Block.copy_ground_truth_to_ocr()``.
-         *     pd-book-tools returns ``True`` if any word was mutated; we treat the
+         *     pdomain-book-tools returns ``True`` if any word was mutated; we treat the
          *     "no GT to copy" case (returns ``False``) as a soft success rather
          *     than ``mutation_failed`` — clicking copy on an empty line should be
          *     idempotent, not an error.
@@ -1338,9 +1338,9 @@ export interface paths {
          * Validate Line
          * @description ``POST .../lines/{li}/validate`` — set the line's validated flag.
          *
-         *     Spec §9 row 14 calls for ``line.set_validated(bool)``; pd-book-tools'
+         *     Spec §9 row 14 calls for ``line.set_validated(bool)``; pdomain-book-tools'
          *     ``Block`` does not expose such a method (tracking issue
-         *     ConcaveTrillion/pd-book-tools#52 — same workaround as Word). We
+         *     pdomain/pdomain-book-tools#52 — same workaround as Word). We
          *     assign ``line.is_validated`` directly and propagate the flag to every
          *     contained word so the validate-batch scope=line view stays
          *     consistent. The flag is lost on ``Block.to_dict`` → ``from_dict``
@@ -1367,7 +1367,7 @@ export interface paths {
          * @description ``POST .../lines/{li}/delete`` — remove the line from the page.
          *
          *     Spec §9 row 15: ``page.delete_line(l)`` → ``Page.delete_lines([l])``
-         *     (pd-book-tools exposes only the batch variant).
+         *     (pdomain-book-tools exposes only the batch variant).
          */
         post: operations["delete_line_api_projects__project_id__pages__page_index__lines__line_index__delete_post"];
         delete?: never;
@@ -1439,8 +1439,8 @@ export interface paths {
          * @description ``POST .../lines/merge`` — merge selected lines into the first.
          *
          *     Spec §9 row 16: ``page.merge_lines(targets)`` →
-         *     ``Page.merge_lines(line_indices)`` (``pd_book_tools/ocr/page.py:1575``).
-         *     pd-book-tools requires at least two distinct indices.
+         *     ``Page.merge_lines(line_indices)`` (``pdomain_book_tools/ocr/page.py:1575``).
+         *     pdomain-book-tools requires at least two distinct indices.
          */
         post: operations["merge_lines_api_projects__project_id__pages__page_index__lines_merge_post"];
         delete?: never;
@@ -1464,7 +1464,7 @@ export interface paths {
          *
          *     Spec §9 row 18: ``page.split_line_by_words(targets)`` →
          *     ``Page.split_line_with_selected_words(word_keys)``
-         *     (``pd_book_tools/ocr/page.py:2217``).
+         *     (``pdomain_book_tools/ocr/page.py:2217``).
          */
         post: operations["split_by_words_api_projects__project_id__pages__page_index__lines_split_by_words_post"];
         delete?: never;
@@ -1513,7 +1513,7 @@ export interface paths {
          * @description ``POST .../paragraphs/{pi}/copy-gt-to-ocr`` — copy GT→OCR for every word.
          *
          *     Spec §9: ``Block.copy_ground_truth_to_ocr()`` operates on every word
-         *     contained in the Block (pd-book-tools' paragraph type). pd-book-tools
+         *     contained in the Block (pdomain-book-tools' paragraph type). pdomain-book-tools
          *     returns ``True`` if any word was mutated; we treat the "no GT to copy"
          *     case (returns ``False``) as a soft success — clicking copy on a
          *     paragraph without GT should be idempotent, not an error.
@@ -1561,9 +1561,9 @@ export interface paths {
          * Validate Paragraph
          * @description ``POST .../paragraphs/{pi}/validate`` — set the paragraph's validated flag.
          *
-         *     Spec §9 calls for paragraph-level ``set_validated(bool)``; pd-book-tools'
+         *     Spec §9 calls for paragraph-level ``set_validated(bool)``; pdomain-book-tools'
          *     ``Block`` does not expose such a method (tracking issue
-         *     ConcaveTrillion/pd-book-tools#52 — same workaround as Word + Line).
+         *     pdomain/pdomain-book-tools#52 — same workaround as Word + Line).
          *     We assign ``paragraph.is_validated`` directly and propagate the flag
          *     onto every contained word for batch-validate parity. Flag is lost on
          *     ``Block.to_dict`` → ``from_dict`` round-trip (documented limitation).
@@ -1588,8 +1588,8 @@ export interface paths {
          * Delete Paragraph
          * @description ``POST .../paragraphs/{pi}/delete`` — remove the paragraph from the page.
          *
-         *     Spec §9: pd-book-tools exposes only the batch variant
-         *     ``Page.delete_paragraphs(indices)`` (``pd_book_tools/ocr/page.py:1040``),
+         *     Spec §9: pdomain-book-tools exposes only the batch variant
+         *     ``Page.delete_paragraphs(indices)`` (``pdomain_book_tools/ocr/page.py:1040``),
          *     mirroring the line-delete pattern.
          */
         post: operations["delete_paragraph_api_projects__project_id__pages__page_index__paragraphs__paragraph_index__delete_post"];
@@ -1613,7 +1613,7 @@ export interface paths {
          * @description ``POST .../paragraphs/merge`` — merge selected paragraphs into the first.
          *
          *     Spec §9: ``Page.merge_paragraphs(paragraph_indices)``
-         *     (``pd_book_tools/ocr/page.py:980``). pd-book-tools requires at least
+         *     (``pdomain_book_tools/ocr/page.py:980``). pdomain-book-tools requires at least
          *     two distinct indices.
          */
         post: operations["merge_paragraphs_api_projects__project_id__pages__page_index__paragraphs_merge_post"];
@@ -1642,8 +1642,8 @@ export interface paths {
          *
          *     Currently handles ``layout_type`` only.  The value is stored as a
          *     Python attribute on the paragraph object (``paragraph.layout_type``);
-         *     it is lost on envelope round-trip until pd-book-tools' ``Block``
-         *     grows a ``layout_type`` property (tracked as ConcaveTrillion/pd-book-tools#52
+         *     it is lost on envelope round-trip until pdomain-book-tools' ``Block``
+         *     grows a ``layout_type`` property (tracked as pdomain/pdomain-book-tools#52
          *     family).
          *
          *     When no PageState is seeded (project freshly loaded, page not yet
@@ -1741,7 +1741,7 @@ export interface paths {
          *
          *     Spec §9 paragraph rows: ``paragraph.split_after_line(l)`` →
          *     ``Page.split_paragraph_after_line(page_line_index)``
-         *     (``pd_book_tools/ocr/page.py:1152``). pd-book-tools takes a
+         *     (``pdomain_book_tools/ocr/page.py:1152``). pdomain-book-tools takes a
          *     PAGE-WIDE line index (it auto-detects the containing paragraph by
          *     identity); the route translates the legacy body's within-paragraph
          *     ``after_line_index`` to page-wide via
@@ -2022,8 +2022,8 @@ export interface paths {
          * Normalize Available
          * @description ``GET /api/normalize/available`` — probe for normalize module.
          *
-         *     Returns ``{"available": true}`` when the installed ``pd_book_tools``
-         *     exposes ``pd_book_tools.text.normalize.normalize_string``.
+         *     Returns ``{"available": true}`` when the installed ``pdomain_book_tools``
+         *     exposes ``pdomain_book_tools.text.normalize.normalize_string``.
          *     Returns ``{"available": false}`` when the module is absent (older pin).
          *
          *     Used by ``<OCRConfigModal />`` to decide whether to render the
@@ -2330,7 +2330,7 @@ export interface components {
          *
          *     ``normalize_recognition_labels``: when ``True``, recognition ``labels.json``
          *     strings are normalised (long-s → ASCII, ligatures → ASCII) before write.
-         *     Image bytes are unchanged.  Requires ``pd_book_tools.text.normalize``;
+         *     Image bytes are unchanged.  Requires ``pdomain_book_tools.text.normalize``;
          *     silently ignored when the module is absent.  Spec: §18-text-normalization.
          */
         ExportRequest: {
@@ -2440,7 +2440,7 @@ export interface components {
             auto_rotate_method: "gt-best-match" | "layout" | "auto";
             /**
              * Auto Rotate Available
-             * @description True when pd_book_tools.ocr.rotation.detect_best_rotation is importable. When False the auto-rotate toggle is disabled in the UI.
+             * @description True when pdomain_book_tools.ocr.rotation.detect_best_rotation is importable. When False the auto-rotate toggle is disabled in the UI.
              * @default false
              */
             auto_rotate_available: boolean;
@@ -2449,7 +2449,7 @@ export interface components {
          * GlyphAnnotationsModel
          * @description Glyph-level side-channel annotations for one word — spec §3 + D-044.
          *
-         *     Mirrors ``pd_book_tools.ocr.glyph_annotations.GlyphAnnotations`` and adds
+         *     Mirrors ``pdomain_book_tools.ocr.glyph_annotations.GlyphAnnotations`` and adds
          *     ``source`` (D-044: object-level provenance, not per-mark).
          *
          *     Tri-state semantics (spec §1):
@@ -2593,12 +2593,12 @@ export interface components {
          * LigatureMarkModel
          * @description One ligature occurrence within a word — spec ``specs/20-glyph-annotations.md`` §3.
          *
-         *     Mirrors ``pd_book_tools.ocr.glyph_annotations.LigatureMark`` as a Pydantic model
+         *     Mirrors ``pdomain_book_tools.ocr.glyph_annotations.LigatureMark`` as a Pydantic model
          *     so it serialises correctly in the wire contract.
          *
          *     ``kind`` is the ligature kind string (e.g. ``"ct"``, ``"fi"``).  Values
-         *     correspond to ``pd_book_tools.ocr.glyph_annotations.LigatureKind`` but are
-         *     kept as plain strings here to avoid importing from pd_book_tools at schema
+         *     correspond to ``pdomain_book_tools.ocr.glyph_annotations.LigatureKind`` but are
+         *     kept as plain strings here to avoid importing from pdomain_book_tools at schema
          *     definition time (lazy import strategy for the OCR dependency).
          *
          *     ``char_span`` is a ``[start, end)`` tuple of char indices into the GT string,
@@ -2772,7 +2772,7 @@ export interface components {
          * MergeLinesRequest
          * @description ``POST .../lines/merge`` body — spec §9 row 16.
          *
-         *     Calls ``Page.merge_lines(line_indices)``. pd-book-tools requires at
+         *     Calls ``Page.merge_lines(line_indices)``. pdomain-book-tools requires at
          *     least two distinct indices; otherwise the route returns
          *     400 ``mutation_failed``.
          */
@@ -2785,7 +2785,7 @@ export interface components {
          * @description ``POST .../paragraphs/merge`` body — spec §9 paragraph rows.
          *
          *     Calls ``Page.merge_paragraphs(paragraph_indices)``
-         *     (``pd_book_tools/ocr/page.py:980``). pd-book-tools requires at least
+         *     (``pdomain_book_tools/ocr/page.py:980``). pdomain-book-tools requires at least
          *     two distinct indices; otherwise the route returns
          *     400 ``mutation_failed``.
          */
@@ -3034,7 +3034,7 @@ export interface components {
          *     with 422 so the frontend gets a clear error on client-side bugs.
          *
          *     The field is stored as a Python attribute on the paragraph object
-         *     (``paragraph.layout_type``).  pd-book-tools' ``Block`` does not
+         *     (``paragraph.layout_type``).  pdomain-book-tools' ``Block`` does not
          *     expose a ``set_layout_type`` method today; the attribute is lost on
          *     ``Block.to_dict`` → ``from_dict`` round-trip (same documented
          *     limitation as ``is_validated``).
@@ -3408,10 +3408,10 @@ export interface components {
          *     empty ``ranges`` list clears all existing ranges.
          *
          *     The backend stores the ranges as a Python attribute on the word
-         *     object (``word.char_ranges``).  pd-book-tools does not have a
+         *     object (``word.char_ranges``).  pdomain-book-tools does not have a
          *     first-class ``char_ranges`` concept today; the data is lost on
          *     ``Word.to_dict`` → ``from_dict`` round-trip (same documented
-         *     limitation as ``is_validated``).  When pd-book-tools grows a
+         *     limitation as ``is_validated``).  When pdomain-book-tools grows a
          *     ``char_ranges`` field, the route can be updated to call the
          *     appropriate setter.
          */
@@ -3493,7 +3493,7 @@ export interface components {
          * @description ``POST .../lines/split-by-words`` body — spec §9 row 18.
          *
          *     ``word_keys`` is a list of ``(line_index, word_index)`` tuples; passed
-         *     through to ``Page.split_line_with_selected_words`` (pd-book-tools
+         *     through to ``Page.split_line_with_selected_words`` (pdomain-book-tools
          *     name; spec calls it ``split_line_by_words``).
          */
         SplitByWordsRequest: {
@@ -3642,8 +3642,8 @@ export interface components {
          * @description ``POST .../paragraphs/{pi}/validate`` body — spec §9 paragraph rows.
          *
          *     Same ``validated=None`` toggle semantics as ``ValidateLineRequest``;
-         *     paragraphs lack a pd-book-tools ``set_validated`` method (same
-         *     workaround as Word + Line; see ConcaveTrillion/pd-book-tools#52).
+         *     paragraphs lack a pdomain-book-tools ``set_validated`` method (same
+         *     workaround as Word + Line; see pdomain/pdomain-book-tools#52).
          */
         ValidateParagraphRequest: {
             /** Validated */

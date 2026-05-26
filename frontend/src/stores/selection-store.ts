@@ -26,12 +26,12 @@
 // Phase 2.5 (cross-cut-design §7.5): migrated from hand-rolled reactive
 // store to Zustand's vanilla `createStore`.
 //
-// GAP-1: Cannot use pd-ui's `createSelectionStore()` factory.
-//   pd-ui offers: `ids: ReadonlySet<string>, select, deselect, clearSelection`.
+// GAP-1: Cannot use pdomain-ui's `createSelectionStore()` factory.
+//   pdomain-ui offers: `ids: ReadonlySet<string>, select, deselect, clearSelection`.
 //   This store needs: hierarchical path/level navigation, multi-select tuples
 //   (selectedParagraphs/Lines/Words), dragRect, walkSibling/walkLevel navigation
 //   driven by PagePayload structure. These are labeler-specific concerns that
-//   do not belong in pd-ui. Replace with pd-ui factory when pd-ui adds a
+//   do not belong in pdomain-ui. Replace with pdomain-ui factory when pdomain-ui adds a
 //   hierarchical-selection extension, or accept the local implementation as a
 //   labeler-only store permanently.
 

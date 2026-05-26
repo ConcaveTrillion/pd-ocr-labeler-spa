@@ -5,7 +5,7 @@ Spec authority: ``docs/specs/2026-05-24-F-001-export-path-traversal.md``.
 Slice 1: failing tests (red before fix).
 Slice 3: regression coverage — valid labels and attack-vector table.
 
-Issue: ConcaveTrillion/pd-ocr-labeler-spa#406.
+Issue: pdomain/pdomain-ocr-labeler-spa#406.
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ def test_export_output_dir_containment_guard(tmp_path: object) -> None:
     """export_output_dir must raise ValueError for a traversal subfolder."""
     from pathlib import Path
 
-    from pd_ocr_labeler_spa.core.jobs.handlers.export import export_output_dir
+    from pdomain_ocr_labeler_spa.core.jobs.handlers.export import export_output_dir
 
     with pytest.raises(ValueError, match="resolves outside"):
         export_output_dir(Path(str(tmp_path)), "proj", "../../evil")
@@ -98,7 +98,7 @@ def test_export_output_dir_valid_subfolders(tmp_path: object, label: str) -> Non
     """Valid subfolders must not raise and must be inside tmp_path."""
     from pathlib import Path
 
-    from pd_ocr_labeler_spa.core.jobs.handlers.export import export_output_dir
+    from pdomain_ocr_labeler_spa.core.jobs.handlers.export import export_output_dir
 
     result = export_output_dir(Path(str(tmp_path)), "proj", label)
     assert str(result).startswith(str(tmp_path))

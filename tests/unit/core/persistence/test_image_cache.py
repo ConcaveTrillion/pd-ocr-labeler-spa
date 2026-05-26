@@ -18,7 +18,7 @@ pytest.importorskip("PIL", reason="Pillow required for image cache tests")
 
 from PIL import Image
 
-from pd_ocr_labeler_spa.core.persistence.image_cache import (
+from pdomain_ocr_labeler_spa.core.persistence.image_cache import (
     _MAX_CACHED_DIMENSION,
     ImageType,
     _cleanup_stale_cache,

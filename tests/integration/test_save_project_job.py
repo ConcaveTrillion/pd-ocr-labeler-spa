@@ -23,12 +23,12 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.jobs import JobEventBroker
-from pd_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
-from pd_ocr_labeler_spa.core.persistence.user_page_envelope import labeled_envelope_path
-from pd_ocr_labeler_spa.core.project_state import PageState
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.jobs import JobEventBroker
+from pdomain_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
+from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import labeled_envelope_path
+from pdomain_ocr_labeler_spa.core.project_state import PageState
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path, **overrides: object) -> Settings:
@@ -184,7 +184,7 @@ def test_save_project_failure_lists_failed_pages_in_response(
 
     # Monkeypatch the handler's view of ``persist_page_to_file`` to fail
     # on page_index=0 only.
-    from pd_ocr_labeler_spa.core.jobs.handlers import save_project as save_project_module
+    from pdomain_ocr_labeler_spa.core.jobs.handlers import save_project as save_project_module
 
     real = save_project_module.persist_page_to_file
 

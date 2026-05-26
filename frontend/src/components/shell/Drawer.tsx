@@ -9,7 +9,7 @@
 // - Active tab persisted via useUiPrefs.drawerTab.
 
 import { useSyncExternalStore } from "react";
-import { ChevronLeft, ChevronRight } from "@concavetrillion/pd-ui/icons";
+import { ChevronLeft, ChevronRight } from "@pdomain/pdomain-ui/icons";
 import { List, GitBranch } from "@/icons/local-shims";
 import { cn } from "@/lib/utils";
 import { useUiPrefs, type DrawerTab } from "../../stores/ui-prefs";

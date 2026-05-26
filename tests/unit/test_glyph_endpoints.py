@@ -1,10 +1,10 @@
 """Tests for glyph annotation API endpoints.
 
 Spec: specs/20-glyph-annotations.md §6
-Issue: ConcaveTrillion/pd-ocr-labeler-spa#268
+Issue: pdomain/pdomain-ocr-labeler-spa#268
 """
 
-from pd_ocr_labeler_spa.core.models import GlyphAnnotationsModel, LigatureMarkModel
+from pdomain_ocr_labeler_spa.core.models import GlyphAnnotationsModel, LigatureMarkModel
 
 # ---------------------------------------------------------------------------
 # GlyphAnnotationsModel wire shape
@@ -39,14 +39,14 @@ def test_glyph_annotations_model_accepts_human_confirmed() -> None:
 
 def test_set_glyph_annotations_request_accepts_none() -> None:
     """annotations=None means 'unset back to not-reviewed'."""
-    from pd_ocr_labeler_spa.api.words import SetGlyphAnnotationsRequest
+    from pdomain_ocr_labeler_spa.api.words import SetGlyphAnnotationsRequest
 
     req = SetGlyphAnnotationsRequest(annotations=None)
     assert req.annotations is None
 
 
 def test_set_glyph_annotations_request_accepts_model() -> None:
-    from pd_ocr_labeler_spa.api.words import SetGlyphAnnotationsRequest
+    from pdomain_ocr_labeler_spa.api.words import SetGlyphAnnotationsRequest
 
     req = SetGlyphAnnotationsRequest(
         annotations=GlyphAnnotationsModel(
@@ -60,7 +60,7 @@ def test_set_glyph_annotations_request_accepts_model() -> None:
 
 def test_accept_glyph_prediction_request_has_no_body() -> None:
     """AcceptGlyphPredictionRequest has no required fields."""
-    from pd_ocr_labeler_spa.api.words import AcceptGlyphPredictionRequest
+    from pdomain_ocr_labeler_spa.api.words import AcceptGlyphPredictionRequest
 
     req = AcceptGlyphPredictionRequest()
     assert req is not None
@@ -72,7 +72,7 @@ def test_accept_glyph_prediction_request_has_no_body() -> None:
 
 
 def test_glyph_bulk_mark_request_default_fields() -> None:
-    from pd_ocr_labeler_spa.api.pages import GlyphBulkMarkRequest
+    from pdomain_ocr_labeler_spa.api.pages import GlyphBulkMarkRequest
 
     req = GlyphBulkMarkRequest(recipe="ct_substring")
     assert req.skip_already_annotated is True
@@ -81,7 +81,7 @@ def test_glyph_bulk_mark_request_default_fields() -> None:
 
 
 def test_glyph_bulk_mark_request_valid_recipes() -> None:
-    from pd_ocr_labeler_spa.api.pages import GlyphBulkMarkRequest
+    from pdomain_ocr_labeler_spa.api.pages import GlyphBulkMarkRequest
 
     for recipe in ("ct_substring", "st_substring", "long_s_typeset_era"):
         req = GlyphBulkMarkRequest(recipe=recipe)
@@ -89,7 +89,7 @@ def test_glyph_bulk_mark_request_valid_recipes() -> None:
 
 
 def test_glyph_bulk_mark_response_shape() -> None:
-    from pd_ocr_labeler_spa.api.pages import GlyphBulkMarkResponse
+    from pdomain_ocr_labeler_spa.api.pages import GlyphBulkMarkResponse
 
     resp = GlyphBulkMarkResponse(
         affected_word_ids=["w1", "w2"],

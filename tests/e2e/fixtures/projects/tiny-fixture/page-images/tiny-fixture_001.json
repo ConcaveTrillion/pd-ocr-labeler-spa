@@ -8,13 +8,13 @@
     "saved_by": "Save Page",
     "source_lane": "labeled",
     "app": {
-      "name": "pd_ocr_labeler_spa",
+      "name": "pdomain_ocr_labeler_spa",
       "version": "0.1.0",
       "git_commit": "test-fixture"
     },
     "toolchain": {
       "python": "3.13.0",
-      "pd_book_tools": "0.5.1",
+      "pdomain_book_tools": "0.5.1",
       "opencv_python": "4.10.0.84"
     },
     "ocr": {

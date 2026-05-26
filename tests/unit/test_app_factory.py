@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def test_build_app_returns_fastapi_with_settings_stashed() -> None:

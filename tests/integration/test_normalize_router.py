@@ -10,8 +10,8 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path) -> Settings:
@@ -58,7 +58,7 @@ def test_normalize_available_returns_bool(tmp_path: Path) -> None:
 
 def test_normalize_available_reflects_is_available(tmp_path: Path, monkeypatch) -> None:
     """GET /api/normalize/available returns the result of core.text_normalize.is_available."""
-    import pd_ocr_labeler_spa.api.normalize as normalize_mod
+    import pdomain_ocr_labeler_spa.api.normalize as normalize_mod
 
     monkeypatch.setattr(normalize_mod, "is_available", lambda: True)
 

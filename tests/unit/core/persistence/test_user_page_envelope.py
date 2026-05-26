@@ -35,10 +35,10 @@ Deferred to later slices:
 
 - ``build_envelope(...)`` (the high-level constructor that takes a
   ``Page`` object + ``Project`` + ``OCRProvenance`` and produces the
-  envelope) — needs ``pd_book_tools.Page`` in scope. Slice 8b-iii
+  envelope) — needs ``pdomain_book_tools.Page`` in scope. Slice 8b-iii
   ships only the dict-in/dict-out layer so the reader can drive
   ``LocalDoctrPageLoader.load_labeled`` / ``load_cached`` without
-  pulling in pd_book_tools.
+  pulling in pdomain_book_tools.
 - v2.2 rotation fields (``source.rotation_degrees`` /
   ``source.rotation_source``). The reader tolerates these via
   legacy parity (``UserPageSource.from_dict`` ignores unknown keys
@@ -51,7 +51,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
     USER_PAGE_SCHEMA_NAME,
     USER_PAGE_SCHEMA_VERSION,
     OCRModelProvenance,
@@ -134,7 +134,7 @@ LEGACY_GOLDEN_ENVELOPE: dict[str, Any] = {
         },
         "toolchain": {
             "python": "3.13.1",
-            "pd_book_tools": "0.5.0",
+            "pdomain_book_tools": "0.5.0",
             "opencv_python": "4.10.0",
         },
         "ocr": {
@@ -484,7 +484,7 @@ def test_provenance_app_omits_none_git_commit() -> None:
 
 def test_provenance_toolchain_omits_none_opencv() -> None:
     """Legacy line 146-147 omits ``opencv_python`` when ``None``."""
-    tc = ProvenanceToolchain(python="3.13", pd_book_tools="0.5")
+    tc = ProvenanceToolchain(python="3.13", pdomain_book_tools="0.5")
     assert "opencv_python" not in tc.to_dict()
 
 
@@ -518,7 +518,7 @@ def test_build_envelope_from_dataclasses() -> None:
 def test_public_api_exports() -> None:
     """The slice promises a stable surface: type guard, parser, writer,
     + the dataclasses needed to read the result."""
-    from pd_ocr_labeler_spa.core.persistence import user_page_envelope as m
+    from pdomain_ocr_labeler_spa.core.persistence import user_page_envelope as m
 
     public = set(m.__all__)
     expected_min = {
@@ -545,7 +545,7 @@ def test_pytest_module_imports_clean() -> None:
     """Sanity: importing the module mid-test session doesn't raise."""
     import importlib
 
-    importlib.import_module("pd_ocr_labeler_spa.core.persistence.user_page_envelope")
+    importlib.import_module("pdomain_ocr_labeler_spa.core.persistence.user_page_envelope")
 
 
 # ── build_envelope (high-level constructor) ──────────────────────────────
@@ -556,21 +556,21 @@ def test_pytest_module_imports_clean() -> None:
 # ``pd-ocr-labeler/pd_ocr_labeler/operations/ocr/page_operations.py:1141-1183``
 # (``_build_user_page_envelope``).
 #
-# Tests stay pd_book_tools-free by using a tiny stub ``Page`` whose
+# Tests stay pdomain_book_tools-free by using a tiny stub ``Page`` whose
 # ``to_dict`` returns a fixed dict — the writer never inspects the dict.
 
 from pathlib import Path
 
 import pytest
 
-from pd_ocr_labeler_spa.core.models import Project
-from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+from pdomain_ocr_labeler_spa.core.models import Project
+from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
     build_envelope,
 )
 
 
 class _StubPage:
-    """Stand-in for ``pd_book_tools.ocr.page.Page``.
+    """Stand-in for ``pdomain_book_tools.ocr.page.Page``.
 
     The writer is supposed to call ``page.to_dict()`` and use the
     returned dict verbatim as ``payload.page``. The optional ``index``
@@ -620,11 +620,11 @@ def test_build_envelope_minimum_shape(tmp_path: Path) -> None:
     assert env.payload.page == {"type": "Page", "width": 1, "height": 1}
     assert env.provenance.ocr.engine == "doctr"
     # Legacy app name is "pd_ocr_labeler" but SPA writes its own ident.
-    # build_envelope always sets app.name to "pd_ocr_labeler_spa" so the
+    # build_envelope always sets app.name to "pdomain_ocr_labeler_spa" so the
     # writer's output is distinguishable from a legacy save (spec §3
     # line 530). Round-trip on the *legacy* golden still works because
     # the *reader* accepts any name string.
-    assert env.provenance.app.name == "pd_ocr_labeler_spa"
+    assert env.provenance.app.name == "pdomain_ocr_labeler_spa"
 
 
 def test_build_envelope_uses_page_index_for_page_number(tmp_path: Path) -> None:
@@ -854,7 +854,7 @@ def test_build_envelope_toolchain_python_is_x_y_z(tmp_path: Path) -> None:
 def test_build_envelope_in_public_api() -> None:
     """``build_envelope`` is the canonical writer entry — must be in
     ``__all__`` so callers can import it from the top of the module."""
-    from pd_ocr_labeler_spa.core.persistence import user_page_envelope as mod
+    from pdomain_ocr_labeler_spa.core.persistence import user_page_envelope as mod
 
     assert "build_envelope" in mod.__all__
 
@@ -869,8 +869,8 @@ V22_ENVELOPE_WITH_ROTATION: dict[str, Any] = {
         "saved_at": "2026-05-14T10:00:00.000Z",
         "saved_by": "Save Page",
         "source_lane": "labeled",
-        "app": {"name": "pd_ocr_labeler_spa", "version": "0.1.0"},
-        "toolchain": {"python": "3.13.1", "pd_book_tools": "0.5.0"},
+        "app": {"name": "pdomain_ocr_labeler_spa", "version": "0.1.0"},
+        "toolchain": {"python": "3.13.1", "pdomain_book_tools": "0.5.0"},
         "ocr": {"engine": "doctr", "models": []},
     },
     "source": {
@@ -990,7 +990,7 @@ def test_rotation_fields_round_trip() -> None:
 def test_v22_schema_version_emitted_when_rotation_nondefault() -> None:
     """When ``rotation_degrees != 0`` the serialised schema version must
     be ``"2.2"`` so legacy readers can detect the format bump."""
-    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import UserPageSource
+    from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import UserPageSource
 
     env = UserPageEnvelope(
         schema=UserPageSchema(version="2.2"),
@@ -1015,7 +1015,7 @@ def test_rotation_fields_omitted_when_default() -> None:
     """When ``rotation_degrees=0`` and ``rotation_source='none'``
     (the defaults), the writer omits them from the ``source`` block
     so that v2.1 readers and legacy parsers are unaffected."""
-    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import UserPageSource
+    from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import UserPageSource
 
     env = UserPageEnvelope(
         schema=UserPageSchema(version="2.1"),
@@ -1042,12 +1042,14 @@ def test_warn_logged_once_on_first_v22_write(caplog: Any) -> None:
     """
     import logging
 
-    from pd_ocr_labeler_spa.core.persistence import user_page_envelope as mod
+    from pdomain_ocr_labeler_spa.core.persistence import user_page_envelope as mod
 
     # Reset the per-session flag so this test is order-independent.
     mod._v22_warn_emitted = False
 
-    with caplog.at_level(logging.WARNING, logger="pd_ocr_labeler_spa.core.persistence.user_page_envelope"):
+    with caplog.at_level(
+        logging.WARNING, logger="pdomain_ocr_labeler_spa.core.persistence.user_page_envelope"
+    ):
         env1 = parse_envelope(V22_ENVELOPE_WITH_ROTATION)
         _ = envelope_to_dict(env1)
         _ = envelope_to_dict(env1)  # second call — should NOT add another warning

@@ -59,7 +59,7 @@ from pathlib import Path
 
 import pytest
 
-from pd_ocr_labeler_spa.core.project_enumeration import (
+from pdomain_ocr_labeler_spa.core.project_enumeration import (
     EnumeratedProject,
     enumerate_projects,
 )

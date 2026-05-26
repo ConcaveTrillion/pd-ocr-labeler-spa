@@ -1,4 +1,4 @@
-"""Pin the shape of `pd_ocr_labeler_spa.__version__`.
+"""Pin the shape of `pdomain_ocr_labeler_spa.__version__`.
 
 B-11 background: hatch-vcs writes a frozen version string into dist-info
 metadata at install time, and the import-side `__version__` is read from
@@ -7,7 +7,7 @@ the install fresh so `__version__` doesn't drift across iterations
 (test for that lives in `test_pre_commit_config.py`).
 
 What this module guards is the *resolution path*: `__init__.py` must
-read from `importlib.metadata.version("pd-ocr-labeler-spa")` (with a
+read from `importlib.metadata.version("pdomain-ocr-labeler-spa")` (with a
 `PackageNotFoundError` fallback) — never a hard-coded string. Drift
 back to a literal would silently survive `make refresh-version`, since
 the literal wouldn't be recomputed at all.
@@ -19,9 +19,9 @@ import ast
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
-import pd_ocr_labeler_spa
+import pdomain_ocr_labeler_spa
 
-INIT_PATH = Path(pd_ocr_labeler_spa.__file__)
+INIT_PATH = Path(pdomain_ocr_labeler_spa.__file__)
 
 
 def test_version_matches_installed_metadata() -> None:
@@ -35,19 +35,19 @@ def test_version_matches_installed_metadata() -> None:
     and we skip equality.
     """
     try:
-        metadata_version = version("pd-ocr-labeler-spa")
+        metadata_version = version("pdomain-ocr-labeler-spa")
     except PackageNotFoundError:
         # Editable install missing dist-info — accept the fallback shape.
-        assert pd_ocr_labeler_spa.__version__ == "0.0.0+unknown"
+        assert pdomain_ocr_labeler_spa.__version__ == "0.0.0+unknown"
         return
-    assert pd_ocr_labeler_spa.__version__ == metadata_version, (
+    assert pdomain_ocr_labeler_spa.__version__ == metadata_version, (
         "__version__ must come from importlib.metadata.version, not a hard-coded literal — see B-11 / iter 12"
     )
 
 
 def test_init_does_not_hard_code_version_literal() -> None:
     """Static guard: walk `__init__.py` and ensure `__version__` is
-    only ever assigned from a `version("pd-ocr-labeler-spa")` call (or
+    only ever assigned from a `version("pdomain-ocr-labeler-spa")` call (or
     the fallback string inside an `except PackageNotFoundError` block).
 
     The exemption: a literal assignment is allowed only when its parent

@@ -10,7 +10,7 @@ types, and the load-precedence order spec'd in
 → fallback``).
 
 Why test-first with stubbed loaders: the rich loader pulls in
-``pd_book_tools.ocr.page.Page``, ``IStorage``, and the persistence
+``pdomain_book_tools.ocr.page.Page``, ``IStorage``, and the persistence
 layer. None of those are M3-ready yet. The ``PageLoader`` protocol
 defined here (and mirrored in ``core/page_state.py``) lets us pin
 the dispatch contract independently of the heavy machinery, so
@@ -38,8 +38,8 @@ from typing import Any
 
 import pytest
 
-from pd_ocr_labeler_spa.core.models import Project
-from pd_ocr_labeler_spa.core.page_state import (
+from pdomain_ocr_labeler_spa.core.models import Project
+from pdomain_ocr_labeler_spa.core.page_state import (
     PageImageNotFoundError,
     PageIndexOutOfRangeError,
     PageLoader,
@@ -47,7 +47,7 @@ from pd_ocr_labeler_spa.core.page_state import (
     PageSource,
     ensure_page_model,
 )
-from pd_ocr_labeler_spa.core.project_state import ProjectState
+from pdomain_ocr_labeler_spa.core.project_state import ProjectState
 
 
 def _make_project(total_pages: int = 3) -> Project:
@@ -339,7 +339,7 @@ def test_page_loader_protocol_is_runtime_checkable() -> None:
 
 def test_resolve_save_directory_returns_project_subdir(tmp_path: Path) -> None:
     """_resolve_save_directory(data_root, project_id) returns <data>/labeled-projects/<pid>."""
-    from pd_ocr_labeler_spa.core.page_state import _resolve_save_directory
+    from pdomain_ocr_labeler_spa.core.page_state import _resolve_save_directory
 
     result = _resolve_save_directory(tmp_path, "mybook")
     assert result == tmp_path / "labeled-projects" / "mybook"
@@ -347,7 +347,7 @@ def test_resolve_save_directory_returns_project_subdir(tmp_path: Path) -> None:
 
 def test_resolve_save_directory_does_not_create_dirs(tmp_path: Path) -> None:
     """_resolve_save_directory is a pure path derivation — no mkdir."""
-    from pd_ocr_labeler_spa.core.page_state import _resolve_save_directory
+    from pdomain_ocr_labeler_spa.core.page_state import _resolve_save_directory
 
     result = _resolve_save_directory(tmp_path / "nonexistent", "book")
     assert not result.exists()
@@ -357,8 +357,8 @@ def test_persist_page_to_file_writes_labeled_envelope(tmp_path: Path) -> None:
     """persist_page_to_file writes a readable envelope to the labeled lane."""
     import json
 
-    from pd_ocr_labeler_spa.core.page_state import persist_page_to_file
-    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+    from pdomain_ocr_labeler_spa.core.page_state import persist_page_to_file
+    from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
         is_user_page_envelope,
         labeled_envelope_path,
     )
@@ -396,14 +396,14 @@ def test_persist_page_to_file_creates_parent_dirs(tmp_path: Path) -> None:
         def to_dict(self) -> dict:
             return {"words": [], "paragraphs": [], "lines": [], "source_identifier": "001.png"}
 
-    from pd_ocr_labeler_spa.core.page_state import persist_page_to_file
+    from pdomain_ocr_labeler_spa.core.page_state import persist_page_to_file
 
     project = _make_project(total_pages=1)
     data_root = tmp_path / "data"
     # Parent does not exist yet.
     assert not data_root.exists()
     persist_page_to_file(page=_MinimalPage(), project=project, page_index=0, data_root=data_root)
-    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import labeled_envelope_path
+    from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import labeled_envelope_path
 
     assert labeled_envelope_path(data_root, project.project_id, 0).exists()
 
@@ -416,7 +416,7 @@ def test_persist_page_to_file_index_out_of_range_raises(tmp_path: Path) -> None:
         def to_dict(self) -> dict:
             return {}
 
-    from pd_ocr_labeler_spa.core.page_state import persist_page_to_file
+    from pdomain_ocr_labeler_spa.core.page_state import persist_page_to_file
 
     project = _make_project(total_pages=2)
     with pytest.raises(IndexError):

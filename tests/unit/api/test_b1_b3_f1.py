@@ -27,9 +27,9 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path, **overrides: object) -> Settings:
@@ -293,7 +293,7 @@ def test_b3_load_without_loader_no_longer_503s(
     We monkeypatch ``LocalDoctrPageLoader`` so the test stays DocTR-free:
     the on-demand build path must try to build the loader rather than 503.
     """
-    from pd_ocr_labeler_spa.api import pages as pages_mod
+    from pdomain_ocr_labeler_spa.api import pages as pages_mod
 
     fake_loader = _FakePageLoader()
 

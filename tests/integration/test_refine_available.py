@@ -5,7 +5,7 @@ capability flags that the frontend ErasePixelsSection reads to gate its Apply
 button.
 
 Spec authority:
-- ``src/pd_ocr_labeler_spa/api/refine.py`` — ``RefineAvailableResponse`` shape.
+- ``src/pdomain_ocr_labeler_spa/api/refine.py`` — ``RefineAvailableResponse`` shape.
 - ``docs/hifi-followons.md #FO-9`` — ErasePixelsSection capability probe.
 
 The endpoint returns ``{ available: bool, reason: str }`` — *not* the
@@ -23,8 +23,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path, **overrides: object) -> Settings:

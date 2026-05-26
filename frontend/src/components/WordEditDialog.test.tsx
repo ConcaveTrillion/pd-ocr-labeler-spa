@@ -220,7 +220,7 @@ describe("WordEditDialog", () => {
   // NOTE: Backdrop (overlay) click-to-dismiss is now handled natively by Radix Dialog
   // via onOpenChange → onClose. dialog-backdrop is now DialogOverlay (not a hand-rolled
   // wrapper div). Radix Dialog's native Escape + overlay-click behaviour is tested in
-  // the pd-ui primitives package and doesn't need re-testing here.
+  // the pdomain-ui primitives package and doesn't need re-testing here.
   it("dialog-backdrop testid is present and queryable on the overlay", () => {
     render(
       <WordEditDialog

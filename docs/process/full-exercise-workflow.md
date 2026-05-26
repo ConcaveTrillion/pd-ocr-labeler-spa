@@ -1,7 +1,7 @@
-# Full Exercise Workflow — pd-ocr-labeler-spa
+# Full Exercise Workflow — pdomain-ocr-labeler-spa
 
 > **Purpose.** This document is the authoritative end-to-end test plan for the
-> pd-ocr-labeler-spa. Every user-facing capability is represented. Each step is
+> pdomain-ocr-labeler-spa. Every user-facing capability is represented. Each step is
 > written in the format usable for both **manual QA sessions** and as a
 > **Playwright test specification**.
 >

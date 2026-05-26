@@ -35,14 +35,14 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from pd_ocr_labeler_spa.core.persistence.ocr_config import (
+from pdomain_ocr_labeler_spa.core.persistence.ocr_config import (
     OCR_CONFIG_FILENAME,
     OCR_CONFIG_SCHEMA_VERSION,
     OCRConfigSidecar,
     load_ocr_config,
     save_ocr_config,
 )
-from pd_ocr_labeler_spa.core.persistence.paths import ocr_config_path
+from pdomain_ocr_labeler_spa.core.persistence.paths import ocr_config_path
 
 # ── module-level constants ───────────────────────────────────────────────
 
@@ -301,7 +301,7 @@ def test_save_swallows_oserror_and_logs_warning(
         raise OSError("simulated rename failure")
 
     monkeypatch.setattr(_os, "replace", _boom)
-    with caplog.at_level(logging.WARNING, logger="pd_ocr_labeler_spa.core.persistence.ocr_config"):
+    with caplog.at_level(logging.WARNING, logger="pdomain_ocr_labeler_spa.core.persistence.ocr_config"):
         # MUST NOT raise — that's the policy contract.
         save_ocr_config(tmp_path, OCRConfigSidecar())
     matching = [
@@ -347,7 +347,7 @@ def test_load_logs_warning_with_stable_substring_when_extras_dropped(
         encoding="utf-8",
     )
 
-    with caplog.at_level(logging.WARNING, logger="pd_ocr_labeler_spa.core.persistence.ocr_config"):
+    with caplog.at_level(logging.WARNING, logger="pdomain_ocr_labeler_spa.core.persistence.ocr_config"):
         state = load_ocr_config(tmp_path)
 
     assert state is not None
@@ -383,7 +383,7 @@ def test_load_does_not_warn_when_no_extras_present(
         ),
         encoding="utf-8",
     )
-    with caplog.at_level(logging.WARNING, logger="pd_ocr_labeler_spa.core.persistence.ocr_config"):
+    with caplog.at_level(logging.WARNING, logger="pdomain_ocr_labeler_spa.core.persistence.ocr_config"):
         state = load_ocr_config(tmp_path)
     assert state is not None
     drift_warnings = [

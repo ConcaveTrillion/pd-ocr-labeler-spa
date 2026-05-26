@@ -11,7 +11,7 @@ import threading
 
 import pytest
 
-from pd_ocr_labeler_spa.core.ocr_config_state import OCRConfigCarrier
+from pdomain_ocr_labeler_spa.core.ocr_config_state import OCRConfigCarrier
 
 
 class TestDefaults:

@@ -1,17 +1,17 @@
 // PageImageCanvas.tsx — image viewport with four interaction modes (#197, #198, #297, #302)
 //
-// Phase 2.2: Replaced local Konva Stage + layers with @concavetrillion/pd-ui's
+// Phase 2.2: Replaced local Konva Stage + layers with @pdomain/pdomain-ui's
 // PageImageCanvas as the canvas host. Labeler-specific layer code lives in
 // slot fills (children.selection, children.tool). DOM overlays (mode pill,
 // zoom controls, bulk actions, event-capture div) are rendered as siblings
-// alongside pd-ui's canvas output.
+// alongside pdomain-ui's canvas output.
 //
 // Spec: specs/21-konva-renderer.md §4 (component layout), §7 (drag modes),
 //       §9 (cursors), §12 (testids), §13 (edge cases — empty state).
 //       docs/specs/2026-05-16-cross-cut-design.md §7.2 (Phase 2.2).
 //
-// Layer slot mapping (pd-ui layer name → labeler content):
-//   image     — page bitmap (managed entirely by pd-ui)
+// Layer slot mapping (pdomain-ui layer name → labeler content):
+//   image     — page bitmap (managed entirely by pdomain-ui)
 //   underlay  — (unused by labeler)
 //   overlay   — (unused by labeler; word bboxes go via BBoxOverlay in selection slot)
 //   selection — BBoxOverlay for paragraphs / lines / words + selection highlight
@@ -25,7 +25,7 @@
 //   erase    — drag erase rect; fires onErasePixels(rect) (#198)
 //
 // Testid layout (spec §12):
-//   image-viewport       — pd-ui's outer wrapper div (carries data-width / data-height)
+//   image-viewport       — pdomain-ui's outer wrapper div (carries data-width / data-height)
 //   image-stage          — sidecar div mirroring Stage geometry
 //   image-event-overlay  — transparent event-capture div (carries data-mode + cursor)
 //   konva-drag-preview   — the Konva drag-preview Rect inside the `tool` Layer
@@ -36,17 +36,17 @@
 //   canvas-bulk-actions  — bulk-action strip (top-right overlay, ≥2 words selected)
 //
 // Capability gaps vs plain local implementation (shims):
-//   GAP-1: pd-ui manages its own internal drag for basic selection (mode=select).
+//   GAP-1: pdomain-ui manages its own internal drag for basic selection (mode=select).
 //          The labeler overrides this entirely via the event-capture overlay div
-//          which captures all mouse events. pd-ui's internal drag never fires.
-//          TODO: when pd-ui adds an `onDragComplete(rect)` callback, remove the
-//          event-capture overlay and wire callbacks through pd-ui instead.
-//   GAP-2: pd-ui's selection is word-ID-based (Set<string>). The labeler uses
+//          which captures all mouse events. pdomain-ui's internal drag never fires.
+//          TODO: when pdomain-ui adds an `onDragComplete(rect)` callback, remove the
+//          event-capture overlay and wire callbacks through pdomain-ui instead.
+//   GAP-2: pdomain-ui's selection is word-ID-based (Set<string>). The labeler uses
 //          paragraph/line/word index tuples in selectionStore. The selection slot
-//          renders the labeler's BBoxOverlay directly from selectionStore; pd-ui's
+//          renders the labeler's BBoxOverlay directly from selectionStore; pdomain-ui's
 //          selection prop is not used (uncontrolled).
-//          TODO: when pd-ui adds a paragraph/line selection model, migrate.
-//   GAP-3: pd-ui's image-viewport outer div carries data-testid="image-viewport"
+//          TODO: when pdomain-ui adds a paragraph/line selection model, migrate.
+//   GAP-3: pdomain-ui's image-viewport outer div carries data-testid="image-viewport"
 //          but NOT data-mode or cursor style. Those attributes live on the
 //          image-event-overlay div instead. See §12 note in driver-contract.md.
 //
@@ -61,7 +61,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Rect } from "react-konva";
-import { PageImageCanvas as PdUiPageImageCanvas } from "@concavetrillion/pd-ui/canvas";
+import { PageImageCanvas as PdUiPageImageCanvas } from "@pdomain/pdomain-ui/canvas";
 import type { components } from "../api/types";
 import { getStageDimensions, type EncodedDims } from "../lib/canvas-utils";
 import type { BBox } from "../lib/coords";
@@ -196,15 +196,15 @@ function markSelected(items: BBoxItem[]): BBoxItem[] {
 }
 
 /**
- * Image viewport canvas — pd-ui Konva Stage host with four interaction modes.
+ * Image viewport canvas — pdomain-ui Konva Stage host with four interaction modes.
  *
  * Phase 2.2: The Konva Stage and image layer are now managed by
- * @concavetrillion/pd-ui's PageImageCanvas. Labeler-specific layers
+ * @pdomain/pdomain-ui's PageImageCanvas. Labeler-specific layers
  * (selection overlays, drag preview) live in slot fills. DOM overlays
  * (mode pill, zoom controls, bulk actions) and the event-capture div
- * are positioned absolutely alongside the pd-ui canvas.
+ * are positioned absolutely alongside the pdomain-ui canvas.
  *
- * The testid `image-viewport` is carried by pd-ui's outer wrapper div.
+ * The testid `image-viewport` is carried by pdomain-ui's outer wrapper div.
  * The testid `image-event-overlay` is our event-capture div (carries data-mode + cursor).
  * The testid `ocr-drag-rect` and `.ocr-drag-rect` CSS class are kept for driver compat.
  */
@@ -300,7 +300,7 @@ export default function PageImageCanvas({
   }, []);
 
   // Container size — measured via ResizeObserver on our outer wrapperRef div
-  // so our event coordinate conversion matches pd-ui's fit scale. Must be
+  // so our event coordinate conversion matches pdomain-ui's fit scale. Must be
   // declared before any early return (Rules of Hooks).
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
   useEffect(() => {
@@ -393,7 +393,7 @@ export default function PageImageCanvas({
 
   const dims = getStageDimensions(encoded);
 
-  // Synthetic page shape for pd-ui (only width/height needed; pd-ui CanvasPage interface).
+  // Synthetic page shape for pdomain-ui (only width/height needed; pdomain-ui CanvasPage interface).
   const pdUiPage = { width: dims.width, height: dims.height };
 
   function computeRect(start: DragState, end: { x: number; y: number }): BBox {
@@ -406,8 +406,8 @@ export default function PageImageCanvas({
   }
 
   // ── Event-capture overlay handlers ─────────────────────────────────────────
-  // The event-capture overlay sits above the pd-ui Stage and intercepts all
-  // mouse events. This overrides pd-ui's internal drag (GAP-1 shim): pd-ui's
+  // The event-capture overlay sits above the pdomain-ui Stage and intercepts all
+  // mouse events. This overrides pdomain-ui's internal drag (GAP-1 shim): pdomain-ui's
   // Stage never sees mouse events because our overlay captures them first.
   // Pointer position is read from the overlay's bounding rect so coordinates
   // are in Stage-space (the overlay exactly covers the Stage area).
@@ -514,7 +514,7 @@ export default function PageImageCanvas({
       className="page-image-canvas relative select-none"
       style={{ width: "100%", height: "100%" }}
     >
-      {/* ── pd-ui PageImageCanvas — Konva Stage host ──────────────────────────
+      {/* ── pdomain-ui PageImageCanvas — Konva Stage host ──────────────────────────
           Provides: image layer, Stage setup, ResizeObserver for container size,
           focus management (tabIndex=0 + focus() on mount), context provider.
           Renders outer div with data-testid="image-viewport" (driver contract §2.7).
@@ -530,7 +530,7 @@ export default function PageImageCanvas({
       >
         {{
           // ── selection slot: labeler BBoxOverlay layers ──────────────────
-          // Rendered inside Konva Layer name="selection" by pd-ui.
+          // Rendered inside Konva Layer name="selection" by pdomain-ui.
           // Replaces the local overlay-paragraphs / overlay-lines /
           // overlay-words / selection layers from the previous implementation.
           selection: () => (
@@ -561,7 +561,7 @@ export default function PageImageCanvas({
           ),
 
           // ── tool slot: drag-preview Rect ────────────────────────────────
-          // Rendered inside Konva Layer name="tool" by pd-ui.
+          // Rendered inside Konva Layer name="tool" by pdomain-ui.
           // Replaces the local `drag` Layer Rect.
           tool: () =>
             dragRect ? (
@@ -600,11 +600,11 @@ export default function PageImageCanvas({
 
       {/* ── event-capture overlay (GAP-1 shim) ────────────────────────────────
           Absolutely positioned over the entire canvas area. Captures all mouse
-          events so pd-ui's internal Stage drag never fires. Carries data-mode
+          events so pdomain-ui's internal Stage drag never fires. Carries data-mode
           (used by tests + Playwright) and cursor style (spec §9).
           data-testid="image-event-overlay" — not a driver-contract testid;
           used only by Vitest. The driver-contract testid is "image-viewport"
-          (on pd-ui's outer div) and ".ocr-drag-rect" (the DOM sidecar below). */}
+          (on pdomain-ui's outer div) and ".ocr-drag-rect" (the DOM sidecar below). */}
       <div
         data-testid="image-event-overlay"
         data-mode={mode}

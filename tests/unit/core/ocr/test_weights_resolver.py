@@ -1,6 +1,6 @@
 """Tests for ``core/ocr/weights_resolver.py`` — WeightsResolver factory.
 
-Hermetic: ``pd_book_tools.hf`` is stubbed via ``sys.modules`` injection so
+Hermetic: ``pdomain_book_tools.hf`` is stubbed via ``sys.modules`` injection so
 the tests never hit HuggingFace or the network.
 """
 
@@ -13,8 +13,8 @@ from typing import Any
 
 import pytest
 
-from pd_ocr_labeler_spa.core.model_selection import HF_LATEST_KEY
-from pd_ocr_labeler_spa.core.ocr.predictor import ResolvedWeights
+from pdomain_ocr_labeler_spa.core.model_selection import HF_LATEST_KEY
+from pdomain_ocr_labeler_spa.core.ocr.predictor import ResolvedWeights
 
 # ---------------------------------------------------------------------------
 # Helpers / fixtures
@@ -61,7 +61,7 @@ def local_models_root_with_vocab(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def stub_hf_module(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    """Inject a fake ``pd_book_tools.hf`` module.
+    """Inject a fake ``pdomain_book_tools.hf`` module.
 
     The stub's ``hf_download`` creates tiny temp ``.pt`` files and optional
     ``.vocab`` sidecars so the resolver can read them without network access.
@@ -89,7 +89,7 @@ def stub_hf_module(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
         hf_download=_hf_download,
         OCR_MODEL_SIDECARS=(".arch", ".vocab"),
     )
-    monkeypatch.setitem(sys.modules, "pd_book_tools.hf", fake_module)
+    monkeypatch.setitem(sys.modules, "pdomain_book_tools.hf", fake_module)
     return SimpleNamespace(module=fake_module, calls=call_log, det=hf_det_path, reco=hf_reco_path)
 
 
@@ -100,14 +100,14 @@ def stub_hf_module(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
 
 class TestStockPassThrough:
     def test_stock_stock_returns_none(self, local_models_root: Path) -> None:
-        from pd_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
+        from pdomain_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
 
         resolver = build_weights_resolver(local_models_root)
         result = resolver("stock", "stock", None)
         assert result is None
 
     def test_stock_detection_returns_none(self, local_models_root: Path) -> None:
-        from pd_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
+        from pdomain_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
 
         resolver = build_weights_resolver(local_models_root)
         # One key stock, one key not stock — falls through (resolver can't load
@@ -123,7 +123,7 @@ class TestStockPassThrough:
 
 class TestHFKeyResolution:
     def test_hf_key_calls_hf_download(self, local_models_root: Path, stub_hf_module: SimpleNamespace) -> None:
-        from pd_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
+        from pdomain_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
 
         resolver = build_weights_resolver(local_models_root)
         result = resolver(HF_LATEST_KEY, HF_LATEST_KEY, None)
@@ -133,7 +133,7 @@ class TestHFKeyResolution:
         assert len(stub_hf_module.calls) == 2
 
     def test_hf_key_with_revision(self, local_models_root: Path, stub_hf_module: SimpleNamespace) -> None:
-        from pd_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
+        from pdomain_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
 
         resolver = build_weights_resolver(local_models_root)
         result = resolver(HF_LATEST_KEY, HF_LATEST_KEY, "abc123")
@@ -144,7 +144,7 @@ class TestHFKeyResolution:
     def test_hf_key_reads_vocab_sidecar(
         self, local_models_root: Path, stub_hf_module: SimpleNamespace
     ) -> None:
-        from pd_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
+        from pdomain_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
 
         resolver = build_weights_resolver(local_models_root)
         result = resolver(HF_LATEST_KEY, HF_LATEST_KEY, None)
@@ -152,29 +152,29 @@ class TestHFKeyResolution:
         # The stub reco .vocab exists alongside hf_reco.pt
         assert result.recognition_vocab == "hf-vocab"
 
-    def test_hf_key_returns_none_when_pd_book_tools_hf_missing(
+    def test_hf_key_returns_none_when_pdomain_book_tools_hf_missing(
         self, local_models_root: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """When ``pd_book_tools.hf`` is not available, resolver returns None
+        """When ``pdomain_book_tools.hf`` is not available, resolver returns None
         (matches legacy ''ImportError → stock'' pattern in page_operations.py:234-238)."""
         import sys
 
         # Remove stub if present; ensure the module is absent.
-        monkeypatch.delitem(sys.modules, "pd_book_tools.hf", raising=False)
+        monkeypatch.delitem(sys.modules, "pdomain_book_tools.hf", raising=False)
 
-        # Patch importlib.import_module to raise ImportError for pd_book_tools.hf.
+        # Patch importlib.import_module to raise ImportError for pdomain_book_tools.hf.
         import importlib as _importlib
 
         original_import = _importlib.import_module
 
         def _patched(name: str, *args: Any, **kwargs: Any) -> Any:
-            if name == "pd_book_tools.hf":
+            if name == "pdomain_book_tools.hf":
                 raise ImportError("not installed")
             return original_import(name, *args, **kwargs)
 
         monkeypatch.setattr(_importlib, "import_module", _patched)
 
-        from pd_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
+        from pdomain_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
 
         resolver = build_weights_resolver(local_models_root)
         result = resolver(HF_LATEST_KEY, HF_LATEST_KEY, None)
@@ -188,8 +188,8 @@ class TestHFKeyResolution:
 
 class TestLocalKeyResolution:
     def test_local_pair_key_returns_paths(self, local_models_root: Path) -> None:
-        from pd_ocr_labeler_spa.core.model_discovery import discover_local_pairs
-        from pd_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
+        from pdomain_ocr_labeler_spa.core.model_discovery import discover_local_pairs
+        from pdomain_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
 
         pairs = discover_local_pairs(local_models_root)
         assert len(pairs) == 1
@@ -202,8 +202,8 @@ class TestLocalKeyResolution:
         assert Path(result.recognition_path).exists()
 
     def test_local_pair_key_reads_vocab_sidecar(self, local_models_root_with_vocab: Path) -> None:
-        from pd_ocr_labeler_spa.core.model_discovery import discover_local_pairs
-        from pd_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
+        from pdomain_ocr_labeler_spa.core.model_discovery import discover_local_pairs
+        from pdomain_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
 
         pairs = discover_local_pairs(local_models_root_with_vocab)
         assert len(pairs) == 1
@@ -215,14 +215,14 @@ class TestLocalKeyResolution:
         assert result.recognition_vocab == "abc def"
 
     def test_unknown_key_returns_none(self, local_models_root: Path) -> None:
-        from pd_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
+        from pdomain_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
 
         resolver = build_weights_resolver(local_models_root)
         result = resolver("unknown-profile/unknown-sig", "unknown-profile/unknown-sig", None)
         assert result is None
 
     def test_empty_models_root_returns_none_for_local_key(self, tmp_path: Path) -> None:
-        from pd_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
+        from pdomain_ocr_labeler_spa.core.ocr.weights_resolver import build_weights_resolver
 
         resolver = build_weights_resolver(tmp_path / "does-not-exist")
         result = resolver("myprofile/v1", "myprofile/v1", None)

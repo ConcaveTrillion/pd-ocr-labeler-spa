@@ -8,9 +8,9 @@
 //     normalize-profile-select (greyed out in v1, only "ascii" available)
 //   - Auto-rotation: auto-rotate-checkbox, auto-rotate-method-select
 //     (disabled when auto_rotate_available=false)
-//   - When pd_book_tools.text.normalize unavailable: shows disabled message
+//   - When pdomain_book_tools.text.normalize unavailable: shows disabled message
 //
-// Chrome backed by pd-ui's Radix Dialog suite. Radix provides native focus trap +
+// Chrome backed by pdomain-ui's Radix Dialog suite. Radix provides native focus trap +
 // Escape handling — no manual Esc handler or hand-rolled backdrop needed.
 //
 // Testids: ocr-config-modal (DialogContent), normalize-gt-matching-checkbox,
@@ -31,7 +31,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@concavetrillion/pd-ui/primitives";
+} from "@pdomain/pdomain-ui/primitives";
 
 type AutoRotateMethod = "gt-best-match" | "layout" | "auto";
 
@@ -95,10 +95,10 @@ interface OCRConfigModalProps {
  *
  * Renders the "Text normalization" section.  Toggle states mirror
  * AppConfig fields (``normalize_for_gt_matching``, ``normalize_plaintext_tabs``,
- * ``normalize_profile``).  When ``pd_book_tools.text.normalize`` is absent,
+ * ``normalize_profile``).  When ``pdomain_book_tools.text.normalize`` is absent,
  * the section is disabled with a tooltip message.
  *
- * Backed by pd-ui's Radix Dialog suite (native focus trap + Escape handling).
+ * Backed by pdomain-ui's Radix Dialog suite (native focus trap + Escape handling).
  *
  * Issue #261 testid contract:
  *   - ``ocr-config-modal``  (DialogContent)
@@ -125,7 +125,7 @@ export function OCRConfigModal({
   // Fix #447: track save errors from POST /api/ocr-config/auto-rotate.
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Probe pd_book_tools normalize availability.
+  // Probe pdomain_book_tools normalize availability.
   const { data: normalizeAvailable = false } = useQuery({
     queryKey: ["normalize-available"],
     queryFn: fetchNormalizeAvailable,
@@ -192,8 +192,8 @@ export function OCRConfigModal({
   }
 
   const unavailableTitle =
-    "Requires pd-book-tools with text.normalize module. " +
-    "Update pd-book-tools to enable these options.";
+    "Requires pdomain-book-tools with text.normalize module. " +
+    "Update pdomain-book-tools to enable these options.";
 
   return (
     // NOTE: Escape is handled natively by Radix Dialog — no manual Esc handler needed.
@@ -203,7 +203,7 @@ export function OCRConfigModal({
         if (!isOpen) onClose();
       }}
     >
-      {/* DialogContent auto-composes DialogPortal + DialogOverlay (pd-ui convention).
+      {/* DialogContent auto-composes DialogPortal + DialogOverlay (pdomain-ui convention).
           The .dialog-overlay CSS in primitives.css provides the backdrop. */}
       <DialogContent
         data-testid="ocr-config-modal"
@@ -255,8 +255,8 @@ export function OCRConfigModal({
                 }}
                 data-testid="normalize-unavailable-message"
               >
-                Requires pd-book-tools with text.normalize module. Update pd-book-tools to enable
-                these options.
+                Requires pdomain-book-tools with text.normalize module. Update pdomain-book-tools to
+                enable these options.
               </p>
             )}
 
@@ -340,8 +340,8 @@ export function OCRConfigModal({
                 }}
                 data-testid="auto-rotate-unavailable-message"
               >
-                Requires pd-book-tools with rotation module. Update pd-book-tools to enable
-                auto-rotation.
+                Requires pdomain-book-tools with rotation module. Update pdomain-book-tools to
+                enable auto-rotation.
               </p>
             )}
 
@@ -354,7 +354,7 @@ export function OCRConfigModal({
                 title={
                   autoRotateAvailable
                     ? undefined
-                    : "Requires pd-book-tools rotation module to enable auto-rotation."
+                    : "Requires pdomain-book-tools rotation module to enable auto-rotation."
                 }
               >
                 <input

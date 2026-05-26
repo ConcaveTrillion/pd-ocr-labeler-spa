@@ -6,7 +6,7 @@ invariants that, if broken, would either make the image fail to build
 or ship a broken runtime.
 
 Spec: ``docs/architecture/15-deployment-dev.md`` §6.
-Peer-mirror: ``pd-prep-for-pgdp/Dockerfile``.
+Peer-mirror: ``pdomain-prep-for-pgdp/Dockerfile``.
 
 Load-bearing invariants (each has a regression here):
 
@@ -18,7 +18,7 @@ Load-bearing invariants (each has a regression here):
 * Python major must match ``mise.toml`` (``python = "3.13"``) and
   ``pyproject.toml requires-python``.
 * The ``spa`` → ``wheel`` ``COPY --from=spa`` lands at
-  ``src/pd_ocr_labeler_spa/static/`` — the exact path
+  ``src/pdomain_ocr_labeler_spa/static/`` — the exact path
   ``build_hooks/spa_check.py`` checks for ``index.html``. If this
   drifts, ``uv build --wheel`` in the ``wheel`` stage fails (good
   failure mode, but the test catches it pre-build).
@@ -140,18 +140,18 @@ def test_wheel_and_runtime_use_python_major_matching_mise() -> None:
 
 def test_copy_from_spa_lands_in_static_dir_before_uv_build() -> None:
     """``build_hooks/spa_check.py`` looks for
-    ``src/pd_ocr_labeler_spa/static/index.html``. If the COPY target
+    ``src/pdomain_ocr_labeler_spa/static/index.html``. If the COPY target
     drifts, the wheel build either fails (loud) or silently ships a
     blank app (depending on ``PD_LABELER_SKIP_SPA_CHECK``). Pin the
     target path explicitly."""
     text = _dockerfile_text()
     # The COPY --from=spa instruction must reference the static/ dir.
     pattern = re.compile(
-        r"COPY\s+--from=spa\s+\S+\s+\./?src/pd_ocr_labeler_spa/static/?",
+        r"COPY\s+--from=spa\s+\S+\s+\./?src/pdomain_ocr_labeler_spa/static/?",
         re.IGNORECASE,
     )
     assert pattern.search(text), (
-        "Dockerfile must contain `COPY --from=spa <src> ./src/pd_ocr_labeler_spa/static/` "
+        "Dockerfile must contain `COPY --from=spa <src> ./src/pdomain_ocr_labeler_spa/static/` "
         "so the wheel build hook can find static/index.html."
     )
 
@@ -217,7 +217,7 @@ def test_runtime_binds_host_to_all_interfaces() -> None:
     when Settings reads ``PDLABELER_HOST``) would silently no-op
     because pydantic-settings drops envs that don't match the prefix.
     """
-    from pd_ocr_labeler_spa.settings import Settings
+    from pdomain_ocr_labeler_spa.settings import Settings
 
     prefix = Settings.model_config["env_prefix"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
     assert prefix, "Settings must declare a non-empty env_prefix"
@@ -242,7 +242,7 @@ def test_dockerfile_env_lines_use_settings_prefix() -> None:
     keys (``PYTHONDONTWRITEBYTECODE``, ``UV_LINK_MODE``, ``PIP_…``)
     are unrelated runtime/toolchain knobs and aren't covered.
     """
-    from pd_ocr_labeler_spa.settings import Settings
+    from pdomain_ocr_labeler_spa.settings import Settings
 
     prefix = Settings.model_config["env_prefix"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
     assert prefix, "Settings must declare a non-empty env_prefix"
@@ -383,7 +383,7 @@ def test_runtime_install_uses_frozen_requirements_with_no_deps_wheel() -> None:
 
 
 def test_runtime_stage_does_not_keep_git_installed() -> None:
-    """B-21: git is needed at install time (to clone the pd-book-tools
+    """B-21: git is needed at install time (to clone the pdomain-book-tools
     git source) but has no runtime use — the labeler does not shell out
     to git. Keeping it installed bloats the image and grows the attack
     surface.
@@ -460,7 +460,7 @@ def test_spa_stage_copies_pnpm_lockfile_and_npmrc() -> None:
     registry config) before running ``pnpm install`` so Docker layer
     caching works correctly and the install uses the tracked lock.
 
-    The .npmrc holds the ``@concavetrillion`` scope registry pointer;
+    The .npmrc holds the ``@pdomain`` scope registry pointer;
     omitting it causes ``pnpm install`` to fail on packages from that
     scope (#416 / F-011).
     """

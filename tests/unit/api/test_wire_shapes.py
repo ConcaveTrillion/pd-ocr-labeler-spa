@@ -15,7 +15,7 @@ from __future__ import annotations
 
 def test_openapi_schema_contains_all_spec_wire_shapes() -> None:
     """All spec-listed wire shapes must appear in components.schemas of the OpenAPI output."""
-    from pd_ocr_labeler_spa.bootstrap import build_app
+    from pdomain_ocr_labeler_spa.bootstrap import build_app
 
     app = build_app()
     schema = app.openapi()
@@ -81,7 +81,7 @@ def test_openapi_schema_contains_all_spec_wire_shapes() -> None:
 
 def test_no_route_handler_references_undeclared_model() -> None:
     """build_app() must succeed — any route with an undeclared response_model raises at build time."""
-    from pd_ocr_labeler_spa.bootstrap import build_app
+    from pdomain_ocr_labeler_spa.bootstrap import build_app
 
     app = build_app()
     # If this raises, a route references an undefined model.

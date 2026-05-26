@@ -1,4 +1,4 @@
-// routes.ts — typed route table for pd-ocr-labeler-spa.
+// routes.ts — typed route table for pdomain-ocr-labeler-spa.
 // Spec: docs/specs/2026-05-12-frontend-shell-design.md §Routing
 // Issue #240
 

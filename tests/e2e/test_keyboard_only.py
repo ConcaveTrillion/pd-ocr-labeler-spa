@@ -68,7 +68,7 @@ def test_page_navigation_keyboard_only(live_server: LiveServer, page: Page) -> N
     Fixed in ProjectPage.tsx:328. Also covers issue #402 — Ctrl+ArrowLeft was
     silently failing due to a missing SPA static bundle in the test environment;
     not a code defect. The ``make e2e`` target runs ``make frontend-build`` first
-    which populates ``src/pd_ocr_labeler_spa/static/``.
+    which populates ``src/pdomain_ocr_labeler_spa/static/``.
 
     Audit: docs/archive/research/M9.5-keyboard-audit.md §7
     """

@@ -17,7 +17,7 @@ import io
 import json
 import logging
 
-from pd_ocr_labeler_spa.core.logging_config import (
+from pdomain_ocr_labeler_spa.core.logging_config import (
     JsonFormatter,
     RequestIdFilter,
     configure_logging,

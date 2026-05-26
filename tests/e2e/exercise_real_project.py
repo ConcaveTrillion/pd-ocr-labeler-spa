@@ -13,7 +13,7 @@ does not stop the exercise; all results are reported at the end.
 
 Generate the fixture first (idempotent)::
 
-    cd /workspaces/ocr-container/pd-ocr-labeler-spa
+    cd /workspaces/ocr-container/pdomain-ocr-labeler-spa
     uv run python scripts/generate_exercise_fixture.py
 
 Then run::
@@ -41,8 +41,8 @@ import httpx
 import pytest
 from playwright.sync_api import Page
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -65,7 +65,7 @@ def _pick_free_port() -> int:
 
 
 def _spa_built() -> bool:
-    static = Path(__file__).resolve().parents[2] / "src" / "pd_ocr_labeler_spa" / "static"
+    static = Path(__file__).resolve().parents[2] / "src" / "pdomain_ocr_labeler_spa" / "static"
     return (static / "index.html").is_file()
 
 

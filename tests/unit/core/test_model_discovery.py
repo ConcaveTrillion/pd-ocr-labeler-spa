@@ -36,12 +36,12 @@ from pathlib import Path
 
 import pytest
 
-from pd_ocr_labeler_spa.core.model_discovery import (
+from pdomain_ocr_labeler_spa.core.model_discovery import (
     LocalModelPair,
     discover_local_pairs,
     pairs_to_model_option_records,
 )
-from pd_ocr_labeler_spa.core.model_selection import (
+from pdomain_ocr_labeler_spa.core.model_selection import (
     ModelOptionRecord,
     pick_default_keys,
 )
@@ -342,6 +342,6 @@ def test_stem_signature_collapses_detection_or_recognition_infix(stem: str, expe
     """Legacy lines 117-124 — first occurrence only is replaced; any
     stem without either infix passes through verbatim.
     """
-    from pd_ocr_labeler_spa.core.model_discovery import _stem_signature
+    from pdomain_ocr_labeler_spa.core.model_discovery import _stem_signature
 
     assert _stem_signature(stem) == expected_signature

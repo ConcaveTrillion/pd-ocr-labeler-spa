@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from pd_ocr_labeler_spa.core.jobs.handlers.export import (
+from pdomain_ocr_labeler_spa.core.jobs.handlers.export import (
     WordFilter,
     _labeled_project_dir,
     _page_is_validated,
@@ -133,7 +133,7 @@ def test_scan_labeled_pages_returns_jsons(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# handle_export — integration (mocked pd-book-tools)
+# handle_export — integration (mocked pdomain-book-tools)
 # ---------------------------------------------------------------------------
 
 
@@ -160,8 +160,8 @@ def _write_envelope(path: Path, validated: bool = True) -> None:
 
 def _make_runner_with_settings(tmp_path: Path):
     """Create a JobRunner with settings pointing at tmp_path."""
-    from pd_ocr_labeler_spa.core.jobs import JobEventBroker, JobRunner
-    from pd_ocr_labeler_spa.settings import Settings
+    from pdomain_ocr_labeler_spa.core.jobs import JobEventBroker, JobRunner
+    from pdomain_ocr_labeler_spa.settings import Settings
 
     settings = Settings(
         data_root=tmp_path / "data",
@@ -178,8 +178,8 @@ async def test_handle_export_no_pages_completes(tmp_path: Path) -> None:
     """Handler completes successfully even with zero pages."""
     from datetime import UTC, datetime
 
-    from pd_ocr_labeler_spa.core.jobs.handlers.export import handle_export
-    from pd_ocr_labeler_spa.core.jobs.runner import Job
+    from pdomain_ocr_labeler_spa.core.jobs.handlers.export import handle_export
+    from pdomain_ocr_labeler_spa.core.jobs.runner import Job
 
     runner, _settings = _make_runner_with_settings(tmp_path)
     job = Job(
@@ -206,16 +206,16 @@ async def test_handle_export_style_subfolder(tmp_path: Path) -> None:
 
     from datetime import UTC, datetime
 
-    from pd_ocr_labeler_spa.core.jobs.handlers.export import handle_export
-    from pd_ocr_labeler_spa.core.jobs.runner import Job
+    from pdomain_ocr_labeler_spa.core.jobs.handlers.export import handle_export
+    from pdomain_ocr_labeler_spa.core.jobs.runner import Job
 
     runner, settings = _make_runner_with_settings(tmp_path)
     settings.__dict__["data_root"] = data_root  # override in test  # pyright: ignore[reportIndexIssue]
 
     # Patch _export_page to avoid cv2 dependency in unit tests.
     with (
-        patch("pd_ocr_labeler_spa.core.jobs.handlers.export._export_page") as mock_ep,
-        patch("pd_ocr_labeler_spa.core.jobs.handlers.export._load_page_from_envelope_file") as mock_load,
+        patch("pdomain_ocr_labeler_spa.core.jobs.handlers.export._export_page") as mock_ep,
+        patch("pdomain_ocr_labeler_spa.core.jobs.handlers.export._load_page_from_envelope_file") as mock_load,
     ):
         mock_page = _make_page([["validated"]])
         mock_load.return_value = mock_page
@@ -244,8 +244,8 @@ async def test_handle_export_cancel_removes_partial_output(tmp_path: Path) -> No
     """Cancel during export deletes partial output directory."""
     from datetime import UTC, datetime
 
-    from pd_ocr_labeler_spa.core.jobs.handlers.export import handle_export
-    from pd_ocr_labeler_spa.core.jobs.runner import Job
+    from pdomain_ocr_labeler_spa.core.jobs.handlers.export import handle_export
+    from pdomain_ocr_labeler_spa.core.jobs.runner import Job
 
     data_root = tmp_path / "data"
     proj_dir = data_root / "labeled-projects" / "proj2"
@@ -266,8 +266,8 @@ async def test_handle_export_cancel_removes_partial_output(tmp_path: Path) -> No
     call_count = 0
 
     with (
-        patch("pd_ocr_labeler_spa.core.jobs.handlers.export._export_page"),
-        patch("pd_ocr_labeler_spa.core.jobs.handlers.export._load_page_from_envelope_file") as mock_load,
+        patch("pdomain_ocr_labeler_spa.core.jobs.handlers.export._export_page"),
+        patch("pdomain_ocr_labeler_spa.core.jobs.handlers.export._load_page_from_envelope_file") as mock_load,
     ):
 
         def side_effect(path):
@@ -275,7 +275,7 @@ async def test_handle_export_cancel_removes_partial_output(tmp_path: Path) -> No
             call_count += 1
             if call_count == 2:
                 # Simulate cancel on second page by updating job status.
-                from pd_ocr_labeler_spa.core.jobs.runner import JobStatus
+                from pdomain_ocr_labeler_spa.core.jobs.runner import JobStatus
 
                 job_in_runner = runner._jobs.get("j3")
                 if job_in_runner:

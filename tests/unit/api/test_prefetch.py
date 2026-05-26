@@ -21,11 +21,11 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.api.pages import _prefetch_adjacent_pages
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
-from pd_ocr_labeler_spa.core.project_state import PageState, ProjectState
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.api.pages import _prefetch_adjacent_pages
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
+from pdomain_ocr_labeler_spa.core.project_state import PageState, ProjectState
+from pdomain_ocr_labeler_spa.settings import Settings
 
 # ── Shared helpers ────────────────────────────────────────────────────
 
@@ -87,7 +87,7 @@ def test_prefetch_loads_next_two_pages(tmp_path: Path) -> None:
     runner.context["page_loader"] = spy
 
     # Seed a 4-page project directly onto ProjectState.
-    from pd_ocr_labeler_spa.core.models import Project
+    from pdomain_ocr_labeler_spa.core.models import Project
 
     project = Project(
         project_id="book1",
@@ -120,7 +120,7 @@ def test_prefetch_respects_page_bounds(tmp_path: Path) -> None:
     runner = app.state.job_runner
     runner.context["page_loader"] = spy
 
-    from pd_ocr_labeler_spa.core.models import Project
+    from pdomain_ocr_labeler_spa.core.models import Project
 
     project = Project(
         project_id="book1",
@@ -148,7 +148,7 @@ def test_prefetch_skips_already_cached_pages(tmp_path: Path) -> None:
     runner = app.state.job_runner
     runner.context["page_loader"] = spy
 
-    from pd_ocr_labeler_spa.core.models import Project
+    from pdomain_ocr_labeler_spa.core.models import Project
 
     project = Project(
         project_id="book1",
@@ -197,7 +197,7 @@ def test_prefetch_swallows_loader_errors(tmp_path: Path) -> None:
 
     runner.context["page_loader"] = _BoomLoader()
 
-    from pd_ocr_labeler_spa.core.models import Project
+    from pdomain_ocr_labeler_spa.core.models import Project
 
     project = Project(
         project_id="book1",
@@ -246,7 +246,7 @@ def test_get_page_schedules_prefetch_by_default(tmp_path: Path, projects_root: P
     settings = _make_settings(tmp_path, source_projects_root=projects_root, no_prefetch=False)
     app = build_app(settings)
 
-    with patch("pd_ocr_labeler_spa.api.pages._prefetch_adjacent_pages") as mock_prefetch:
+    with patch("pdomain_ocr_labeler_spa.api.pages._prefetch_adjacent_pages") as mock_prefetch:
         with TestClient(app) as c:
             c.post("/api/projects/load", json={"project_root": str(projects_root / "book1")})
             resp = c.get("/api/projects/book1/pages/0")
@@ -265,7 +265,7 @@ def test_get_page_suppresses_prefetch_when_no_prefetch_true(tmp_path: Path, proj
     settings = _make_settings(tmp_path, source_projects_root=projects_root, no_prefetch=True)
     app = build_app(settings)
 
-    with patch("pd_ocr_labeler_spa.api.pages._prefetch_adjacent_pages") as mock_prefetch:
+    with patch("pdomain_ocr_labeler_spa.api.pages._prefetch_adjacent_pages") as mock_prefetch:
         with TestClient(app) as c:
             c.post("/api/projects/load", json={"project_root": str(projects_root / "book1")})
             resp = c.get("/api/projects/book1/pages/0")

@@ -11,14 +11,14 @@ Spec authority:
 Endpoints under test (6):
 
 1. ``POST .../paragraphs/{pi}/copy-gt-to-ocr`` — ``Block.copy_ground_truth_to_ocr()``
-   (Block is the paragraph type in pd-book-tools — same method used at
+   (Block is the paragraph type in pdomain-book-tools — same method used at
    line scope in spec-23-D1).
 2. ``POST .../paragraphs/{pi}/copy-ocr-to-gt`` — ``Block.copy_ocr_to_ground_truth()``.
 3. ``POST .../paragraphs/{pi}/validate`` — sets ``Block.is_validated`` on
    the paragraph and on every contained word (workaround for
-   ConcaveTrillion/pd-book-tools#52 — same workaround as Word/Line).
+   pdomain/pdomain-book-tools#52 — same workaround as Word/Line).
 4. ``POST .../paragraphs/{pi}/delete`` — ``Page.delete_paragraphs([pi])``
-   (pd-book-tools exposes only the batch variant; matches the
+   (pdomain-book-tools exposes only the batch variant; matches the
    line-delete pattern).
 5. ``POST .../paragraphs/merge`` — ``Page.merge_paragraphs(paragraph_indices)``.
 6. ``POST .../paragraphs/{pi}/split-after-line`` — translates the
@@ -45,11 +45,11 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
-from pd_ocr_labeler_spa.core.persistence.user_page_envelope import cached_envelope_path
-from pd_ocr_labeler_spa.core.project_state import PageState
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
+from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import cached_envelope_path
+from pdomain_ocr_labeler_spa.core.project_state import PageState
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path, **overrides: object) -> Settings:
@@ -108,7 +108,7 @@ class _StubWord:
 
 @dataclass
 class _StubLine:
-    """Mimics ``pd_book_tools.ocr.block.Block`` line-level surface."""
+    """Mimics ``pdomain_book_tools.ocr.block.Block`` line-level surface."""
 
     words: list[_StubWord] = field(default_factory=list)
     is_validated: bool = False
@@ -116,7 +116,7 @@ class _StubLine:
 
 @dataclass
 class _StubParagraph:
-    """Mimics ``pd_book_tools.ocr.block.Block`` paragraph-level surface.
+    """Mimics ``pdomain_book_tools.ocr.block.Block`` paragraph-level surface.
 
     Holds a list of ``_StubLine`` (matches Block.lines on a paragraph
     Block). copy_*/words mirror Block flat-list semantics.
@@ -144,7 +144,7 @@ class _StubParagraph:
 
 @dataclass
 class _StubPage:
-    """Mimics ``pd_book_tools.ocr.page.Page`` paragraph-mutation surface."""
+    """Mimics ``pdomain_book_tools.ocr.page.Page`` paragraph-mutation surface."""
 
     paragraph_objs: list[_StubParagraph] = field(default_factory=list)
     label: str = "stub"
@@ -205,7 +205,7 @@ class _StubPage:
         return True
 
     def split_paragraph_after_line(self, line_index: int) -> bool:
-        """Mirror pd-book-tools' Page.split_paragraph_after_line.
+        """Mirror pdomain-book-tools' Page.split_paragraph_after_line.
 
         ``line_index`` is the PAGE-WIDE index into ``page.lines``. We
         locate the containing paragraph by traversing the flat lines list
@@ -229,7 +229,7 @@ class _StubPage:
             return False
         target_para = self.paragraph_objs[target_pi]
         if target_offset >= len(target_para.line_objs) - 1:
-            # Can't split after the last line (matches pd-book-tools).
+            # Can't split after the last line (matches pdomain-book-tools).
             return False
         first = target_para.line_objs[: target_offset + 1]
         second = target_para.line_objs[target_offset + 1 :]
@@ -407,7 +407,7 @@ def test_split_paragraph_after_line_produces_two_paragraphs(
     Asserts (spec §9 — ``paragraph.split_after_line(l)`` → actual API
     ``Page.split_paragraph_after_line(page_line_index)``):
     - 200 PagePayload response.
-    - pd-book-tools method invoked with the page-wide line index
+    - pdomain-book-tools method invoked with the page-wide line index
       corresponding to (paragraph_index=0, after_line_index=0).
     - Resulting page has 3 paragraphs (split + untouched neighbor).
     - The split paragraph's two halves each carry the expected lines.
@@ -430,7 +430,7 @@ def test_split_paragraph_after_line_produces_two_paragraphs(
     body = resp.json()
     assert body["project_id"] == "book1"
 
-    # pd-book-tools method invoked with page-wide line index = 0.
+    # pdomain-book-tools method invoked with page-wide line index = 0.
     assert page.split_paragraph_after_line_calls == [0]
     # Paragraph count grew by exactly one.
     assert len(page.paragraph_objs) == paragraphs_before + 1
@@ -478,7 +478,7 @@ def test_paragraph_validate(loaded_client: TestClient) -> None:
     )
     assert resp.status_code == 200, resp.text
     assert page.paragraph_objs[0].is_validated is True
-    # Workaround for pd-book-tools#52: propagate to every contained word.
+    # Workaround for pdomain-book-tools#52: propagate to every contained word.
     for line in page.paragraph_objs[0].line_objs:
         for word in line.words:
             assert word.is_validated is True
@@ -529,7 +529,7 @@ def test_paragraph_merge_rejects_single_index(loaded_client: TestClient) -> None
 
 
 def test_paragraph_split_404_for_bad_paragraph(loaded_client: TestClient) -> None:
-    """Bad paragraph_index → 404 paragraph_not_found before pd-book-tools call."""
+    """Bad paragraph_index → 404 paragraph_not_found before pdomain-book-tools call."""
     page = _make_two_paragraph_page()
     _seed_page_state(loaded_client, page_index=0, page=page)
     resp = loaded_client.post(
@@ -545,7 +545,7 @@ def test_paragraph_split_400_when_after_line_out_of_paragraph(
 ) -> None:
     """``after_line_index`` past the paragraph's last line → 400 mutation_failed.
 
-    pd-book-tools' ``split_paragraph_after_line`` rejects splitting after
+    pdomain-book-tools' ``split_paragraph_after_line`` rejects splitting after
     the last line (and rejects out-of-range indices); we surface that as
     ``mutation_failed`` after the within-paragraph index has been
     translated to page-wide and dispatched.
@@ -553,7 +553,7 @@ def test_paragraph_split_400_when_after_line_out_of_paragraph(
     page = _make_two_paragraph_page()
     _seed_page_state(loaded_client, page_index=0, page=page)
     # Paragraph 0 has 2 lines (indices 0, 1). Splitting after line 1
-    # (the last line) is rejected by pd-book-tools.
+    # (the last line) is rejected by pdomain-book-tools.
     resp = loaded_client.post(
         "/api/projects/book1/pages/0/paragraphs/0/split-after-line",
         json={"paragraph_index": 0, "after_line_index": 1},

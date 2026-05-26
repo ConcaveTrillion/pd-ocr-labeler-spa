@@ -2,7 +2,7 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#20
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#20
 
 The horizontal row of buttons just below the project navigation
 controls. Persistence + OCR + GT-rematch live here.

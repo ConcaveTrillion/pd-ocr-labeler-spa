@@ -1,4 +1,4 @@
-# CI E2E Root Cause Analysis — pd-ocr-labeler-spa
+# CI E2E Root Cause Analysis — pdomain-ocr-labeler-spa
 
 **Date:** 2026-05-23
 **CI run:** 26314941850 (commit `ccb14b5` — "fix(ci): replace npm ci with pnpm/action-setup")
@@ -27,27 +27,27 @@ The error originates in `react-dom` when it tries to access
 
 ## (b) Precise Root Cause
 
-**Commit that introduced the regression:** `f8e20dc` ("Merge wip/bump-pd-ui-alpha1: bump
-@concavetrillion/pd-ui to 0.1.0-alpha.1"), landed before `ccb14b5`.
+**Commit that introduced the regression:** `f8e20dc` ("Merge wip/bump-pdomain-ui-alpha1: bump
+@pdomain/pdomain-ui to 0.1.0-alpha.1"), landed before `ccb14b5`.
 
 **Mechanism — two-layer dual-instance problem:**
 
 ### Layer 1: react / react-dom dual instance (primary)
 
-`@concavetrillion/pd-ui@0.1.0-alpha.1` declares:
+`@pdomain/pdomain-ui@0.1.0-alpha.1` declares:
 
 ```json
 "peerDependencies": { "react": "^18.0.0", "react-dom": "^18.0.0" }
 ```
 
 pnpm 11 resolves peer dependencies inside a package-scoped symlink tree. Even though both the
-labeler-spa and pd-ui ultimately resolve to the same physical files (`react@19.2.6`), Vite
+labeler-spa and pdomain-ui ultimately resolve to the same physical files (`react@19.2.6`), Vite
 follows symlinks individually to build its module graph. It de-duplicates by resolved path,
 not by inode. pnpm creates these two resolution paths:
 
 - `frontend/node_modules/react` → `react@19.2.6` (labeler-spa scope)
-- `frontend/node_modules/.pnpm/@concavetrillion+pd-ui@0.1.0-alpha.1.../node_modules/react`
-  → also `react@19.2.6` (pd-ui scope)
+- `frontend/node_modules/.pnpm/@concavetrillion+pdomain-ui@0.1.0-alpha.1.../node_modules/react`
+  → also `react@19.2.6` (pdomain-ui scope)
 
 Vite treats these as **two distinct modules** and bundles both. React's hook dispatcher
 (`ReactCurrentBatchConfig`) lives inside one instance; calls from the other instance crash.
@@ -63,13 +63,13 @@ resolve: {
 
 ### Layer 2: react-konva dual instance (secondary, same mechanism)
 
-`@concavetrillion/pd-ui@0.1.0-alpha.1` also declares `react-konva: "^18.0.0"` as a
-**direct dependency** (not a peer dep). pnpm installs `react-konva@18.2.16` inside pd-ui's
+`@pdomain/pdomain-ui@0.1.0-alpha.1` also declares `react-konva: "^18.0.0"` as a
+**direct dependency** (not a peer dep). pnpm installs `react-konva@18.2.16` inside pdomain-ui's
 scope while the labeler-spa uses `react-konva@19.2.4` at top level.
 
 ```
 frontend/node_modules/.pnpm/
-  react-konva@18.2.16_...  ← pd-ui scope (react-reconciler@~0.29)
+  react-konva@18.2.16_...  ← pdomain-ui scope (react-reconciler@~0.29)
   react-konva@19.2.4_...   ← labeler-spa scope (react-reconciler@~0.33)
 ```
 
@@ -118,13 +118,13 @@ not make all 80+ e2e tests pass.
 ## (c) Minimal Reproduction
 
 ```bash
-# In pd-ocr-labeler-spa/frontend/
+# In pdomain-ocr-labeler-spa/frontend/
 pnpm install --frozen-lockfile
 pnpm run build
 # → dist/ produced; vite reports "1926 modules transformed"
 
-# In pd-ocr-labeler-spa/
-cp -r frontend/dist/. src/pd_ocr_labeler_spa/static/
+# In pdomain-ocr-labeler-spa/
+cp -r frontend/dist/. src/pdomain_ocr_labeler_spa/static/
 uv run pd-ocr-labeler-ui --port 19999 &
 
 # Playwright probe (one-liner):
@@ -163,8 +163,8 @@ EOF
 +    // Force single instances of all React-ecosystem packages when pnpm symlink
 +    // scoping creates multiple paths for the same package.
 +    //
-+    // react/react-dom: @concavetrillion/pd-ui resolves from its own pnpm scope.
-+    // react-konva: pd-ui brings react-konva@18 as a direct dep; labeler-spa uses
++    // react/react-dom: @pdomain/pdomain-ui resolves from its own pnpm scope.
++    // react-konva: pdomain-ui brings react-konva@18 as a direct dep; labeler-spa uses
 +    //   react-konva@19. Both get distinct react-reconciler instances (0.29 vs 0.33),
 +    //   each with conflicting internal state. Forcing dedupe resolves all to the
 +    //   top-level versions.
@@ -195,33 +195,33 @@ class TestDockerBuild:
 
 Alternative: add `pnpm/action-setup@v4` to the `test-backend` CI job in `.github/workflows/ci.yml`.
 
-### Fix C — `pd-ui/package.json` peer deps (HOUSEKEEPING, cross-repo)
+### Fix C — `pdomain-ui/package.json` peer deps (HOUSEKEEPING, cross-repo)
 
-`@concavetrillion/pd-ui` declares:
+`@pdomain/pdomain-ui` declares:
 
 - `peerDependencies: { "react": "^18.0.0", "react-dom": "^18.0.0" }` — should be `"^19.0.0"`
 - `dependencies: { "react-konva": "^18.0.0" }` — should be a **peerDependency** at `"^19.0.0"`
   (so the consuming app controls the version, eliminating the dual-instance problem at source)
 
-This is a `pd-ui` repo change requiring a new release. Emit as a cross-repo recommendation.
+This is a `pdomain-ui` repo change requiring a new release. Emit as a cross-repo recommendation.
 
 ### Sequencing
 
 1. **Fix A first** — single-line change, unblocks all 80+ e2e tests.
 2. **Fix B** — cleans up 4 docker test failures in `test-backend`.
-3. **Fix C** — long-term structural fix in pd-ui (separate PR/release).
+3. **Fix C** — long-term structural fix in pdomain-ui (separate PR/release).
 
 ---
 
 ## (e) Second-Order Issues
 
 1. **`dedupe` is a Vite-level workaround, not a root-cause fix.** The root cause is that
-   pd-ui ships `react-konva` as a direct `dependencies` entry rather than a `peerDependency`.
+   pdomain-ui ships `react-konva` as a direct `dependencies` entry rather than a `peerDependency`.
    Any consuming app that uses a different react-konva major will have this problem. Fix C
    addresses this structurally.
 
-2. **pd-ui peer dep range mismatch** (`^18` vs actual `^19`) means pnpm may install extra
-   copies of react/react-dom for other pd-ui consumers in the future. Fix C also covers this.
+2. **pdomain-ui peer dep range mismatch** (`^18` vs actual `^19`) means pnpm may install extra
+   copies of react/react-dom for other pdomain-ui consumers in the future. Fix C also covers this.
 
 3. **`resolve.dedupe` is not inherited by vitest.** The `vitest.config.ts` is a sibling
    file (by design — to avoid Vite 6 / vitest 2.x type collision). If vitest ever starts
@@ -283,11 +283,11 @@ OR: cherry-pick / squash-merge the full fix onto a fresh branch off main, since 
 | Item | Value |
 |------|-------|
 | Branch with regression | `main` @ `ccb14b5` |
-| Regression introduced | `f8e20dc` (pd-ui bump to 0.1.0-alpha.1) |
+| Regression introduced | `f8e20dc` (pdomain-ui bump to 0.1.0-alpha.1) |
 | React version | `19.2.6` |
-| pd-ui version | `0.1.0-alpha.1` |
+| pdomain-ui version | `0.1.0-alpha.1` |
 | react-konva (top-level) | `19.2.4` |
-| react-konva (pd-ui scope) | `18.2.16` |
+| react-konva (pdomain-ui scope) | `18.2.16` |
 | react-reconciler (dual) | `0.29.2` + `0.33.0` |
 | pnpm | `11.1.3` |
 | Vite | `6.4.2` |

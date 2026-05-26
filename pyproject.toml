@@ -3,7 +3,7 @@ requires = ["hatchling>=1.27,<2", "hatch-vcs>=0.4,<1"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pd-ocr-labeler-spa"
+name = "pdomain-ocr-labeler-spa"
 dynamic = ["version"]
 description = "FastAPI + React SPA replacement for pd-ocr-labeler — single wheel that serves API + bundled SPA"
 authors = [
@@ -31,7 +31,7 @@ dependencies = [
     # urllib3>=2.7.0 — PYSEC-2026-141 / PYSEC-2026-142
     "urllib3>=2.7.0",
     # OCR / image domain (wired in later milestones; harmless to declare now)
-    "pd-book-tools>=0.14.1",
+    "pdomain-book-tools>=0.14.1",
     "huggingface_hub>=0.23",
 ]
 
@@ -44,12 +44,12 @@ modal = [
 # Console script name preserved verbatim from the legacy `pd-ocr-labeler`
 # so end users can swap binaries without re-learning the command.
 # See specs/15-deployment-dev.md §2.
-pd-ocr-labeler-ui = "pd_ocr_labeler_spa.__main__:main"
-pd-ocr-labeler-spa-export = "pd_ocr_labeler_spa.core.jobs.handlers.export_cli:main"
+pd-ocr-labeler-ui = "pdomain_ocr_labeler_spa.__main__:main"
+pdomain-ocr-labeler-spa-export = "pdomain_ocr_labeler_spa.core.jobs.handlers.export_cli:main"
 
 [project.urls]
-Homepage = "https://github.com/ConcaveTrillion/pd-ocr-labeler-spa"
-Repository = "https://github.com/ConcaveTrillion/pd-ocr-labeler-spa"
+Homepage = "https://github.com/pdomain/pdomain-ocr-labeler-spa"
+Repository = "https://github.com/pdomain/pdomain-ocr-labeler-spa"
 
 [dependency-groups]
 dev = [
@@ -69,21 +69,21 @@ e2e = [
 ]
 
 [[tool.uv.index]]
-name = "pd-index-pip"
-url = "https://concavetrillion.github.io/pd-index-pip/simple/"
+name = "pdomain-index-pip"
+url = "https://pdomain.github.io/pdomain-index-pip/simple/"
 explicit = true
 
 [tool.uv.sources]
-pd-book-tools = { index = "pd-index-pip" }
+pdomain-book-tools = { path = "/workspaces/ocr-container/pd-book-tools/.claude/worktrees/rename-pdomain", editable = true }
 
 [tool.hatch.version]
 source = "vcs"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pd_ocr_labeler_spa"]
+packages = ["src/pdomain_ocr_labeler_spa"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"src/pd_ocr_labeler_spa/static" = "pd_ocr_labeler_spa/static"
+"src/pdomain_ocr_labeler_spa/static" = "pdomain_ocr_labeler_spa/static"
 
 # Local guard mirroring the CI check in `.github/workflows/release.yml`:
 # fail `uv build` / `hatch build` if the SPA bundle is missing, so the
@@ -161,7 +161,7 @@ ignore = [
 # RUF002: intentional Unicode (×) in dimension docstrings.
 "scripts/*.py" = ["T201", "S603", "S607", "ANN", "D", "RUF002"]
 # Headless export CLI console script — print() for user-facing output
-"src/pd_ocr_labeler_spa/core/jobs/handlers/export_cli.py" = ["T201"]
+"src/pdomain_ocr_labeler_spa/core/jobs/handlers/export_cli.py" = ["T201"]
 # Tests: assert is the idiom (S101); magic numbers common (PLR2004);
 # no annotations required (ANN); no docstrings required (D);
 # security rules relaxed (S105/S106/S311 — test fixtures);
@@ -205,7 +205,7 @@ ignore = [
 # BLE001/TRY: exception handling in FastAPI routes is the norm.
 # S101: assert-narrowing is the project convention in FastAPI dependencies.
 # TC001/TC002/TC003: TYPE_CHECKING refactor deferred; PLC0415 deferred.
-"src/pd_ocr_labeler_spa/api/*.py" = [
+"src/pdomain_ocr_labeler_spa/api/*.py" = [
     "ANN", "D", "BLE001", "TRY", "TID252",
     "S101", "TC001", "TC002", "TC003", "PLC0415",
     "RET504", "PT018", "PLR0911", "PLR0912", "PLR0915",
@@ -214,14 +214,14 @@ ignore = [
 ]
 # Core domain — ANN/D deferred for existing large modules.
 # TC/BLE/TRY/PLC0415 deferred; RET504 implicit-return-in-try is project style.
-"src/pd_ocr_labeler_spa/core/*.py" = [
+"src/pdomain_ocr_labeler_spa/core/*.py" = [
     "ANN", "D", "TID252",
     "TC001", "TC002", "TC003", "PLC0415",
     "BLE001", "TRY", "RET504",
     # RUF002: intentional en-dashes in spec citations; ſ in text_normalize.py.
     "RUF002",
 ]
-"src/pd_ocr_labeler_spa/core/**/*.py" = [
+"src/pdomain_ocr_labeler_spa/core/**/*.py" = [
     "ANN", "D", "TID252",
     "TC001", "TC002", "TC003", "PLC0415",
     "BLE001", "TRY", "RET504",
@@ -230,14 +230,14 @@ ignore = [
 ]
 # Adapters — ANN/D/TRY deferred; adapters interface with external libs.
 # S101: assert used for invariant-checking in OCR adapters.
-"src/pd_ocr_labeler_spa/adapters/**/*.py" = [
+"src/pdomain_ocr_labeler_spa/adapters/**/*.py" = [
     "ANN", "D", "TRY", "BLE001", "TID252",
     "S101", "TC001", "TC002", "TC003", "PLC0415",
 ]
 # Top-level module files (__main__, bootstrap, settings, __init__).
 # PLC0415: deferred imports in __main__ are intentional (uvicorn, device_info).
 # PLR09xx: complex main/bootstrap functions are by design.
-"src/pd_ocr_labeler_spa/*.py" = [
+"src/pdomain_ocr_labeler_spa/*.py" = [
     "ANN", "D", "TC001", "TC002", "TC003",
     "PLC0415", "PLR0911", "PLR0912", "PLR0915", "S101",
 ]
@@ -252,7 +252,7 @@ addopts = [
     "-ra",                       # show short summary of all non-pass outcomes
     "--strict-markers",          # fail on unknown markers
     "--strict-config",           # fail on unknown pytest config keys
-    "--cov=pd_ocr_labeler_spa",
+    "--cov=pdomain_ocr_labeler_spa",
     "--cov-branch",              # measure branch coverage
     "--cov-report=term-missing:skip-covered",
     "--cov-report=html",

@@ -10,7 +10,7 @@
 //   - Export button -> POST -> 202 -> useJobProgress SSE inline
 //   - Cancel while running
 //
-// Chrome backed by pd-ui's Radix Dialog suite. Radix provides native focus trap +
+// Chrome backed by pdomain-ui's Radix Dialog suite. Radix provides native focus trap +
 // Escape handling. Backdrop click is blocked while a job is running via
 // onInteractOutside.
 //
@@ -34,7 +34,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@concavetrillion/pd-ui/primitives";
+} from "@pdomain/pdomain-ui/primitives";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -238,7 +238,7 @@ export function ExportDialog({
         if (!isOpen) onClose();
       }}
     >
-      {/* DialogContent auto-composes DialogPortal + DialogOverlay (pd-ui convention).
+      {/* DialogContent auto-composes DialogPortal + DialogOverlay (pdomain-ui convention).
           The .dialog-overlay CSS in primitives.css provides the backdrop. */}
       <DialogContent
         data-testid="export-dialog"

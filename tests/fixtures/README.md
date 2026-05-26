@@ -1,6 +1,6 @@
 # Test Fixtures
 
-This directory contains shared test fixtures used by the pd-ocr-labeler-spa
+This directory contains shared test fixtures used by the pdomain-ocr-labeler-spa
 test suite.
 
 ## Structure
@@ -29,7 +29,7 @@ pages that the legacy `pd-ocr-labeler` would have written in v2.1 format.
 
 ### Adding new fixtures
 
-1. Export a per-page envelope from `pd-ocr-labeler` or `pd-ocr-labeler-spa`
+1. Export a per-page envelope from `pd-ocr-labeler` or `pdomain-ocr-labeler-spa`
    (the `<project>_NNN.json` sidecar in the project's `page-images/` directory).
 2. Drop it here as `<project>_NNN.json`.
 3. Run `make test` — the parametrised tests pick it up automatically.

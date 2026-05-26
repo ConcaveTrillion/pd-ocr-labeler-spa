@@ -36,7 +36,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from pd_ocr_labeler_spa.core.model_selection import (
+from pdomain_ocr_labeler_spa.core.model_selection import (
     HF_LATEST_KEY,
     STOCK_KEY,
     ModelOptionRecord,

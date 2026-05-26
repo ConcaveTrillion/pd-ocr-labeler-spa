@@ -1,7 +1,7 @@
 // Worklist.test.tsx — Tests for the Worklist drawer tab (Slice 11, P5.a, P5.b).
 // Spec: docs/specs/2026-05-15-hifi-redesign-plan.md Slice 11, Gap 19, Gap 20.
-// Phase 2.3: pd-ui <WordList> uses react-virtuoso internally.  In jsdom there
-//   is no scroll area so Virtuoso renders zero items.  We mock the pd-ui worklist
+// Phase 2.3: pdomain-ui <WordList> uses react-virtuoso internally.  In jsdom there
+//   is no scroll area so Virtuoso renders zero items.  We mock the pdomain-ui worklist
 //   barrel to provide a test-friendly WordList that renders all items
 //   synchronously, identical to the react-konva mocking pattern.
 
@@ -11,14 +11,14 @@ import userEvent from "@testing-library/user-event";
 import { Worklist } from "./Worklist";
 import { worklistStore } from "../../stores/worklist-store";
 import type { components } from "../../api/types";
-import type { WordRowProps } from "@concavetrillion/pd-ui/worklist";
+import type { WordRowProps } from "@pdomain/pdomain-ui/worklist";
 
-// ── @concavetrillion/pd-ui/worklist mock ──────────────────────────────────────
+// ── @pdomain/pdomain-ui/worklist mock ──────────────────────────────────────
 // WordList uses react-virtuoso which renders zero items in jsdom (no scroll
 // height). Replace with a thin wrapper that renders every item synchronously.
 // Preserves the same render-prop contract (WordRowProps) as the real component.
-vi.mock("@concavetrillion/pd-ui/worklist", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@concavetrillion/pd-ui/worklist")>();
+vi.mock("@pdomain/pdomain-ui/worklist", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@pdomain/pdomain-ui/worklist")>();
   const React = await import("react");
 
   type MockWordListProps<TWord extends { text: string; bounding_box: object }> = {

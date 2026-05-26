@@ -8,12 +8,12 @@
 // Phase 2.5 (cross-cut-design §7.5): migrated from hand-rolled reactive
 // store to Zustand's vanilla `createStore`.
 //
-// GAP-2: Cannot use pd-ui's `createViewportStore()` factory.
-//   pd-ui offers: `scale: number, pan: {x,y}, setScale, setPan, reset`.
+// GAP-2: Cannot use pdomain-ui's `createViewportStore()` factory.
+//   pdomain-ui offers: `scale: number, pan: {x,y}, setScale, setPan, reset`.
 //   This store needs: labeler-specific interaction modes (select/rebox/
 //   add-word/erase), pendingReboxTarget, and canvasZoom (0 = fit-to-
-//   container). These are labeler domain concerns that pd-ui deliberately
-//   excludes per §3 "What pd-ui does not include".
+//   container). These are labeler domain concerns that pdomain-ui deliberately
+//   excludes per §3 "What pdomain-ui does not include".
 
 import { createStore } from "zustand/vanilla";
 

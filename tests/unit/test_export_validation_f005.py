@@ -12,7 +12,7 @@ Problem:
 Fix: Pydantic ``@model_validator(mode='after')`` checks added to
 ``ExportRequest``.
 
-Issue: ConcaveTrillion/pd-ocr-labeler-spa#410.
+Issue: pdomain/pdomain-ocr-labeler-spa#410.
 """
 
 from __future__ import annotations

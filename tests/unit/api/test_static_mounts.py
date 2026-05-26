@@ -25,8 +25,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 @pytest.fixture
@@ -194,7 +194,7 @@ def _populate_static_dir(content: bytes = b"<!doctype html><div id=root></div>")
     pytest runs (the wheel isn't installed). We restore the original
     state in the fixture teardown so tests stay hermetic.
     """
-    import pd_ocr_labeler_spa as pkg
+    import pdomain_ocr_labeler_spa as pkg
 
     static_dir = Path(pkg.__file__).parent / "static"
     static_dir.mkdir(parents=True, exist_ok=True)
@@ -426,7 +426,7 @@ def test_spa_fallback_503_when_dist_missing(settings: Settings) -> None:
     pointer to the fix instead of an opaque ``FileNotFoundError``.
     """
     # Confirm the static dir is empty (just `.gitkeep`).
-    import pd_ocr_labeler_spa as pkg
+    import pdomain_ocr_labeler_spa as pkg
 
     static_dir = Path(pkg.__file__).parent / "static"
     assert not (static_dir / "index.html").exists(), (
@@ -515,7 +515,7 @@ def test_resolve_static_dir_handles_non_path_traversable() -> None:
     import os
     import tempfile
 
-    from pd_ocr_labeler_spa.api import static_mounts
+    from pdomain_ocr_labeler_spa.api import static_mounts
 
     # Build a real on-disk dir with index.html — but wrap it in a
     # Traversable that is NOT a pathlib.Path subclass.
@@ -580,7 +580,7 @@ def test_resolve_static_dir_handles_non_path_traversable() -> None:
     real_files = importlib.resources.files  # pyright: ignore[reportAttributeAccessIssue]
 
     def _patched_files(pkg: str) -> object:
-        if pkg == "pd_ocr_labeler_spa":
+        if pkg == "pdomain_ocr_labeler_spa":
             return _FilesShim()
         return real_files(pkg)
 
@@ -628,7 +628,7 @@ def test_resolve_resource_dir_cache_keyed_on_logical_identity_not_id() -> None:
     import importlib
     import tempfile
 
-    from pd_ocr_labeler_spa.api import static_mounts
+    from pdomain_ocr_labeler_spa.api import static_mounts
 
     # Two distinct on-disk sub-trees standing in for two logical
     # resources (e.g. "static" + a hypothetical "themes").
@@ -763,7 +763,7 @@ def test_resolve_resource_dir_cache_evicts_stale_entry_after_tmpdir_vanishes() -
     import shutil
     import tempfile
 
-    from pd_ocr_labeler_spa.api import static_mounts
+    from pdomain_ocr_labeler_spa.api import static_mounts
 
     static_mounts._RESOLVED_RESOURCE_DIR_CACHE.clear()
 

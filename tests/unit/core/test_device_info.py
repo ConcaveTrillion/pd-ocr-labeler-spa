@@ -1,6 +1,6 @@
 """Unit tests for ``core.device_info``.
 
-The helper resolves the torch device that pd_book_tools / DocTR will
+The helper resolves the torch device that pdomain_book_tools / DocTR will
 pick up at OCR time, and renders it as a one-line string suitable for
 ``make run`` startup logging. Critically:
 
@@ -20,7 +20,7 @@ from __future__ import annotations
 import sys
 import types
 
-from pd_ocr_labeler_spa.core import device_info
+from pdomain_ocr_labeler_spa.core import device_info
 
 
 def test_describe_device_returns_cpu_when_torch_missing(monkeypatch):

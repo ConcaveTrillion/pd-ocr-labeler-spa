@@ -13,16 +13,16 @@
 // store to Zustand's vanilla `createStore`. External API (`useUiPrefs`
 // store object, `useThemePreference` hook) preserved intact.
 //
-// GAP-5: Cannot use pd-ui's `createUIPrefsStore()` factory.
-//   pd-ui offers: async load/persist callbacks, theme/density/layerColors/
+// GAP-5: Cannot use pdomain-ui's `createUIPrefsStore()` factory.
+//   pdomain-ui offers: async load/persist callbacks, theme/density/layerColors/
 //   statusColors/accentColor with setTheme/setDensity/setAppPref.
 //   This store needs: labeler-specific prefs (lineFilter, layerVisibility,
 //   splitterRatio, selectionMode, matchFilter, drawerOpen/Tab, rightPanelOpen,
 //   matchFilterMode) all managed synchronously in-memory with localStorage
-//   persistence only for theme. The pd-ui factory's async load/persist
-//   contract targets the future pd-suite prefs API (§3.2); that wiring is
-//   deferred to when pd-ocr-ops routes are mounted (Phase 2.4+).
-//   Replace with pd-ui factory when the pd-suite prefs API is wired and
+//   persistence only for theme. The pdomain-ui factory's async load/persist
+//   contract targets the future pdomain-suite prefs API (§3.2); that wiring is
+//   deferred to when pdomain-ocr-ops routes are mounted (Phase 2.4+).
+//   Replace with pdomain-ui factory when the pdomain-suite prefs API is wired and
 //   the labeler-specific prefs schema is migrated into `UIPrefs.app`.
 
 import { createStore } from "zustand/vanilla";

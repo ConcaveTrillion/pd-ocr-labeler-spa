@@ -23,11 +23,11 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
-from pd_ocr_labeler_spa.core.persistence.user_page_envelope import labeled_envelope_path
-from pd_ocr_labeler_spa.core.project_state import PageState
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
+from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import labeled_envelope_path
+from pdomain_ocr_labeler_spa.core.project_state import PageState
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path, **overrides: object) -> Settings:
@@ -179,7 +179,7 @@ def test_save_returns_500_on_oserror(loaded_client: TestClient, monkeypatch: pyt
 
     # Patch the route-module's view of persist_page_to_file (per the
     # router-imported-name pattern memory note).
-    from pd_ocr_labeler_spa.api import pages as pages_module
+    from pdomain_ocr_labeler_spa.api import pages as pages_module
 
     def _boom(*_args: object, **_kwargs: object) -> None:
         raise OSError("disk full")
@@ -334,7 +334,7 @@ def test_save_emits_glyph_review_warning_when_required_and_incomplete(
     Uses a stub page with 3 words; glyph_annotations_map is empty (no reviews).
     Expected: SavePageResponse.warnings contains 'glyph_review_incomplete'.
     """
-    from pd_ocr_labeler_spa.core.persistence.config_yaml import AppConfig
+    from pdomain_ocr_labeler_spa.core.persistence.config_yaml import AppConfig
 
     # app_config is frozen on app.state at boot; patch it directly.
     current_cfg: AppConfig = loaded_client.app.state.app_config  # type: ignore[attr-defined]
@@ -369,7 +369,7 @@ def test_save_emits_glyph_review_warning_when_required_and_incomplete(
 
 def test_save_no_warning_when_all_words_reviewed(loaded_client: TestClient) -> None:
     """AC #270: glyph_review_required=True but all words reviewed → no warning."""
-    from pd_ocr_labeler_spa.core.persistence.config_yaml import AppConfig
+    from pdomain_ocr_labeler_spa.core.persistence.config_yaml import AppConfig
 
     current_cfg: AppConfig = loaded_client.app.state.app_config  # type: ignore[attr-defined]
     loaded_client.app.state.app_config = current_cfg.model_copy(  # type: ignore[attr-defined]

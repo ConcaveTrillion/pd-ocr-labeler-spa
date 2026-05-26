@@ -29,8 +29,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from pd_ocr_labeler_spa.core.persistence.paths import session_state_path
-from pd_ocr_labeler_spa.core.persistence.session_state import (
+from pdomain_ocr_labeler_spa.core.persistence.paths import session_state_path
+from pdomain_ocr_labeler_spa.core.persistence.session_state import (
     SESSION_STATE_FILENAME,
     SESSION_STATE_SCHEMA_VERSION,
     SessionState,
@@ -284,7 +284,7 @@ def test_load_session_state_returns_state_for_stale_path(tmp_path: Path) -> None
 
 def test_last_project_path_exists_returns_false_when_none(tmp_path: Path) -> None:
     """B-60 stage-2 helper: ``last_project_path is None`` → False."""
-    from pd_ocr_labeler_spa.core.persistence.session_state import (
+    from pdomain_ocr_labeler_spa.core.persistence.session_state import (
         last_project_path_exists,
     )
 
@@ -295,7 +295,7 @@ def test_last_project_path_exists_returns_false_when_none(tmp_path: Path) -> Non
 
 def test_last_project_path_exists_returns_false_when_missing(tmp_path: Path) -> None:
     """B-60 stage-2 helper: a path string that doesn't resolve → False."""
-    from pd_ocr_labeler_spa.core.persistence.session_state import (
+    from pdomain_ocr_labeler_spa.core.persistence.session_state import (
         last_project_path_exists,
     )
 
@@ -310,7 +310,7 @@ def test_last_project_path_exists_returns_true_when_dir_exists(tmp_path: Path) -
     file at the path doesn't count, since saved projects are always
     directories under spec §1.
     """
-    from pd_ocr_labeler_spa.core.persistence.session_state import (
+    from pdomain_ocr_labeler_spa.core.persistence.session_state import (
         last_project_path_exists,
     )
 
@@ -327,7 +327,7 @@ def test_last_project_path_exists_returns_false_for_file_at_path(tmp_path: Path)
     the path means the layout is corrupt and the caller should treat
     it as "no prior session" rather than try to load it.
     """
-    from pd_ocr_labeler_spa.core.persistence.session_state import (
+    from pdomain_ocr_labeler_spa.core.persistence.session_state import (
         last_project_path_exists,
     )
 
@@ -402,7 +402,7 @@ def test_load_logs_warning_with_stable_substring_when_extras_dropped(
         encoding="utf-8",
     )
 
-    with caplog.at_level(logging.WARNING, logger="pd_ocr_labeler_spa.core.persistence.session_state"):
+    with caplog.at_level(logging.WARNING, logger="pdomain_ocr_labeler_spa.core.persistence.session_state"):
         state = load_session_state(tmp_path)
 
     assert state is not None
@@ -442,7 +442,7 @@ def test_load_does_not_warn_when_no_extras_present(
         encoding="utf-8",
     )
 
-    with caplog.at_level(logging.WARNING, logger="pd_ocr_labeler_spa.core.persistence.session_state"):
+    with caplog.at_level(logging.WARNING, logger="pdomain_ocr_labeler_spa.core.persistence.session_state"):
         state = load_session_state(tmp_path)
 
     assert state is not None

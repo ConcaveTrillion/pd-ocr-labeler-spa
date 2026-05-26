@@ -13,7 +13,7 @@ The legacy ``_rematch_page_ground_truth``
 ``page.remove_ground_truth()`` → ``page.add_ground_truth(gt_text)``
 pair: ``remove_ground_truth`` wipes every word's ``ground_truth_text``,
 then ``add_ground_truth`` (which delegates to
-``pd_book_tools.ocr.ground_truth_matching.update_page_with_ground_truth_text``)
+``pdomain_book_tools.ocr.ground_truth_matching.update_page_with_ground_truth_text``)
 re-derives GT from the canonical source string.
 
 Pattern (mirrors ``test_words_mutate_gt.py``):
@@ -39,10 +39,10 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
-from pd_ocr_labeler_spa.core.project_state import PageState
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
+from pdomain_ocr_labeler_spa.core.project_state import PageState
+from pdomain_ocr_labeler_spa.settings import Settings
 
 # ── Test fixtures ────────────────────────────────────────────────────
 
@@ -197,7 +197,7 @@ def _seed_page_state(client: TestClient, *, page_index: int, page: _StubPage) ->
 # ── Happy path ───────────────────────────────────────────────────────
 
 
-def test_rematch_gt_invokes_pd_book_tools_and_discards_per_word_edits(
+def test_rematch_gt_invokes_pdomain_book_tools_and_discards_per_word_edits(
     loaded_client: TestClient,
 ) -> None:
     """Spec §7: rematch wipes per-word GT and re-runs page-level matching.

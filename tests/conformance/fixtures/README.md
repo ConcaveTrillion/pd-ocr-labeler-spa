@@ -21,7 +21,7 @@ means v2.1 compat is broken.
 ## How to add a new fixture
 
 1. Export an envelope from a running labeler session (save a page in
-   `pd-ocr-labeler` or `pd-ocr-labeler-spa`, copy the `_NNN.json` file).
+   `pd-ocr-labeler` or `pdomain-ocr-labeler-spa`, copy the `_NNN.json` file).
 2. Place it in this directory as `<project>_<NNN>.json`.
 3. Add a row to the provenance table above.
 4. Run `make test` — the new fixture is picked up automatically by the

@@ -22,8 +22,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_client(tmp_path: Path, mode: str) -> TestClient:
@@ -124,8 +124,8 @@ def test_build_env_does_not_take_an_unused_settings_param() -> None:
     import ast
     import inspect
 
-    from pd_ocr_labeler_spa.api import env_js as env_js_mod
-    from pd_ocr_labeler_spa.api.env_js import _build_env
+    from pdomain_ocr_labeler_spa.api import env_js as env_js_mod
+    from pdomain_ocr_labeler_spa.api.env_js import _build_env
 
     sig = inspect.signature(_build_env)
     if "settings" not in sig.parameters:

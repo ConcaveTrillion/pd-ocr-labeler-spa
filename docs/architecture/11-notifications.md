@@ -2,7 +2,7 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-11
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#26
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#26
 
 How user-visible feedback flows from server actions to the UI.
 
@@ -91,7 +91,7 @@ The backend keeps a ring buffer of the last ~100 notifications so a
 late subscriber sees recent events. Each subscriber gets the snapshot
 on connect, then live events.
 
-Implementation: `src/pd_ocr_labeler_spa/core/notifications.py` — port
+Implementation: `src/pdomain_ocr_labeler_spa/core/notifications.py` — port
 of legacy `AppState.queue_notification` / `pop_notification`, plus the
 SSE wrapper.
 

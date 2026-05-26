@@ -36,11 +36,11 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
-from pd_ocr_labeler_spa.core.persistence.user_page_envelope import cached_envelope_path
-from pd_ocr_labeler_spa.core.project_state import PageState
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
+from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import cached_envelope_path
+from pdomain_ocr_labeler_spa.core.project_state import PageState
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path, **overrides: object) -> Settings:
@@ -77,11 +77,11 @@ class _StubWord:
     Carries the same attribute names the spec maps the route to:
     - ``ground_truth_text`` (settable for GT mutation).
     - ``apply_style_scope(style, scope)`` (style mutation; mirrors
-      ``pd_book_tools.ocr.word.Word.apply_style_scope``).
+      ``pdomain_book_tools.ocr.word.Word.apply_style_scope``).
     - ``apply_component(component, *, enabled)`` (component mutation;
-      mirrors ``pd_book_tools.ocr.word.Word.apply_component``).
+      mirrors ``pdomain_book_tools.ocr.word.Word.apply_component``).
     - ``is_validated`` (per-instance attribute set by the handler;
-      tracking issue ConcaveTrillion/pd-book-tools#52 for the proper
+      tracking issue pdomain/pdomain-book-tools#52 for the proper
       ``Word.set_validated`` setter).
     """
 
@@ -124,7 +124,7 @@ class _StubPage:
 
     Built so the route can resolve the target word via
     ``page.lines[line_index].words[word_index]`` exactly as
-    ``pd_book_tools.ocr.page.Page`` does.
+    ``pdomain_book_tools.ocr.page.Page`` does.
     """
 
     lines_: list[_StubLine] = field(default_factory=list)
@@ -295,7 +295,7 @@ def test_update_word_gt_cache_write_failure_does_not_break_response(
     _seed_page_state(loaded_client, page_index=0, page=page)
 
     # Patch the LaneResolver.write_cached symbol the route imports.
-    from pd_ocr_labeler_spa.core.persistence import lanes
+    from pdomain_ocr_labeler_spa.core.persistence import lanes
 
     def _boom(self, page_index: int, envelope: object) -> None:
         raise OSError("simulated disk-full")

@@ -17,8 +17,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path, **overrides: object) -> Settings:
@@ -345,7 +345,7 @@ def test_split_word_returns_404_for_bad_page(loaded_client: TestClient) -> None:
 
 
 def test_split_word_vertical_returns_400_mutation_failed(loaded_client: TestClient) -> None:
-    """Spec-23-C2: pd-book-tools only supports horizontal split today;
+    """Spec-23-C2: pdomain-book-tools only supports horizontal split today;
     ``direction='vertical'`` short-circuits to 400 ``mutation_failed``
     before the page-load check.
     """
@@ -428,10 +428,10 @@ def test_word_mutation_returns_400_on_corrupt_envelope(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """When envelope lift fails, word mutations return 400 page_not_loaded (not 404 or 500)."""
-    from pd_ocr_labeler_spa.core.envelope_lift import EnvelopeLiftError
+    from pdomain_ocr_labeler_spa.core.envelope_lift import EnvelopeLiftError
 
     monkeypatch.setattr(
-        "pd_ocr_labeler_spa.api.words.lift_envelope_to_page",
+        "pdomain_ocr_labeler_spa.api.words.lift_envelope_to_page",
         lambda payload: EnvelopeLiftError(
             message="injected test failure",
             cause=ValueError("injected"),

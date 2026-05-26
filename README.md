@@ -1,9 +1,9 @@
-# pd-ocr-labeler-spa
+# pdomain-ocr-labeler-spa
 
 A FastAPI + React/Vite/TypeScript replacement for the NiceGUI-based
 [`pd-ocr-labeler`](../pd-ocr-labeler/). Functionally identical to the
 current labeler, structurally modelled on
-[`pd-prep-for-pgdp`](../pd-prep-for-pgdp/).
+[`pdomain-prep-for-pgdp`](../pdomain-prep-for-pgdp/).
 
 > **Status (2026-05-21):** Cut-over complete. Hi-fi P1–P5 shipped;
 > smoke run triaged; legacy `pd-ocr-labeler` superseded. See
@@ -51,7 +51,7 @@ same `pd_ocr_labeler.user_page` v2.1 envelope (see
 ## Repository layout (planned)
 
 ```
-pd-ocr-labeler-spa/
+pdomain-ocr-labeler-spa/
 ├── pyproject.toml                 # hatchling + uv, console scripts
 ├── Makefile                       # setup / test / frontend-build / build
 ├── mise.toml                      # pinned Node 24 / Python 3.13
@@ -60,7 +60,7 @@ pd-ocr-labeler-spa/
 ├── build_hooks/spa_check.py       # refuse wheel without built SPA
 ├── specs/                         # design specs (this repo's source of truth)
 ├── docs/                          # architecture writeup, diagrams
-├── src/pd_ocr_labeler_spa/
+├── src/pdomain_ocr_labeler_spa/
 │   ├── __main__.py                # console-script entry point
 │   ├── bootstrap.py               # build_app(settings)
 │   ├── settings.py                # PDLABELER_* env (pydantic-settings)
@@ -102,7 +102,7 @@ Specs are split into two trees as of 2026-05-14:
 |---|---|
 | [`16-milestones.md`](specs/16-milestones.md) | M0…M9 milestone breakdown (living) |
 | [`17-decisions.md`](specs/17-decisions.md) | ADRs / decisions log (append-only) |
-| [`20-glyph-annotations.md`](specs/20-glyph-annotations.md) | Glyph-level annotations (not yet implemented; blocked on `pd-book-tools` upstream) |
+| [`20-glyph-annotations.md`](specs/20-glyph-annotations.md) | Glyph-level annotations (not yet implemented; blocked on `pdomain-book-tools` upstream) |
 
 ### Architecture (implemented — `docs/architecture/`)
 
@@ -143,7 +143,7 @@ make run       # builds the SPA if missing, then serves via FastAPI
 ```
 
 `make run` is the single-command "I just want to use it" target — it
-builds the SPA bundle into `src/pd_ocr_labeler_spa/static/` if it
+builds the SPA bundle into `src/pdomain_ocr_labeler_spa/static/` if it
 doesn't exist yet, then launches `pd-ocr-labeler-ui` (no `--reload`,
 no Vite). At startup the server prints a one-line `device: …` banner
 (e.g. `device: cuda:0 (NVIDIA …)` or `device: cpu`) so you can confirm

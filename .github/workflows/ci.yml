@@ -88,9 +88,9 @@ jobs:
           pnpm run build
       - name: Copy bundle to static/
         run: |
-          mkdir -p src/pd_ocr_labeler_spa/static
-          rm -rf src/pd_ocr_labeler_spa/static/*
-          cp -r frontend/dist/. src/pd_ocr_labeler_spa/static/
+          mkdir -p src/pdomain_ocr_labeler_spa/static
+          rm -rf src/pdomain_ocr_labeler_spa/static/*
+          cp -r frontend/dist/. src/pdomain_ocr_labeler_spa/static/
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: frontend-dist-${{ github.run_id }}
@@ -121,9 +121,9 @@ jobs:
           path: frontend/dist/
       - name: Copy bundle to static/
         run: |
-          mkdir -p src/pd_ocr_labeler_spa/static
-          rm -rf src/pd_ocr_labeler_spa/static/*
-          cp -r frontend/dist/. src/pd_ocr_labeler_spa/static/
+          mkdir -p src/pdomain_ocr_labeler_spa/static
+          rm -rf src/pdomain_ocr_labeler_spa/static/*
+          cp -r frontend/dist/. src/pdomain_ocr_labeler_spa/static/
       - name: Install Playwright browsers
         run: uv run playwright install chromium --with-deps
       - name: Run Playwright E2E tests
@@ -150,9 +150,9 @@ jobs:
           path: frontend/dist/
       - name: Copy bundle to static/
         run: |
-          mkdir -p src/pd_ocr_labeler_spa/static
-          rm -rf src/pd_ocr_labeler_spa/static/*
-          cp -r frontend/dist/. src/pd_ocr_labeler_spa/static/
+          mkdir -p src/pdomain_ocr_labeler_spa/static
+          rm -rf src/pdomain_ocr_labeler_spa/static/*
+          cp -r frontend/dist/. src/pdomain_ocr_labeler_spa/static/
       - name: Build wheel
         run: uv build --wheel
       - name: Assert static/index.html is in wheel zip
@@ -166,12 +166,12 @@ jobs:
           fi
           for whl in "${wheels[@]}"; do
             echo "checking $whl"
-            if ! uv run python -m zipfile -l "$whl" | grep -q 'pd_ocr_labeler_spa/static/index\.html'; then
-              echo "::error::$whl is missing pd_ocr_labeler_spa/static/index.html"
+            if ! uv run python -m zipfile -l "$whl" | grep -q 'pdomain_ocr_labeler_spa/static/index\.html'; then
+              echo "::error::$whl is missing pdomain_ocr_labeler_spa/static/index.html"
               uv run python -m zipfile -l "$whl"
               exit 1
             fi
-            echo "ok: $whl contains pd_ocr_labeler_spa/static/index.html"
+            echo "ok: $whl contains pdomain_ocr_labeler_spa/static/index.html"
           done
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -210,9 +210,9 @@ jobs:
           path: frontend/dist/
       - name: Copy bundle to static/
         run: |
-          mkdir -p src/pd_ocr_labeler_spa/static
-          rm -rf src/pd_ocr_labeler_spa/static/*
-          cp -r frontend/dist/. src/pd_ocr_labeler_spa/static/
+          mkdir -p src/pdomain_ocr_labeler_spa/static
+          rm -rf src/pdomain_ocr_labeler_spa/static/*
+          cp -r frontend/dist/. src/pdomain_ocr_labeler_spa/static/
       - name: Re-export OpenAPI schema and regenerate types.ts
         run: make openapi-export
       - name: Fail if types.ts or openapi.json differ from committed version

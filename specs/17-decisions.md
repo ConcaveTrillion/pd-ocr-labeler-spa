@@ -2,7 +2,7 @@
 
 > **Status**: Active
 > **Last updated**: 2026-05-14
-> **Spec-Issue**: ConcaveTrillion/pd-ocr-labeler-spa#38
+> **Spec-Issue**: pdomain/pdomain-ocr-labeler-spa#38
 
 A chronological log of design decisions: what was decided, why, and
 when. New entries on top.
@@ -92,7 +92,7 @@ flipping between them preserves user data.
 
 **Alternatives considered.**
 
-- New `pd-ocr-labeler-spa/` data root, separate from the legacy.
+- New `pdomain-ocr-labeler-spa/` data root, separate from the legacy.
   Rejected: users mid-migration would lose access to existing labels
   until they ran an explicit migration script.
 - Copy-on-first-open: read legacy root, write to new root. Rejected:
@@ -762,14 +762,14 @@ resolved.
 
 ---
 
-## D-025 — Ligature / long-s normalization moves to pd-book-tools
+## D-025 — Ligature / long-s normalization moves to pdomain-book-tools
 
 **Date.** 2026-05-06.
 
 **Decision.** The SPA ships **no** ligature/long-s normalization in
 v1 (matches legacy). Configurable normalization is designed in
-**pd-book-tools** (`pd_book_tools.text.normalize`) and consumed
-optionally by pd-ocr-cli (export/output) and pd-prep-for-pgdp
+**pdomain-book-tools** (`pdomain_book_tools.text.normalize`) and consumed
+optionally by pdomain-ocr-cli (export/output) and pdomain-prep-for-pgdp
 (per-package output). Default everywhere: keep Unicode glyphs as-is
 in OCR output. Normalization is opt-in.
 
@@ -778,9 +778,9 @@ in OCR output. Normalization is opt-in.
 - User answer to Q14: "These should be configurable. Unicode glyphs
   exist for long S and ligature. We should default to glyphs with
   optional additional GT matching logic and normalization in output,
-  not in labeling. Delegate to pd-ocr-cli, pgdp-prep, pd-book-tools
+  not in labeling. Delegate to pdomain-ocr-cli, pgdp-prep, pdomain-book-tools
   agents to note this as something to add in the roadmap for those
-  (likely living in pd-book-tools)."
+  (likely living in pdomain-book-tools)."
 - Keeping the SPA out of normalization preserves OCR fidelity in the
   labeled artefact.
 
@@ -788,7 +788,7 @@ in OCR output. Normalization is opt-in.
 
 - New spec [`18-text-normalization.md`](../docs/architecture/18-text-normalization.md)
   documents the design.
-- Three peer-repo agents (pd-book-tools, pd-ocr-cli, pd-prep-for-pgdp)
+- Three peer-repo agents (pdomain-book-tools, pdomain-ocr-cli, pdomain-prep-for-pgdp)
   add roadmap entries — delegated 2026-05-06.
 - The labeler's matches view *can* opt into normalization-aware GT
   comparison so `ſhall` matches `shall` as exact, without modifying
@@ -798,7 +798,7 @@ in OCR output. Normalization is opt-in.
 
 - Inline normalization directly in the SPA's GT matching logic. Rejected:
   the SPA would then own typography normalization that every downstream
-  consumer also needs; pd-book-tools is the right library owner.
+  consumer also needs; pdomain-book-tools is the right library owner.
 - Normalize OCR output on ingest (modify the stored labeled text).
   Rejected: destructive; labeled artefacts should preserve OCR fidelity
   so reviewers can see what the model actually produced.
@@ -808,19 +808,19 @@ in OCR output. Normalization is opt-in.
 
 ---
 
-## D-026 — Refine-bbox refactor delegated to pd-book-tools roadmap
+## D-026 — Refine-bbox refactor delegated to pdomain-book-tools roadmap
 
 **Date.** 2026-05-06.
 
-**Decision.** v1 SPA reuses pd-book-tools APIs as-is. The
-`bbox.refine_robust(...)` consolidation is a pd-book-tools roadmap
+**Decision.** v1 SPA reuses pdomain-book-tools APIs as-is. The
+`bbox.refine_robust(...)` consolidation is a pdomain-book-tools roadmap
 item, delegated 2026-05-06. Same as D-007 + Q15 recommendation.
 
 **Why.**
 
-- The refine-bbox logic lives in pd-book-tools; refactoring it inside
+- The refine-bbox logic lives in pdomain-book-tools; refactoring it inside
   the SPA would duplicate work and diverge from the shared library.
-- Delegating to pd-book-tools means all consumers benefit from the
+- Delegating to pdomain-book-tools means all consumers benefit from the
   improvement, not just the SPA.
 
 **Alternatives considered.**
@@ -828,7 +828,7 @@ item, delegated 2026-05-06. Same as D-007 + Q15 recommendation.
 - Inline a bespoke `bbox.refine_robust` in the SPA. Rejected: code
   duplication; the SPA is not the right owner of image-processing
   geometry primitives.
-- Block the SPA's M3 on the pd-book-tools refactor landing first.
+- Block the SPA's M3 on the pdomain-book-tools refactor landing first.
   Rejected: the refactor is a nice-to-have; the existing API is
   sufficient for v1.
 
@@ -1232,7 +1232,7 @@ then eslint must be installed" to "`lint` must exist".
 Releases only. `install.sh` / `install.ps1` already pull from the
 Release; PyPI is not a hard requirement. Distribution will route
 through the workspace's self-hosted PEP 503 index at
-`ConcaveTrillion/pd-index-pip` (consistent with other pd-* repos); the `release.yml` workflow stays
+`pdomain/pdomain-index-pip` (consistent with other pd-* repos); the `release.yml` workflow stays
 PyPI-token-free, and the existing release-workflow tests continue to
 forbid `PYPI_TOKEN` references. OIDC trusted publishing (option B)
 remains a future option but isn't being wired now.
@@ -1243,13 +1243,13 @@ remains a future option but isn't being wired now.
   (workspace decision 2026-05-06).
 - GitHub Releases do not require PyPI API tokens; no token management
   for a tool that is not yet public.
-- `pd-index-pip` (self-hosted PEP 503) allows `pip install` from the org
+- `pdomain-index-pip` (self-hosted PEP 503) allows `pip install` from the org
   index without PyPI registration.
 
 **Alternatives considered.**
 
 - Publish directly to PyPI with OIDC trusted publishing. Rejected:
-  not all pd-* repos are public yet; the pd-index-pip pattern is the
+  not all pd-* repos are public yet; the pdomain-index-pip pattern is the
   agreed workspace standard; PyPI can be added later without breaking
   the existing install scripts.
 - Manual wheel distribution (no release automation). Rejected: the

@@ -20,8 +20,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path, **overrides: object) -> Settings:
@@ -361,10 +361,10 @@ def test_get_page_stamps_payload_error_on_corrupt_envelope(
     monkeypatch,
 ) -> None:
     """When envelope lift fails, GET /pages/{idx} returns 200 with payload_error set on page_record."""
-    from pd_ocr_labeler_spa.core.envelope_lift import EnvelopeLiftError
+    from pdomain_ocr_labeler_spa.core.envelope_lift import EnvelopeLiftError
 
     monkeypatch.setattr(
-        "pd_ocr_labeler_spa.api.pages.lift_envelope_to_page",
+        "pdomain_ocr_labeler_spa.api.pages.lift_envelope_to_page",
         lambda payload: EnvelopeLiftError(
             message="injected test failure",
             cause=ValueError("injected"),

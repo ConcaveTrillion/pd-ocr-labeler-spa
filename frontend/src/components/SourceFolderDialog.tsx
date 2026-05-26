@@ -15,7 +15,7 @@
 // Directory listing: GET /api/fs/ls?path=<currentPath>
 //   Each entry row testid: data-testid="fs-ls-entry-{name}"
 //
-// Chrome backed by pd-ui's Radix Dialog suite. Radix provides a native focus
+// Chrome backed by pdomain-ui's Radix Dialog suite. Radix provides a native focus
 // trap and Escape key handling — the manual Escape onKeyDown branch is removed.
 
 import { useState, useEffect } from "react";
@@ -27,7 +27,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@concavetrillion/pd-ui/primitives";
+} from "@pdomain/pdomain-ui/primitives";
 
 interface FsEntry {
   name: string;
@@ -61,7 +61,7 @@ function parentPath(p: string): string {
  *
  * On apply, POSTs { path: inputPath } to POST /api/projects/source-root.
  * Directory listing is fetched from GET /api/fs/ls?path=<currentPath>.
- * Backed by pd-ui's Radix Dialog suite (native focus trap + Escape handling).
+ * Backed by pdomain-ui's Radix Dialog suite (native focus trap + Escape handling).
  */
 export function SourceFolderDialog({ open, onClose }: SourceFolderDialogProps) {
   const queryClient = useQueryClient();
@@ -199,7 +199,7 @@ export function SourceFolderDialog({ open, onClose }: SourceFolderDialogProps) {
         }
       }}
     >
-      {/* DialogContent auto-composes DialogPortal + DialogOverlay (pd-ui convention).
+      {/* DialogContent auto-composes DialogPortal + DialogOverlay (pdomain-ui convention).
           The overlay uses class "dialog-overlay" — primitives.css defines the backdrop.
           Tailwind overrides supply the labeler's visual chrome. */}
       <DialogContent

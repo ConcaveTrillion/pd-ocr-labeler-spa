@@ -16,16 +16,16 @@ from pathlib import Path
 
 import pytest
 
-from pd_ocr_labeler_spa.core.persistence.pidfile import (
+from pdomain_ocr_labeler_spa.core.persistence.pidfile import (
     check_and_write_pidfile,
     pidfile_path,
     release_pidfile,
 )
-from pd_ocr_labeler_spa.core.persistence.project_envelope import (
+from pdomain_ocr_labeler_spa.core.persistence.project_envelope import (
     read_project_metadata,
     write_project_json,
 )
-from pd_ocr_labeler_spa.core.project_lock import ProjectLockManager
+from pdomain_ocr_labeler_spa.core.project_lock import ProjectLockManager
 
 # ---------------------------------------------------------------------------
 # write_project_json
@@ -34,7 +34,7 @@ from pd_ocr_labeler_spa.core.project_lock import ProjectLockManager
 
 def _make_minimal_project(project_root: Path):
     """Build a minimal Project for write tests."""
-    from pd_ocr_labeler_spa.core.persistence.project_envelope import build_project_from_directory
+    from pdomain_ocr_labeler_spa.core.persistence.project_envelope import build_project_from_directory
 
     project_root.mkdir(parents=True, exist_ok=True)
     # Create a dummy image so the scan finds one page.
@@ -64,7 +64,7 @@ def test_write_project_json_round_trips(tmp_path: Path) -> None:
 
 def test_write_project_json_atomic_via_tmp(tmp_path: Path, monkeypatch) -> None:
     """Verify write goes through tmp+replace (atomic helper is invoked)."""
-    from pd_ocr_labeler_spa.core.persistence import project_envelope as pe_mod
+    from pdomain_ocr_labeler_spa.core.persistence import project_envelope as pe_mod
 
     calls = []
     original = pe_mod.write_json_atomic
@@ -156,7 +156,7 @@ def test_lock_manager_new_keys_created_lazily() -> None:
 
 def test_pidfile_path_contains_pid_filename(tmp_path: Path) -> None:
     p = pidfile_path(tmp_path)
-    assert p.name == "pd-ocr-labeler-spa.pid"
+    assert p.name == "pdomain-ocr-labeler-spa.pid"
     assert p.parent == tmp_path
 
 
@@ -190,8 +190,8 @@ def test_check_and_write_pidfile_warns_when_other_pid_alive(tmp_path: Path, capl
     seen_pid = os.getpid() + 9999  # different from the PID in the file
 
     with (
-        caplog.at_level(logging.WARNING, logger="pd_ocr_labeler_spa.core.persistence.pidfile"),
-        mock.patch("pd_ocr_labeler_spa.core.persistence.pidfile.os.getpid", return_value=seen_pid),
+        caplog.at_level(logging.WARNING, logger="pdomain_ocr_labeler_spa.core.persistence.pidfile"),
+        mock.patch("pdomain_ocr_labeler_spa.core.persistence.pidfile.os.getpid", return_value=seen_pid),
     ):
         check_and_write_pidfile(fake_cache)
 

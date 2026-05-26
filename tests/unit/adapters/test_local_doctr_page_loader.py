@@ -5,7 +5,7 @@ protocol). At this slice it wires ``run_ocr`` only; ``load_labeled``
 and ``load_cached`` return ``None`` until ``core/persistence/
 user_page_envelope.py`` ships (a separate M3 slice).
 
-Hermetic: ``pd_book_tools.ocr.document.Document.from_image_ocr_via_doctr``
+Hermetic: ``pdomain_book_tools.ocr.document.Document.from_image_ocr_via_doctr``
 is stubbed via ``sys.modules`` injection; ``PredictorCache`` is stubbed
 in-process so we don't pull torch.
 """
@@ -19,10 +19,10 @@ from typing import Any
 
 import pytest
 
-from pd_ocr_labeler_spa.adapters.ocr.local_doctr import LocalDoctrPageLoader
-from pd_ocr_labeler_spa.core.models import Project
-from pd_ocr_labeler_spa.core.ocr.predictor import PredictorCache
-from pd_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
+from pdomain_ocr_labeler_spa.adapters.ocr.local_doctr import LocalDoctrPageLoader
+from pdomain_ocr_labeler_spa.core.models import Project
+from pdomain_ocr_labeler_spa.core.ocr.predictor import PredictorCache
+from pdomain_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
 
 
 def _make_project(tmp_path: Path, n_pages: int = 3) -> Project:
@@ -42,8 +42,8 @@ def _make_project(tmp_path: Path, n_pages: int = 3) -> Project:
 
 
 @pytest.fixture
-def stub_pd_book_tools(monkeypatch: pytest.MonkeyPatch):
-    """Inject fake ``pd_book_tools.ocr.document.Document``.
+def stub_pdomain_book_tools(monkeypatch: pytest.MonkeyPatch):
+    """Inject fake ``pdomain_book_tools.ocr.document.Document``.
 
     ``from_image_ocr_via_doctr`` records call args and returns a
     ``Document``-shaped object whose ``pages[0]`` is the marker page.
@@ -91,7 +91,7 @@ def stub_pd_book_tools(monkeypatch: pytest.MonkeyPatch):
     fake_module = SimpleNamespace(
         Document=SimpleNamespace(from_image_ocr_via_doctr=from_image_ocr_via_doctr),
     )
-    monkeypatch.setitem(sys.modules, "pd_book_tools.ocr.document", fake_module)
+    monkeypatch.setitem(sys.modules, "pdomain_book_tools.ocr.document", fake_module)
     return SimpleNamespace(calls=calls, FakePage=_FakePage)
 
 
@@ -99,7 +99,7 @@ def stub_pd_book_tools(monkeypatch: pytest.MonkeyPatch):
 def stub_predictor_cache(monkeypatch: pytest.MonkeyPatch):
     """``PredictorCache`` that bypasses doctr_support entirely.
 
-    The real cache imports ``pd_book_tools.ocr.doctr_support`` lazily;
+    The real cache imports ``pdomain_book_tools.ocr.doctr_support`` lazily;
     here we inject the stub module too so ``get_or_create`` can run
     without erroring.
     """
@@ -108,12 +108,12 @@ def stub_predictor_cache(monkeypatch: pytest.MonkeyPatch):
         get_default_doctr_predictor=lambda: SimpleNamespace(kind="stock"),
         get_finetuned_torch_doctr_predictor=lambda *a, **kw: SimpleNamespace(kind="finetuned"),
     )
-    monkeypatch.setitem(sys.modules, "pd_book_tools.ocr.doctr_support", fake_module)
+    monkeypatch.setitem(sys.modules, "pdomain_book_tools.ocr.doctr_support", fake_module)
     return PredictorCache()
 
 
 def test_loader_run_ocr_returns_page_load_outcome(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     project = _make_project(tmp_path)
     loader = LocalDoctrPageLoader(
@@ -131,7 +131,7 @@ def test_loader_run_ocr_returns_page_load_outcome(
 
 
 def test_loader_run_ocr_passes_image_path_and_source_identifier(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     project = _make_project(tmp_path)
     loader = LocalDoctrPageLoader(
@@ -142,14 +142,14 @@ def test_loader_run_ocr_passes_image_path_and_source_identifier(
         hf_revision=None,
     )
     loader.run_ocr(0)
-    call = stub_pd_book_tools.calls[0]
+    call = stub_pdomain_book_tools.calls[0]
     expected_path = project.image_paths[0]
     assert call["image_path"] == expected_path
     assert call["source_identifier"] == expected_path.name
 
 
 def test_loader_run_ocr_uses_predictor_from_cache(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     project = _make_project(tmp_path)
     loader = LocalDoctrPageLoader(
@@ -162,11 +162,11 @@ def test_loader_run_ocr_uses_predictor_from_cache(
     loader.run_ocr(0)
     loader.run_ocr(1)
     # Both calls received the same predictor (cache hit on the same key).
-    assert stub_pd_book_tools.calls[0]["predictor"] is stub_pd_book_tools.calls[1]["predictor"]
+    assert stub_pdomain_book_tools.calls[0]["predictor"] is stub_pdomain_book_tools.calls[1]["predictor"]
 
 
 def test_loader_run_ocr_raises_on_out_of_range_index(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     project = _make_project(tmp_path, n_pages=2)
     loader = LocalDoctrPageLoader(
@@ -183,7 +183,7 @@ def test_loader_run_ocr_raises_on_out_of_range_index(
 
 
 def test_loader_run_ocr_raises_page_image_not_found_when_file_missing(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """Loader catches missing image *before* OCR — cheap fail.
 
@@ -199,16 +199,16 @@ def test_loader_run_ocr_raises_page_image_not_found_when_file_missing(
         recognition_key="stock",
         hf_revision=None,
     )
-    from pd_ocr_labeler_spa.core.page_state import PageImageNotFoundError
+    from pdomain_ocr_labeler_spa.core.page_state import PageImageNotFoundError
 
     with pytest.raises(PageImageNotFoundError):
         loader.run_ocr(0)
     # And no OCR was attempted.
-    assert stub_pd_book_tools.calls == []
+    assert stub_pdomain_book_tools.calls == []
 
 
 def test_load_labeled_returns_none_when_data_root_is_none(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """Backward-compat: when ``data_root`` is unset, the labeled lane
     is a no-op (so the existing slice-8b-ii loader construction without
@@ -225,7 +225,7 @@ def test_load_labeled_returns_none_when_data_root_is_none(
 
 
 def test_load_cached_returns_none_when_cache_root_is_none(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     project = _make_project(tmp_path)
     loader = LocalDoctrPageLoader(
@@ -266,7 +266,7 @@ def _make_loader_with_persistence(
 def _write_envelope_at(path: Path, payload_page: dict) -> None:
     import json
 
-    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+    from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
         USER_PAGE_SCHEMA_NAME,
     )
 
@@ -289,12 +289,12 @@ def _write_envelope_at(path: Path, payload_page: dict) -> None:
 
 
 def test_load_labeled_reads_envelope_from_data_root_lane(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """When the on-disk labeled-lane envelope exists for this page, the
     loader returns a ``PageLoadOutcome(source=FILESYSTEM, payload=
     UserPageEnvelope)``. Spec §1 lane 2 + §9 lines 32–40."""
-    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+    from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
         UserPageEnvelope,
         labeled_envelope_path,
     )
@@ -315,7 +315,7 @@ def test_load_labeled_reads_envelope_from_data_root_lane(
 
 
 def test_load_labeled_returns_none_when_no_envelope_on_disk(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """No envelope at the expected path → ``None`` (loader falls
     through to the cached lane / OCR per spec)."""
@@ -325,11 +325,11 @@ def test_load_labeled_returns_none_when_no_envelope_on_disk(
 
 
 def test_load_labeled_returns_none_on_corrupt_envelope(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """Corrupt JSON at the expected path → ``None`` (spec §9 lines
     32–40 — fall through, never crash)."""
-    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+    from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
         labeled_envelope_path,
     )
 
@@ -342,12 +342,12 @@ def test_load_labeled_returns_none_on_corrupt_envelope(
 
 
 def test_load_cached_reads_envelope_from_cache_root_lane(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """When the on-disk cached-lane envelope exists, the loader returns
     ``PageLoadOutcome(source=CACHED_OCR, payload=UserPageEnvelope)``.
     Spec §1 lane 3 + §9 lines 32–40."""
-    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+    from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
         UserPageEnvelope,
         cached_envelope_path,
     )
@@ -366,7 +366,7 @@ def test_load_cached_reads_envelope_from_cache_root_lane(
 
 
 def test_load_cached_returns_none_when_no_envelope_on_disk(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     cache_root = tmp_path / "cache"
     loader = _make_loader_with_persistence(tmp_path, stub_predictor_cache, cache_root=cache_root)
@@ -374,17 +374,17 @@ def test_load_cached_returns_none_when_no_envelope_on_disk(
 
 
 def test_ensure_page_model_routes_through_labeled_lane_when_envelope_exists(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """End-to-end: ``ensure_page_model`` dispatcher takes the labeled
     lane FIRST when both lanes have files (spec §9 lines 32–36).
     OCR must NOT be invoked."""
-    from pd_ocr_labeler_spa.core.page_state import ensure_page_model
-    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+    from pdomain_ocr_labeler_spa.core.page_state import ensure_page_model
+    from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
         cached_envelope_path,
         labeled_envelope_path,
     )
-    from pd_ocr_labeler_spa.core.project_state import ProjectState
+    from pdomain_ocr_labeler_spa.core.project_state import ProjectState
 
     data_root = tmp_path / "data"
     cache_root = tmp_path / "cache"
@@ -410,19 +410,19 @@ def test_ensure_page_model_routes_through_labeled_lane_when_envelope_exists(
     # Labeled-lane envelope wins over cached-lane envelope.
     assert outcome.payload.payload.page["name"] == "labeled-marker"
     # OCR was NOT invoked.
-    assert stub_pd_book_tools.calls == []
+    assert stub_pdomain_book_tools.calls == []
 
 
 def test_ensure_page_model_routes_through_cached_lane_when_no_labeled(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """When labeled-lane envelope is missing but cached is present,
     cached wins; OCR is still skipped."""
-    from pd_ocr_labeler_spa.core.page_state import ensure_page_model
-    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+    from pdomain_ocr_labeler_spa.core.page_state import ensure_page_model
+    from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
         cached_envelope_path,
     )
-    from pd_ocr_labeler_spa.core.project_state import ProjectState
+    from pdomain_ocr_labeler_spa.core.project_state import ProjectState
 
     data_root = tmp_path / "data"
     cache_root = tmp_path / "cache"
@@ -439,15 +439,15 @@ def test_ensure_page_model_routes_through_cached_lane_when_no_labeled(
     outcome = ensure_page_model(state, 0, loader=loader)
     assert outcome is not None
     assert outcome.source == PageSource.CACHED_OCR
-    assert stub_pd_book_tools.calls == []
+    assert stub_pdomain_book_tools.calls == []
 
 
 def test_loader_conforms_to_page_loader_protocol(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """Structural conformance via ``isinstance`` against the
     ``runtime_checkable`` Protocol."""
-    from pd_ocr_labeler_spa.core.page_state import PageLoader
+    from pdomain_ocr_labeler_spa.core.page_state import PageLoader
 
     project = _make_project(tmp_path)
     loader = LocalDoctrPageLoader(
@@ -461,13 +461,13 @@ def test_loader_conforms_to_page_loader_protocol(
 
 
 def test_loader_integrates_with_ensure_page_model(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """End-to-end: ``ensure_page_model`` dispatches through the
     loader's three lanes (labeled None → cached None → run_ocr) and
     caches the outcome."""
-    from pd_ocr_labeler_spa.core.page_state import ensure_page_model
-    from pd_ocr_labeler_spa.core.project_state import ProjectState
+    from pdomain_ocr_labeler_spa.core.page_state import ensure_page_model
+    from pdomain_ocr_labeler_spa.core.project_state import ProjectState
 
     project = _make_project(tmp_path, n_pages=2)
     state = ProjectState()
@@ -487,7 +487,7 @@ def test_loader_integrates_with_ensure_page_model(
     # Second call returns cache hit; OCR not re-invoked.
     outcome2 = ensure_page_model(state, 0, loader=loader)
     assert outcome2 is outcome1
-    assert len(stub_pd_book_tools.calls) == 1
+    assert len(stub_pdomain_book_tools.calls) == 1
 
 
 # ── Auto-cache-write side effect after run_ocr ───────────────────────────
@@ -504,11 +504,11 @@ def test_loader_integrates_with_ensure_page_model(
 
 
 def test_run_ocr_writes_cached_envelope_when_cache_root_set(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """After run_ocr succeeds, a cached envelope file appears at
     cached_envelope_path(cache_root, project_id, page_index)."""
-    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+    from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
         cached_envelope_path,
     )
 
@@ -530,14 +530,14 @@ def test_run_ocr_writes_cached_envelope_when_cache_root_set(
 
 
 def test_cached_envelope_has_cached_source_lane(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """Auto-cache-write must set ``provenance.source_lane='cached'``
     so a future read can distinguish a cache write from a labeled save.
     Pinned via build_envelope's source_lane override (slice 8b-v)."""
     import json
 
-    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+    from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
         cached_envelope_path,
     )
 
@@ -566,7 +566,7 @@ def test_cached_envelope_has_cached_source_lane(
 
 
 def test_run_ocr_skips_cache_write_when_cache_root_none(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """``cache_root=None`` lane is a no-op (preserves the slice-8b-ii
     constructor signature). The OCR still runs and returns normally."""
@@ -589,7 +589,7 @@ def test_run_ocr_skips_cache_write_when_cache_root_none(
 
 def test_run_ocr_swallows_cache_write_failure(
     tmp_path: Path,
-    stub_pd_book_tools,
+    stub_pdomain_book_tools,
     stub_predictor_cache: PredictorCache,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -609,7 +609,7 @@ def test_run_ocr_swallows_cache_write_failure(
     )
 
     # Force write failure during the cache write.
-    import pd_ocr_labeler_spa.adapters.ocr.local_doctr as loader_module
+    import pdomain_ocr_labeler_spa.adapters.ocr.local_doctr as loader_module
 
     def fail_write(*args: Any, **kwargs: Any) -> None:
         raise OSError("disk full")
@@ -629,7 +629,7 @@ def test_run_ocr_swallows_cache_write_failure(
 
 
 def test_cache_write_provenance_includes_predictor_keys(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """OCRProvenance.models reflects the loader's detection + recognition
     keys so a re-read of the cached envelope can tell which models
@@ -637,7 +637,7 @@ def test_cache_write_provenance_includes_predictor_keys(
     page_operations.py:1166 carries the predictor identity."""
     import json
 
-    from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+    from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
         cached_envelope_path,
     )
 
@@ -690,7 +690,7 @@ def _project_with_gt(tmp_path: Path, gt_map: dict[str, str]) -> Project:
 
 
 def test_run_ocr_injects_ground_truth_when_present(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     project = _project_with_gt(tmp_path, {"page_000.png": "hello world"})
     loader = LocalDoctrPageLoader(
@@ -705,7 +705,7 @@ def test_run_ocr_injects_ground_truth_when_present(
 
 
 def test_run_ocr_skips_injection_when_no_gt(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """Empty GT map → no add_ground_truth call (legacy line 363)."""
     project = _project_with_gt(tmp_path, {})
@@ -721,7 +721,7 @@ def test_run_ocr_skips_injection_when_no_gt(
 
 
 def test_run_ocr_skips_injection_when_gt_empty_string(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """GT map has the key but value is "" → don't call add_ground_truth.
     Legacy ``if ground_truth_string:`` is falsy for "" (line 363)."""
@@ -738,7 +738,7 @@ def test_run_ocr_skips_injection_when_gt_empty_string(
 
 
 def test_run_ocr_uses_variant_lookup_for_gt(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """GT key with case-insensitive variant matches.
     Legacy ``find_ground_truth_text`` tries lowercase variants."""
@@ -770,7 +770,7 @@ def test_run_ocr_uses_variant_lookup_for_gt(
 
 
 def test_run_ocr_injects_when_gt_keyed_by_lowercase(
-    tmp_path: Path, stub_pd_book_tools, stub_predictor_cache: PredictorCache
+    tmp_path: Path, stub_pdomain_book_tools, stub_predictor_cache: PredictorCache
 ) -> None:
     """The realistic case: GT map has the canonical lowercase key,
     image filename is lowercase, find returns it."""

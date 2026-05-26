@@ -40,8 +40,8 @@ from pathlib import Path
 
 import pytest
 
-from pd_ocr_labeler_spa.core.exceptions import IncompatibleEnvelopeError
-from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+from pdomain_ocr_labeler_spa.core.exceptions import IncompatibleEnvelopeError
+from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
     envelope_to_dict,
     is_user_page_envelope,
     parse_envelope,

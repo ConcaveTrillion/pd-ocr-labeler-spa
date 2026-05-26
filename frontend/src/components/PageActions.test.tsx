@@ -178,14 +178,14 @@ describe("PageActions", () => {
       render(
         <PageActions
           pageSource="filesystem"
-          provenanceSummary="Saved: 2026-05-15T09:30:00 · pd_ocr_labeler_spa 0.1.0"
+          provenanceSummary="Saved: 2026-05-15T09:30:00 · pdomain_ocr_labeler_spa 0.1.0"
         />,
       );
       const badge = screen.getByTestId("page-source-badge");
       expect(badge).toHaveTextContent("LABELED");
       expect(badge).toHaveAttribute(
         "title",
-        "Saved: 2026-05-15T09:30:00 · pd_ocr_labeler_spa 0.1.0",
+        "Saved: 2026-05-15T09:30:00 · pdomain_ocr_labeler_spa 0.1.0",
       );
     });
   });
@@ -242,14 +242,14 @@ describe("PageActions", () => {
       render(
         <PageActions
           pageSource="filesystem"
-          provenanceSummary="Saved: 2026-05-15T09:30:00 · pd_ocr_labeler_spa 0.1.0"
+          provenanceSummary="Saved: 2026-05-15T09:30:00 · pdomain_ocr_labeler_spa 0.1.0"
         />,
       );
       const badge = screen.getByTestId("page-source-badge");
       expect(badge).toHaveTextContent("LABELED");
       expect(badge).toHaveAttribute(
         "title",
-        "Saved: 2026-05-15T09:30:00 · pd_ocr_labeler_spa 0.1.0",
+        "Saved: 2026-05-15T09:30:00 · pdomain_ocr_labeler_spa 0.1.0",
       );
     });
   });

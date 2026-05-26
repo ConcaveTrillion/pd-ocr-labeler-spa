@@ -13,7 +13,7 @@
     },
     "toolchain": {
       "python": "3.13.1",
-      "pd_book_tools": "0.5.1"
+      "pdomain_book_tools": "0.5.1"
     },
     "ocr": {
       "engine": "doctr",

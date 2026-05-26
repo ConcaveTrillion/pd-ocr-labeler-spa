@@ -86,15 +86,15 @@ def test_docker_targets_appear_in_help() -> None:
 def test_docker_targets_use_default_image_tag(target: str) -> None:
     """All three targets must reference the same default image tag.
 
-    The default is `pd-ocr-labeler-spa:dev` (matches pd-prep-for-pgdp's
+    The default is `pdomain-ocr-labeler-spa:dev` (matches pdomain-prep-for-pgdp's
     `pgdp-prep:dev` shape). Operators can override via
     `make docker-build DOCKER_IMAGE=… DOCKER_TAG=…`, but the default
     must be stable so muscle-memory works.
     """
     result = _make_dry_run(target)
     assert result.returncode == 0
-    assert "pd-ocr-labeler-spa:dev" in result.stdout, (
-        f"`make -n {target}` did not reference default tag pd-ocr-labeler-spa:dev:\n{result.stdout}"
+    assert "pdomain-ocr-labeler-spa:dev" in result.stdout, (
+        f"`make -n {target}` did not reference default tag pdomain-ocr-labeler-spa:dev:\n{result.stdout}"
     )
 
 
@@ -118,7 +118,7 @@ def test_settings_port_matches_dockerfile_expose() -> None:
     or `docker run -P` maps the wrong port and the labeler is
     unreachable from the host.
     """
-    from pd_ocr_labeler_spa.settings import Settings
+    from pdomain_ocr_labeler_spa.settings import Settings
 
     assert Settings().port == _dockerfile_expose_port(), (
         "Settings().port and Dockerfile EXPOSE must match. "
@@ -133,7 +133,7 @@ def test_docker_run_maps_settings_port_into_container() -> None:
     `Settings().port`). If the Makefile's container-side port drifts
     from EXPOSE, the host port maps to nothing.
     """
-    from pd_ocr_labeler_spa.settings import Settings
+    from pdomain_ocr_labeler_spa.settings import Settings
 
     expected = Settings().port
     result = _make_dry_run("docker-run")

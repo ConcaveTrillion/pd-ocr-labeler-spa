@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Install pd-ocr-labeler-spa as a standalone tool using uv.
+# Install pdomain-ocr-labeler-spa as a standalone tool using uv.
 #
 # Usage:
-#   curl -sSL https://raw.githubusercontent.com/ConcaveTrillion/pd-ocr-labeler-spa/main/install.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/pdomain/pdomain-ocr-labeler-spa/main/install.sh | bash
 #
 # Downloads the prebuilt wheel attached to the latest GitHub Release and
 # runs `uv tool install` against it. The wheel ships with the React SPA
 # already bundled, so end users do NOT need Node, npm, or a JavaScript
 # toolchain — only `uv` (which this script will install for you).
 #
-# Mirrors the pd-prep-for-pgdp installer shape; this one is shorter
-# because pd-ocr-labeler-spa has no CUDA / GPU extras to negotiate.
+# Mirrors the pdomain-prep-for-pgdp installer shape; this one is shorter
+# because pdomain-ocr-labeler-spa has no CUDA / GPU extras to negotiate.
 # Python 3.13+ is required (pyproject.toml requires-python).
 
-REPO="ConcaveTrillion/pd-ocr-labeler-spa"
+REPO="pdomain/pdomain-ocr-labeler-spa"
 
 # Shared temp directory; cleaned up on exit, interrupt, or termination.
 TMPDIR=$(mktemp -d)
@@ -46,7 +46,7 @@ fi
 if command -v python3 >/dev/null 2>&1; then
     SYS_PY=$(python3 -c "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')" 2>/dev/null || echo "?")
     if [ "$SYS_PY" != "3.13" ] && [ "$SYS_PY" != "?" ]; then
-        echo "Note: system python3 is ${SYS_PY}; pd-ocr-labeler-spa requires 3.13."
+        echo "Note: system python3 is ${SYS_PY}; pdomain-ocr-labeler-spa requires 3.13."
         echo "      uv will download Python 3.13 automatically — no action needed."
     fi
 fi
@@ -72,7 +72,7 @@ fi
 LATEST_TAG=$(printf '%s\n' "$RELEASE_JSON" \
     | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
 
-echo "Installing pd-ocr-labeler-spa ${LATEST_TAG}..."
+echo "Installing pdomain-ocr-labeler-spa ${LATEST_TAG}..."
 
 # 4. Find the wheel asset attached to the latest release.
 WHEEL_URL=$(printf '%s\n' "$RELEASE_JSON" \
@@ -85,7 +85,7 @@ if [ -z "$WHEEL_URL" ]; then
     # Hard-fail rather than fall back to `git+...`. The git+ path requires
     # Node + npm on the user's machine to build the React SPA at install
     # time, which is exactly the requirement this script is designed to
-    # avoid. See peer pd-prep-for-pgdp/install.sh for the same rationale.
+    # avoid. See peer pdomain-prep-for-pgdp/install.sh for the same rationale.
     echo "Error: no .whl asset attached to release ${LATEST_TAG}." >&2
     echo "       Expected a wheel uploaded by .github/workflows/release.yml." >&2
     echo "       Check https://github.com/${REPO}/releases/tag/${LATEST_TAG}" >&2

@@ -44,7 +44,7 @@ from pathlib import Path
 
 import pytest
 
-from pd_ocr_labeler_spa.core.persistence.ground_truth import (
+from pdomain_ocr_labeler_spa.core.persistence.ground_truth import (
     PAGES_MANIFEST_FILENAME,
     load_ground_truth_from_directory,
 )
@@ -372,7 +372,7 @@ def test_pages_json_passes_values_through_pgdp_normalizer(tmp_path: Path) -> Non
     Legacy ``project_operations.py:296`` normalizes every value via
     ``PGDPResults(key, text_value).processed_page_text``. We don't
     re-test the normalizer's full behavior here (that's
-    ``pd_book_tools``' job), but we do pin the **call** happens — a
+    ``pdomain_book_tools``' job), but we do pin the **call** happens — a
     refactor that drops the normalization would silently regress
     diacritic / footnote handling.
 
@@ -398,7 +398,7 @@ def test_pages_json_passes_values_through_pgdp_normalizer(tmp_path: Path) -> Non
 # normalized name → normalized lowercase → basename → basename lower →
 # (if has extension) bare stem → bare stem lower.
 
-from pd_ocr_labeler_spa.core.persistence.ground_truth import (
+from pdomain_ocr_labeler_spa.core.persistence.ground_truth import (
     find_ground_truth_text,
 )
 

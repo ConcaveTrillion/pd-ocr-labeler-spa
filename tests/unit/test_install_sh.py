@@ -5,8 +5,8 @@ with `curl | bash`, so we don't exec it here; we just enforce the
 structural invariants that, if broken, would silently turn the
 installer into a footgun.
 
-Mirrors the pd-prep-for-pgdp installer pattern (uv tool install +
-GitHub release wheel download); see ``pd-prep-for-pgdp/install.sh``.
+Mirrors the pdomain-prep-for-pgdp installer pattern (uv tool install +
+GitHub release wheel download); see ``pdomain-prep-for-pgdp/install.sh``.
 The directive in the iter-19 prompt mentioned ``pipx`` as a generic
 fallback path, but since the canonical peer installer exists and is
 what the user-facing docs already reference (``DEVELOPMENT.md``), we
@@ -27,7 +27,7 @@ Load-bearing invariants (each has a regression here):
   future Python bump fails this test before it ships a confusing
   installer.
 * Uses ``uv tool install`` (not pipx, not pip) — peer-mirror
-  ``pd-prep-for-pgdp/install.sh``.
+  ``pdomain-prep-for-pgdp/install.sh``.
 * ``bash -n`` syntax check passes when bash is on PATH.
 
 Install of ``install.ps1`` (Windows) and ``release.yml`` (GitHub
@@ -150,7 +150,7 @@ def test_install_sh_runs_python_version_preflight():
 
 
 def test_install_sh_uses_uv_tool_install():
-    # Peer-mirror with pd-prep-for-pgdp/install.sh. Switching to pip /
+    # Peer-mirror with pdomain-prep-for-pgdp/install.sh. Switching to pip /
     # pipx / poetry would break the documented "no toolchain needed"
     # promise (uv handles Python download too).
     #
@@ -164,7 +164,7 @@ def test_install_sh_uses_uv_tool_install():
     text = INSTALL_SH.read_text()
     assert re.search(r"uv tool install\s+--reinstall\s+\S+", text), (
         "install.sh must call `uv tool install --reinstall <wheel>` "
-        "(peer-mirror with pd-prep-for-pgdp/install.sh; --reinstall "
+        "(peer-mirror with pdomain-prep-for-pgdp/install.sh; --reinstall "
         "makes re-runs idempotent, the wheel arg names what to install)"
     )
 
@@ -213,7 +213,7 @@ def test_install_sh_references_correct_repo_slug():
     # [project.urls] fails this test loudly.
     data = tomllib.loads(PYPROJECT_TOML.read_text())
     homepage = data["project"]["urls"]["Homepage"]
-    # Homepage is e.g. https://github.com/ConcaveTrillion/pd-ocr-labeler-spa
+    # Homepage is e.g. https://github.com/pdomain/pdomain-ocr-labeler-spa
     m = re.match(r"^https://github\.com/([^/]+/[^/]+?)/?$", homepage)
     assert m, f"unexpected Homepage URL shape: {homepage!r}"
     slug = m.group(1)

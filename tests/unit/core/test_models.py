@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from pd_ocr_labeler_spa.core.models import EncodedDims, MatchStatus
+from pdomain_ocr_labeler_spa.core.models import EncodedDims, MatchStatus
 
 
 class TestMatchStatus:

@@ -1,6 +1,6 @@
 {
     "files": {
-        "./src/pd_ocr_labeler_spa/__main__.py": [
+        "./src/pdomain_ocr_labeler_spa/__main__.py": [
             {
                 "code": "reportUnusedCallResult",
                 "range": {
@@ -482,7 +482,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/adapters/ocr/base.py": [
+        "./src/pdomain_ocr_labeler_spa/adapters/ocr/base.py": [
             {
                 "code": "reportAny",
                 "range": {
@@ -500,7 +500,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/adapters/ocr/local_doctr.py": [
+        "./src/pdomain_ocr_labeler_spa/adapters/ocr/local_doctr.py": [
             {
                 "code": "reportUnusedCallResult",
                 "range": {
@@ -630,7 +630,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/adapters/ocr/modal.py": [
+        "./src/pdomain_ocr_labeler_spa/adapters/ocr/modal.py": [
             {
                 "code": "reportAny",
                 "range": {
@@ -680,7 +680,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/adapters/ocr/shared_container.py": [
+        "./src/pdomain_ocr_labeler_spa/adapters/ocr/shared_container.py": [
             {
                 "code": "reportAny",
                 "range": {
@@ -730,7 +730,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/adapters/storage/filesystem.py": [
+        "./src/pdomain_ocr_labeler_spa/adapters/storage/filesystem.py": [
             {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {
@@ -788,7 +788,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/dependencies.py": [
+        "./src/pdomain_ocr_labeler_spa/api/dependencies.py": [
             {
                 "code": "reportAny",
                 "range": {
@@ -862,7 +862,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/env_js.py": [
+        "./src/pdomain_ocr_labeler_spa/api/env_js.py": [
             {
                 "code": "reportUnknownParameterType",
                 "range": {
@@ -888,7 +888,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/export.py": [
+        "./src/pdomain_ocr_labeler_spa/api/export.py": [
             {
                 "code": "reportUnknownVariableType",
                 "range": {
@@ -970,7 +970,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/fs.py": [
+        "./src/pdomain_ocr_labeler_spa/api/fs.py": [
             {
                 "code": "reportCallInDefaultInitializer",
                 "range": {
@@ -980,7 +980,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/healthz.py": [
+        "./src/pdomain_ocr_labeler_spa/api/healthz.py": [
             {
                 "code": "reportUnknownParameterType",
                 "range": {
@@ -1006,7 +1006,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/jobs.py": [
+        "./src/pdomain_ocr_labeler_spa/api/jobs.py": [
             {
                 "code": "reportUnusedImport",
                 "range": {
@@ -1104,7 +1104,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/lines_paragraphs.py": [
+        "./src/pdomain_ocr_labeler_spa/api/lines_paragraphs.py": [
             {
                 "code": "reportPrivateUsage",
                 "range": {
@@ -2242,7 +2242,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/middleware/error_handler.py": [
+        "./src/pdomain_ocr_labeler_spa/api/middleware/error_handler.py": [
             {
                 "code": "reportExplicitAny",
                 "range": {
@@ -2388,7 +2388,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/middleware/request_id.py": [
+        "./src/pdomain_ocr_labeler_spa/api/middleware/request_id.py": [
             {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {
@@ -2486,7 +2486,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/normalize.py": [
+        "./src/pdomain_ocr_labeler_spa/api/normalize.py": [
             {
                 "code": "reportUnknownParameterType",
                 "range": {
@@ -2512,7 +2512,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/notifications.py": [
+        "./src/pdomain_ocr_labeler_spa/api/notifications.py": [
             {
                 "code": "reportCallInDefaultInitializer",
                 "range": {
@@ -2554,7 +2554,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/ocr_config.py": [
+        "./src/pdomain_ocr_labeler_spa/api/ocr_config.py": [
             {
                 "code": "reportUnusedImport",
                 "range": {
@@ -2652,7 +2652,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/pages.py": [
+        "./src/pdomain_ocr_labeler_spa/api/pages.py": [
             {
                 "code": "reportExplicitAny",
                 "range": {
@@ -3214,7 +3214,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/projects.py": [
+        "./src/pdomain_ocr_labeler_spa/api/projects.py": [
             {
                 "code": "reportUnusedParameter",
                 "range": {
@@ -3464,7 +3464,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/refine.py": [
+        "./src/pdomain_ocr_labeler_spa/api/refine.py": [
             {
                 "code": "reportCallInDefaultInitializer",
                 "range": {
@@ -3514,7 +3514,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/session_state.py": [
+        "./src/pdomain_ocr_labeler_spa/api/session_state.py": [
             {
                 "code": "reportAny",
                 "range": {
@@ -3588,7 +3588,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/static_mounts.py": [
+        "./src/pdomain_ocr_labeler_spa/api/static_mounts.py": [
             {
                 "code": "reportUnusedFunction",
                 "range": {
@@ -3726,7 +3726,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/api/words.py": [
+        "./src/pdomain_ocr_labeler_spa/api/words.py": [
             {
                 "code": "reportImplicitStringConcatenation",
                 "range": {
@@ -4376,7 +4376,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/bootstrap.py": [
+        "./src/pdomain_ocr_labeler_spa/bootstrap.py": [
             {
                 "code": "reportUnknownVariableType",
                 "range": {
@@ -4554,7 +4554,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/active_project.py": [
+        "./src/pdomain_ocr_labeler_spa/core/active_project.py": [
             {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {
@@ -4572,7 +4572,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/envelope_lift.py": [
+        "./src/pdomain_ocr_labeler_spa/core/envelope_lift.py": [
             {
                 "code": "reportAny",
                 "range": {
@@ -4670,7 +4670,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/exceptions.py": [
+        "./src/pdomain_ocr_labeler_spa/core/exceptions.py": [
             {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {
@@ -4696,7 +4696,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/ground_truth_matcher.py": [
+        "./src/pdomain_ocr_labeler_spa/core/ground_truth_matcher.py": [
             {
                 "code": "reportAny",
                 "range": {
@@ -4754,7 +4754,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/jobs/events.py": [
+        "./src/pdomain_ocr_labeler_spa/core/jobs/events.py": [
             {
                 "code": "reportExplicitAny",
                 "range": {
@@ -4812,7 +4812,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/jobs/handlers/auto_rotate_all.py": [
+        "./src/pdomain_ocr_labeler_spa/core/jobs/handlers/auto_rotate_all.py": [
             {
                 "code": "reportExplicitAny",
                 "range": {
@@ -4846,7 +4846,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/jobs/handlers/export.py": [
+        "./src/pdomain_ocr_labeler_spa/core/jobs/handlers/export.py": [
             {
                 "code": "reportAny",
                 "range": {
@@ -5240,7 +5240,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/jobs/handlers/export_cli.py": [
+        "./src/pdomain_ocr_labeler_spa/core/jobs/handlers/export_cli.py": [
             {
                 "code": "reportUnusedCallResult",
                 "range": {
@@ -5506,7 +5506,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/jobs/handlers/reload_ocr.py": [
+        "./src/pdomain_ocr_labeler_spa/core/jobs/handlers/reload_ocr.py": [
             {
                 "code": "reportExplicitAny",
                 "range": {
@@ -5684,7 +5684,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/jobs/handlers/rotate.py": [
+        "./src/pdomain_ocr_labeler_spa/core/jobs/handlers/rotate.py": [
             {
                 "code": "reportExplicitAny",
                 "range": {
@@ -5726,7 +5726,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/jobs/handlers/save_project.py": [
+        "./src/pdomain_ocr_labeler_spa/core/jobs/handlers/save_project.py": [
             {
                 "code": "reportExplicitAny",
                 "range": {
@@ -5792,7 +5792,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/jobs/runner.py": [
+        "./src/pdomain_ocr_labeler_spa/core/jobs/runner.py": [
             {
                 "code": "reportExplicitAny",
                 "range": {
@@ -5858,7 +5858,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/logging_config.py": [
+        "./src/pdomain_ocr_labeler_spa/core/logging_config.py": [
             {
                 "code": "reportImplicitOverride",
                 "range": {
@@ -5884,7 +5884,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/model_discovery.py": [
+        "./src/pdomain_ocr_labeler_spa/core/model_discovery.py": [
             {
                 "code": "reportPrivateUsage",
                 "range": {
@@ -5894,7 +5894,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/model_selection.py": [
+        "./src/pdomain_ocr_labeler_spa/core/model_selection.py": [
             {
                 "code": "reportAny",
                 "range": {
@@ -5920,7 +5920,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/models.py": [
+        "./src/pdomain_ocr_labeler_spa/core/models.py": [
             {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {
@@ -5938,7 +5938,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/notifications.py": [
+        "./src/pdomain_ocr_labeler_spa/core/notifications.py": [
             {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {
@@ -5996,7 +5996,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/ocr/predictor.py": [
+        "./src/pdomain_ocr_labeler_spa/core/ocr/predictor.py": [
             {
                 "code": "reportUnusedParameter",
                 "range": {
@@ -6166,7 +6166,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/ocr/weights_resolver.py": [
+        "./src/pdomain_ocr_labeler_spa/core/ocr/weights_resolver.py": [
             {
                 "code": "reportAny",
                 "range": {
@@ -6256,7 +6256,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/ocr_config_state.py": [
+        "./src/pdomain_ocr_labeler_spa/core/ocr_config_state.py": [
             {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {
@@ -6306,7 +6306,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/ocr_models.py": [
+        "./src/pdomain_ocr_labeler_spa/core/ocr_models.py": [
             {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {
@@ -6348,7 +6348,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/page_state.py": [
+        "./src/pdomain_ocr_labeler_spa/core/page_state.py": [
             {
                 "code": "reportPrivateUsage",
                 "range": {
@@ -6406,7 +6406,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/page_to_line_matches.py": [
+        "./src/pdomain_ocr_labeler_spa/core/page_to_line_matches.py": [
             {
                 "code": "reportExplicitAny",
                 "range": {
@@ -6736,7 +6736,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/persistence/atomic.py": [
+        "./src/pdomain_ocr_labeler_spa/core/persistence/atomic.py": [
             {
                 "code": "reportAny",
                 "range": {
@@ -6762,7 +6762,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/persistence/config_yaml.py": [
+        "./src/pdomain_ocr_labeler_spa/core/persistence/config_yaml.py": [
             {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {
@@ -6788,7 +6788,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/persistence/ground_truth.py": [
+        "./src/pdomain_ocr_labeler_spa/core/persistence/ground_truth.py": [
             {
                 "code": "reportAny",
                 "range": {
@@ -7014,7 +7014,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/persistence/image_cache.py": [
+        "./src/pdomain_ocr_labeler_spa/core/persistence/image_cache.py": [
             {
                 "code": "reportAny",
                 "range": {
@@ -7024,7 +7024,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/persistence/lanes.py": [
+        "./src/pdomain_ocr_labeler_spa/core/persistence/lanes.py": [
             {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {
@@ -7066,7 +7066,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/persistence/ocr_config.py": [
+        "./src/pdomain_ocr_labeler_spa/core/persistence/ocr_config.py": [
             {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {
@@ -7156,7 +7156,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/persistence/pidfile.py": [
+        "./src/pdomain_ocr_labeler_spa/core/persistence/pidfile.py": [
             {
                 "code": "reportImplicitStringConcatenation",
                 "range": {
@@ -7174,7 +7174,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/persistence/project_envelope.py": [
+        "./src/pdomain_ocr_labeler_spa/core/persistence/project_envelope.py": [
             {
                 "code": "reportExplicitAny",
                 "range": {
@@ -7376,7 +7376,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/persistence/session_state.py": [
+        "./src/pdomain_ocr_labeler_spa/core/persistence/session_state.py": [
             {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {
@@ -7458,7 +7458,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/persistence/user_page_envelope.py": [
+        "./src/pdomain_ocr_labeler_spa/core/persistence/user_page_envelope.py": [
             {
                 "code": "reportExplicitAny",
                 "range": {
@@ -8556,7 +8556,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/project_lock.py": [
+        "./src/pdomain_ocr_labeler_spa/core/project_lock.py": [
             {
                 "code": "reportDeprecated",
                 "range": {
@@ -8566,7 +8566,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/project_state.py": [
+        "./src/pdomain_ocr_labeler_spa/core/project_state.py": [
             {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {
@@ -8584,7 +8584,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/selection.py": [
+        "./src/pdomain_ocr_labeler_spa/core/selection.py": [
             {
                 "code": "reportUnreachable",
                 "range": {
@@ -8594,7 +8594,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/source_root_state.py": [
+        "./src/pdomain_ocr_labeler_spa/core/source_root_state.py": [
             {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {
@@ -8604,7 +8604,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/startup_discovery.py": [
+        "./src/pdomain_ocr_labeler_spa/core/startup_discovery.py": [
             {
                 "code": "reportImplicitStringConcatenation",
                 "range": {
@@ -8614,7 +8614,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/core/text_normalize.py": [
+        "./src/pdomain_ocr_labeler_spa/core/text_normalize.py": [
             {
                 "code": "reportUnknownVariableType",
                 "range": {
@@ -8640,7 +8640,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/middleware/local_trust.py": [
+        "./src/pdomain_ocr_labeler_spa/middleware/local_trust.py": [
             {
                 "code": "reportImplicitOverride",
                 "range": {
@@ -8650,7 +8650,7 @@
                 }
             }
         ],
-        "./src/pd_ocr_labeler_spa/settings.py": [
+        "./src/pdomain_ocr_labeler_spa/settings.py": [
             {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {

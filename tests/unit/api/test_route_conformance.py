@@ -36,7 +36,7 @@ from fastapi.routing import APIRoute
 @pytest.fixture(scope="module")
 def schema_routes() -> list[APIRoute]:
     """All APIRoute instances that are included in the OpenAPI schema."""
-    from pd_ocr_labeler_spa.bootstrap import build_app
+    from pdomain_ocr_labeler_spa.bootstrap import build_app
 
     app = build_app()
     return [r for r in app.routes if isinstance(r, APIRoute) and r.include_in_schema]
@@ -144,7 +144,7 @@ def test_image_route_openapi_declares_jpeg(schema_routes: list[APIRoute]) -> Non
     route object, so we catch any FastAPI serialisation quirk that could drop the
     override.
     """
-    from pd_ocr_labeler_spa.bootstrap import build_app
+    from pdomain_ocr_labeler_spa.bootstrap import build_app
 
     schema = build_app().openapi()
     # Locate the page-image path — ends with /{page_index}/image.

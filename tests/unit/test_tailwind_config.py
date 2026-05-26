@@ -114,7 +114,7 @@ def test_postcss_config_exists_and_wires_tailwind_and_autoprefixer() -> None:
     """Vite picks up ``postcss.config.js`` automatically. The pipeline
     must include the Tailwind plugin (otherwise ``@tailwind`` directives
     pass through unprocessed) and Autoprefixer (matches the
-    pd-prep-for-pgdp baseline)."""
+    pdomain-prep-for-pgdp baseline)."""
     assert POSTCSS_CONFIG.exists(), "frontend/postcss.config.js missing"
     text = POSTCSS_CONFIG.read_text(encoding="utf-8")
     assert "tailwindcss" in text, "postcss.config.js must reference the `tailwindcss` plugin"
@@ -189,7 +189,7 @@ def test_package_json_pins_tailwind_postcss_autoprefixer_majors() -> None:
 
     - ``tailwindcss`` v3 (NOT v4 — different API, see module docstring)
     - ``postcss`` v8 (Tailwind v3 peer-deps on postcss v8)
-    - ``autoprefixer`` v10 (current major, matches pd-prep-for-pgdp)
+    - ``autoprefixer`` v10 (current major, matches pdomain-prep-for-pgdp)
 
     A future bump to v4 must move these pins and the @tailwind
     directive test together."""

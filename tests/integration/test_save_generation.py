@@ -22,14 +22,14 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from pd_ocr_labeler_spa.bootstrap import build_app
-from pd_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
-from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+from pdomain_ocr_labeler_spa.bootstrap import build_app
+from pdomain_ocr_labeler_spa.core.page_state import PageLoadOutcome, PageSource
+from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
     UserPageEnvelope,
     UserPagePayload,
 )
-from pd_ocr_labeler_spa.core.project_state import PageState
-from pd_ocr_labeler_spa.settings import Settings
+from pdomain_ocr_labeler_spa.core.project_state import PageState
+from pdomain_ocr_labeler_spa.settings import Settings
 
 
 def _make_settings(tmp_path: Path, **overrides: object) -> Settings:
@@ -123,7 +123,7 @@ def test_save_page_with_generation_from_get_succeeds(
     object (the envelope payload is not a ``Page`` with ``to_dict``).
     The generation alignment is the behaviour under test.
     """
-    import pd_ocr_labeler_spa.api.pages as pages_mod
+    import pdomain_ocr_labeler_spa.api.pages as pages_mod
 
     monkeypatch.setattr(pages_mod, "persist_page_to_file", lambda **_kw: None)
 
@@ -158,7 +158,7 @@ def test_save_page_with_stale_generation_still_409(
     conflict-detection guard. After a mutation bumps pstate.generation,
     a save with the pre-mutation generation must still 409.
     """
-    import pd_ocr_labeler_spa.api.pages as pages_mod
+    import pdomain_ocr_labeler_spa.api.pages as pages_mod
 
     monkeypatch.setattr(pages_mod, "persist_page_to_file", lambda **_kw: None)
 
@@ -186,7 +186,7 @@ def test_save_page_without_generation_always_succeeds(
     unconditionally (frontend can opt out of conflict detection).
     This must still work after the counter-alignment fix.
     """
-    import pd_ocr_labeler_spa.api.pages as pages_mod
+    import pdomain_ocr_labeler_spa.api.pages as pages_mod
 
     monkeypatch.setattr(pages_mod, "persist_page_to_file", lambda **_kw: None)
 

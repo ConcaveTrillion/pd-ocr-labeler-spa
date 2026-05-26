@@ -1,17 +1,17 @@
 """Tests for GlyphAnnotationsModel (Pydantic) and WordMatch glyph fields.
 
 Spec: specs/20-glyph-annotations.md §3, §4.2
-Issue: ConcaveTrillion/pd-ocr-labeler-spa#267
+Issue: pdomain/pdomain-ocr-labeler-spa#267
 """
 
 import json
 
-from pd_ocr_labeler_spa.core.models import (
+from pdomain_ocr_labeler_spa.core.models import (
     GlyphAnnotationsModel,
     LigatureMarkModel,
     WordMatch,
 )
-from pd_ocr_labeler_spa.core.persistence.user_page_envelope import (
+from pdomain_ocr_labeler_spa.core.persistence.user_page_envelope import (
     parse_envelope,
     serialize_envelope,
 )
@@ -60,7 +60,7 @@ def test_ligature_mark_model_none_span() -> None:
 
 def test_word_match_glyph_annotations_field_default_none() -> None:
     """WordMatch.glyph_annotations defaults to None (not-yet-reviewed)."""
-    from pd_ocr_labeler_spa.core.models import BBox, MatchStatus
+    from pdomain_ocr_labeler_spa.core.models import BBox, MatchStatus
 
     wm = WordMatch(
         line_index=0,
@@ -75,7 +75,7 @@ def test_word_match_glyph_annotations_field_default_none() -> None:
 
 
 def test_word_match_glyph_annotations_populated() -> None:
-    from pd_ocr_labeler_spa.core.models import BBox, MatchStatus
+    from pdomain_ocr_labeler_spa.core.models import BBox, MatchStatus
 
     ga = GlyphAnnotationsModel(
         ligatures=[LigatureMarkModel(kind="ct", char_span=(0, 2))],
@@ -106,13 +106,13 @@ def test_page_to_line_matches_propagates_glyph_annotations() -> None:
     """page_to_line_matches propagates Word.glyph_annotations to WordMatch.glyph_annotations."""
     from pathlib import Path
 
-    from pd_book_tools.geometry.bounding_box import BoundingBox
-    from pd_book_tools.ocr.block import Block, BlockCategory, BlockChildType
-    from pd_book_tools.ocr.glyph_annotations import GlyphAnnotations
-    from pd_book_tools.ocr.page import Page
-    from pd_book_tools.ocr.word import Word
+    from pdomain_book_tools.geometry.bounding_box import BoundingBox
+    from pdomain_book_tools.ocr.block import Block, BlockCategory, BlockChildType
+    from pdomain_book_tools.ocr.glyph_annotations import GlyphAnnotations
+    from pdomain_book_tools.ocr.page import Page
+    from pdomain_book_tools.ocr.word import Word
 
-    from pd_ocr_labeler_spa.core.page_to_line_matches import page_to_line_matches
+    from pdomain_ocr_labeler_spa.core.page_to_line_matches import page_to_line_matches
 
     def make_bb(x: int, y: int, w: int, h: int) -> BoundingBox:
         return BoundingBox.from_ltrb(x, y, x + w, y + h)
@@ -200,7 +200,7 @@ def test_glyph_predictions_absent_in_saved_envelope(
 
 def test_three_state_preserved_in_word_matches() -> None:
     """None / empty / populated glyph_annotations are distinct at WordMatch level."""
-    from pd_ocr_labeler_spa.core.models import BBox, MatchStatus
+    from pdomain_ocr_labeler_spa.core.models import BBox, MatchStatus
 
     none_wm = WordMatch(
         line_index=0,
