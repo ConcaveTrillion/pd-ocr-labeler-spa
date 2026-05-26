@@ -346,16 +346,25 @@ def test_uses_pnpm_frozen_lockfile_not_npm() -> None:
 
 
 def test_uses_pnpm_action_setup_in_release_jobs() -> None:
-    """Both release jobs must set up pnpm via ``pnpm/action-setup`` before
-    the Node setup so ``actions/setup-node`` can cache the pnpm store.
+    """Jobs that install frontend deps must set up pnpm via ``pnpm/action-setup``
+    before the Node setup so ``actions/setup-node`` can cache the pnpm store.
 
     The ``cache: pnpm`` key in ``actions/setup-node`` only works when
     pnpm is already on ``PATH`` (provided by ``pnpm/action-setup``)
     and ``cache-dependency-path`` points at the tracked lockfile (#416).
+
+    Gate/utility jobs (e.g. ``verify-ci``) that run only shell/API commands
+    and do not install Node deps are exempt — they have no pnpm steps by design.
+    We detect frontend jobs as those containing a ``pnpm install`` run step.
     """
     data = _load_workflow()
     for job_name, job in data.get("jobs", {}).items():
         steps = job.get("steps", []) or []
+        # Determine whether this job does any frontend / pnpm work.
+        run_text = "\n".join(str(s.get("run", "")) for s in steps)
+        if "pnpm install" not in run_text:
+            # Pure gate or non-frontend job — no pnpm/action-setup required.
+            continue
         uses_list = [s.get("uses", "") for s in steps]
         has_pnpm_setup = any("pnpm/action-setup" in u for u in uses_list)
         assert has_pnpm_setup, (
@@ -414,6 +423,54 @@ def test_wheel_attached_to_release() -> None:
     assert re.search(r"files:[^\n]*\n[^\n]*\.whl", text) or "*.whl" in text, (
         "softprops/action-gh-release must attach `*.whl` so installers can download the published wheel"
     )
+
+
+def test_release_is_gated_by_verify_ci_job() -> None:
+    """F-026 (#431): release.yml must gate all build/publish jobs behind a
+    ``verify-ci`` job that confirms the CI workflow passed for the tagged
+    commit before any artifact is produced or published.
+
+    Without this gate a manually-pushed tag can publish a release from a
+    commit that never ran CI (or whose CI was red).
+
+    Structural requirements:
+    - A job named ``verify-ci`` must exist in ``jobs:``.
+    - ``verify-ci`` must use ``gh api`` (or equivalent) to check the commit
+      status — we verify by asserting a ``gh`` command appears in its steps.
+    - Every other job must declare ``needs:`` that includes ``verify-ci``
+      (directly or transitively through another job that itself needs it),
+      so no build step can run if the CI gate fails.
+    """
+    data = _load_workflow()
+    jobs: dict = data.get("jobs") or {}
+
+    assert "verify-ci" in jobs, (
+        "release.yml must include a `verify-ci` job that gates all other "
+        "jobs (F-026 / #431). Without it a tag push can publish from "
+        "a commit whose CI never ran."
+    )
+
+    gate_job = jobs["verify-ci"]
+    gate_steps = gate_job.get("steps") or []
+    gate_run_text = "\n".join(str(s.get("run", "")) for s in gate_steps)
+    assert "gh" in gate_run_text, (
+        "verify-ci must call `gh` (e.g. `gh api`) to inspect the CI status "
+        f"for the tagged commit; got steps: {gate_steps!r}"
+    )
+
+    # Every non-gate job must list verify-ci in its needs (direct or via
+    # another job that needs it).  We enforce direct needs here; transitive
+    # graphs are too complex to walk and the current workflow is shallow.
+    non_gate_jobs = [name for name in jobs if name != "verify-ci"]
+    for job_name in non_gate_jobs:
+        job_needs = jobs[job_name].get("needs") or []
+        if isinstance(job_needs, str):
+            job_needs = [job_needs]
+        assert "verify-ci" in job_needs, (
+            f"release.yml job {job_name!r} must declare `needs: [verify-ci]` "
+            "(F-026 / #431) so it cannot run when CI is red. "
+            f"Current needs: {job_needs!r}"
+        )
 
 
 def test_no_hardcoded_pypi_token_secret() -> None:
