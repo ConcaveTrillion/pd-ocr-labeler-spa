@@ -10,10 +10,26 @@
 //     (disabled when auto_rotate_available=false)
 //   - When pd_book_tools.text.normalize unavailable: shows disabled message
 //
-// Testids: ocr-config-modal, normalize-gt-matching-checkbox, normalize-plaintext-checkbox,
-//          normalize-profile-select, auto-rotate-checkbox, auto-rotate-method-select
+// Chrome backed by pd-ui's Radix Dialog suite. Radix provides native focus trap +
+// Escape handling — no manual Esc handler or hand-rolled backdrop needed.
+//
+// Testids: ocr-config-modal (DialogContent), normalize-gt-matching-checkbox,
+//          normalize-plaintext-checkbox, normalize-profile-select,
+//          auto-rotate-checkbox, auto-rotate-method-select,
+//          ocr-config-close-button, ocr-config-done-button
+//          (stub: ocr-detection-model-select, ocr-recognition-model-select,
+//           ocr-hf-revision-input, ocr-rescan-models-button,
+//           ocr-config-cancel-button, ocr-config-apply-button)
 
 import { useQuery } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@concavetrillion/pd-ui/primitives";
 
 type AutoRotateMethod = "gt-best-match" | "layout" | "auto";
 
@@ -75,8 +91,10 @@ interface OCRConfigModalProps {
  * ``normalize_profile``).  When ``pd_book_tools.text.normalize`` is absent,
  * the section is disabled with a tooltip message.
  *
+ * Backed by pd-ui's Radix Dialog suite (native focus trap + Escape handling).
+ *
  * Issue #261 testid contract:
- *   - ``ocr-config-modal``
+ *   - ``ocr-config-modal``  (DialogContent)
  *   - ``normalize-gt-matching-checkbox``
  *   - ``normalize-plaintext-checkbox``
  *   - ``normalize-profile-select``
@@ -150,38 +168,37 @@ export function OCRConfigModal({
     });
   }
 
-  if (!open) return null;
-
   const unavailableTitle =
     "Requires pd-book-tools with text.normalize module. " +
     "Update pd-book-tools to enable these options.";
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- dialog backdrop click-to-dismiss; Esc handled in onClose caller
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="OCR configuration"
-      data-testid="ocr-config-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+    // NOTE: Escape is handled natively by Radix Dialog — no manual Esc handler needed.
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) onClose();
       }}
     >
-      <div className="bg-bg-surface rounded-lg border border-border-2 max-w-lg w-full mx-4 max-h-[80vh] flex flex-col">
+      {/* DialogContent auto-composes DialogPortal + DialogOverlay (pd-ui convention).
+          The .dialog-overlay CSS in primitives.css provides the backdrop. */}
+      <DialogContent
+        data-testid="ocr-config-modal"
+        className="rounded-lg border border-border-2 max-w-lg w-full mx-4 max-h-[80vh] flex flex-col p-0 gap-0"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border-1">
-          <h2 className="font-semibold text-ink-1 text-base">OCR Configuration</h2>
-          <button
-            type="button"
+        <DialogHeader className="flex flex-row items-center justify-between px-4 py-3 border-b border-border-1">
+          <DialogTitle className="font-semibold text-ink-1 text-base">
+            OCR Configuration
+          </DialogTitle>
+          <DialogClose
             aria-label="Close"
             className="text-ink-4 hover:text-ink-2 rounded p-1"
-            onClick={onClose}
             data-testid="ocr-config-close-button"
           >
             ×
-          </button>
-        </div>
+          </DialogClose>
+        </DialogHeader>
 
         {/* Body */}
         <div className="px-4 py-4 overflow-y-auto flex-1">
@@ -344,7 +361,6 @@ export function OCRConfigModal({
           </section>
         </div>
 
-        {/* Footer */}
         {/* Stub elements for driver-contract §2.3 — model selection not yet implemented */}
         <div style={{ display: "none" }}>
           <select
@@ -384,7 +400,9 @@ export function OCRConfigModal({
             Apply
           </button>
         </div>
-        <div className="px-4 py-3 border-t border-border-1 flex justify-end">
+
+        {/* Footer */}
+        <DialogFooter className="px-4 py-3 border-t border-border-1 flex justify-end">
           <button
             type="button"
             onClick={onClose}
@@ -393,8 +411,8 @@ export function OCRConfigModal({
           >
             Done
           </button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
