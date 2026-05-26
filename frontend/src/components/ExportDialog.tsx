@@ -10,8 +10,12 @@
 //   - Export button -> POST -> 202 -> useJobProgress SSE inline
 //   - Cancel while running
 //
+// Chrome backed by pd-ui's Radix Dialog suite. Radix provides native focus trap +
+// Escape handling. Backdrop click is blocked while a job is running via
+// onInteractOutside.
+//
 // driver-contract testids:
-//   export-dialog                  — outer wrapper
+//   export-dialog                  — DialogContent wrapper
 //   export-scope-current           — scope radio: current page
 //   export-scope-all               — scope radio: all validated pages
 //   export-style-all-checkbox      — "All (no style filter)" checkbox
@@ -23,6 +27,14 @@
 import { useEffect, useState } from "react";
 import { useJobProgress } from "../hooks/useJobProgress";
 import type { components } from "../api/types";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@concavetrillion/pd-ui/primitives";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -147,8 +159,6 @@ export function ExportDialog({
     }
   }, [progress, scope, selectedStyles]);
 
-  if (!open) return null;
-
   // --- Style filter helpers ---
   const allStylesSelected = selectedStyles.length === 0;
 
@@ -216,36 +226,39 @@ export function ExportDialog({
       : null;
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- dialog backdrop click-to-dismiss; Esc handled in parent via keyboard event
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Export training data"
-      data-testid="export-dialog"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !running) onClose();
+    // NOTE: Escape is handled natively by Radix Dialog. Backdrop click is blocked
+    // while running via onInteractOutside — no manual Esc handler or hand-rolled
+    // backdrop div needed.
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) onClose();
       }}
     >
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stopPropagation on inner panel to prevent backdrop dismissal; not interactive itself */}
-      <div
-        className="bg-bg-surface rounded-lg border border-border-2 w-full max-w-lg mx-4 flex flex-col overflow-hidden max-h-[90vh]"
-        onClick={(e) => {
-          e.stopPropagation();
+      {/* DialogContent auto-composes DialogPortal + DialogOverlay (pd-ui convention).
+          The .dialog-overlay CSS in primitives.css provides the backdrop. */}
+      <DialogContent
+        data-testid="export-dialog"
+        className="rounded-lg border border-border-2 w-full max-w-lg mx-4 flex flex-col overflow-hidden max-h-[90vh] p-0 gap-0"
+        onInteractOutside={(e) => {
+          // Block backdrop dismissal while a job is running.
+          if (running) e.preventDefault();
         }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border-1 bg-bg-raised shrink-0">
-          <span className="text-sm font-semibold text-ink-1">Export Training Data</span>
-          <button
+        <DialogHeader className="flex flex-row items-center justify-between px-4 py-3 border-b border-border-1 bg-bg-raised shrink-0">
+          <DialogTitle className="text-sm font-semibold text-ink-1">
+            Export Training Data
+          </DialogTitle>
+          <DialogClose
             onClick={onClose}
             disabled={running}
             aria-label="Close export dialog"
             className="px-2 py-1.5 text-lg text-ink-3 hover:text-ink-1 hover:bg-bg-raised rounded transition-colors disabled:opacity-40"
           >
             x
-          </button>
-        </div>
+          </DialogClose>
+        </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
           {/* Scope */}
@@ -425,7 +438,7 @@ export function ExportDialog({
         </div>
 
         {/* Footer actions */}
-        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border-1 bg-bg-raised shrink-0">
+        <DialogFooter className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border-1 bg-bg-raised shrink-0">
           {running ? (
             <button
               onClick={() => {
@@ -454,8 +467,8 @@ export function ExportDialog({
           >
             Close
           </button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
