@@ -82,7 +82,9 @@ router = APIRouter(prefix="/api/ocr-config", tags=["ocr-config"])
 # Evaluated once at import time; routes read this flag to populate
 # ``GetOCRConfigResponse.auto_rotate_available``.
 try:
-    from pdomain_book_tools.ocr.rotation import detect_best_rotation as _detect_best_rotation  # noqa: F401
+    from pdomain_book_tools.ocr.rotation import (
+        detect_best_rotation as _detect_best_rotation,  # noqa: F401  # pyright: ignore[reportUnusedImport]
+    )
 
     _AUTO_ROTATE_AVAILABLE: bool = True
 except ImportError:

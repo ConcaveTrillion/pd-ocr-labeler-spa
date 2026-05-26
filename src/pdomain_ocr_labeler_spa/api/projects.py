@@ -779,7 +779,9 @@ def post_auto_rotate_all(
     # disabled with tooltip; no 500."  Return 503 so the frontend can show
     # the disabled state rather than a crash.
     try:
-        from pdomain_book_tools.ocr.rotation import detect_best_rotation  # noqa: F401
+        from pdomain_book_tools.ocr.rotation import (
+            detect_best_rotation,  # noqa: F401  # pyright: ignore[reportUnusedImport]
+        )
     except ImportError:
         return JSONResponse(
             status_code=503,

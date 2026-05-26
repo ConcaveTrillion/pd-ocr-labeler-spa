@@ -249,7 +249,7 @@ class ProvenanceToolchain:
     def from_dict(cls, data: dict[str, Any]) -> ProvenanceToolchain:
         return cls(
             python=str(data.get("python", UNKNOWN_METADATA_VALUE)),
-            pdomain_book_tools=str(data.get("pdomain_book_tools", UNKNOWN_METADATA_VALUE)),
+            pdomain_book_tools=str(data.get("pdomain_book_tools", UNKNOWN_METADATA_VALUE)),  # pyright: ignore[reportAny]
             opencv_python=(str(data["opencv_python"]) if data.get("opencv_python") is not None else None),
         )
 

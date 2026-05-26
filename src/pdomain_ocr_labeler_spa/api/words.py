@@ -943,9 +943,9 @@ def split_word(
         return err
 
     if body.direction != "horizontal":
+        direction = body.direction
         return _mutation_failed(
-            f"split_word direction={body.direction!r} not supported; "
-            "pdomain-book-tools exposes only horizontal split"
+            f"split_word direction={direction!r} not supported; only horizontal split is exposed"
         )
 
     pstate = project_state.get_page_state(page_index)

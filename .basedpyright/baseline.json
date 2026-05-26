@@ -2556,14 +2556,6 @@
         ],
         "./src/pdomain_ocr_labeler_spa/api/ocr_config.py": [
             {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 67,
-                    "endColumn": 88,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportUnusedFunction",
                 "range": {
                     "startColumn": 4,
@@ -3432,14 +3424,6 @@
                 }
             },
             {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 47,
-                    "endColumn": 67,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportUnknownParameterType",
                 "range": {
                     "startColumn": 28,
@@ -4181,14 +4165,6 @@
                     "startColumn": 28,
                     "endColumn": 51,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 57,
-                    "lineCount": 2
                 }
             },
             {
@@ -7680,14 +7656,6 @@
                 "range": {
                     "startColumn": 23,
                     "endColumn": 65,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportAny",
-                "range": {
-                    "startColumn": 30,
-                    "endColumn": 79,
                     "lineCount": 1
                 }
             },
