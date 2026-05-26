@@ -8,6 +8,10 @@
 // `dialogStore.open('hotkeyHelp')` (e.g. the HeaderBar trigger button).
 // Reads from HOTKEY_MAP (legacy scope groups) and the new hotkey-registry
 // (grouped sections with KeyCap components).
+//
+// Chrome is now backed by pd-ui's Radix Dialog suite (@concavetrillion/pd-ui/primitives).
+// Radix provides a native focus trap and Escape key handling — the manual Esc
+// useHotkey handler has been removed.
 // testid: hotkey-help-dialog
 
 import { useSyncExternalStore } from "react";
@@ -20,6 +24,13 @@ import {
   type RegistryEntry,
   type HotkeyGroupDef,
 } from "../lib/hotkey-registry";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@concavetrillion/pd-ui/primitives";
 
 // ─── Registry hook ───────────────────────────────────────────────────────────
 
@@ -66,61 +77,53 @@ function GroupSection({ group }: { group: HotkeyGroupDef }) {
 // ─── Modal ───────────────────────────────────────────────────────────────────
 
 /**
- * Hotkey help modal.
+ * Hotkey help modal, backed by pd-ui's Radix Dialog suite.
  *
  * Register this component once near the top of the component tree so the
  * `?` listener is always active. Open-state lives in `useDialogStore` so
  * other UI surfaces (HeaderBar trigger button, future programmatic
  * callers) can open the same dialog without prop drilling.
+ *
+ * Escape is handled natively by Radix Dialog — no manual Esc useHotkey needed.
  */
 export function HotkeyHelpModal() {
   const open = useDialogStore((s) => s.hotkeyHelp.open);
   const groups = useHotkeyGroups();
+  const close = () => dialogStore.close("hotkeyHelp");
 
   // ? key opens help outside inputs (enableOnFormTags: false is default)
   useHotkey("?", () => {
     dialogStore.open("hotkeyHelp");
   });
-  // Esc closes when open
-  useHotkey(
-    "escape",
-    () => {
-      dialogStore.close("hotkeyHelp");
-    },
-    { enabled: open },
-  );
-
-  if (!open) return null;
-
-  const close = () => {
-    dialogStore.close("hotkeyHelp");
-  };
+  // NOTE: No manual Esc useHotkey — Radix Dialog handles Escape natively.
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- dialog backdrop click-to-dismiss; Esc handled via useHotkey above
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Keyboard shortcuts"
-      data-testid="hotkey-help-dialog"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) close();
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) close();
       }}
     >
-      <div className="bg-bg-surface rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col border border-border-2">
+      {/* DialogContent auto-composes DialogPortal + DialogOverlay (pd-ui convention).
+          Tailwind overrides supply the labeler's visual chrome since primitives.css
+          has no definition for .dialog in this app. */}
+      <DialogContent
+        data-testid="hotkey-help-dialog"
+        className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 max-w-2xl w-full mx-4 max-h-[80vh] bg-bg-surface rounded-lg border border-border-2 shadow-lg focus:outline-none flex flex-col p-0"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border-1">
-          <h2 className="text-heading font-semibold text-ink-1">Keyboard Shortcuts</h2>
-          <button
+        <DialogHeader className="flex flex-row items-center justify-between px-4 py-3 border-b border-border-1">
+          <DialogTitle className="text-heading font-semibold text-ink-1">
+            Keyboard Shortcuts
+          </DialogTitle>
+          <DialogClose
             data-testid="hotkey-help-close"
-            onClick={close}
             className="text-ink-3 hover:text-ink-1 text-lg leading-none transition-colors"
             aria-label="Close"
           >
             ×
-          </button>
-        </div>
+          </DialogClose>
+        </DialogHeader>
 
         {/* Scrollable grouped sections */}
         <div className="overflow-y-auto px-4 py-3">
@@ -128,7 +131,7 @@ export function HotkeyHelpModal() {
             <GroupSection key={group.id} group={group} />
           ))}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
