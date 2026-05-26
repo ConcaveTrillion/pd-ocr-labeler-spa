@@ -72,15 +72,16 @@ RUN sed -i 's|^dynamic = \["version"\]|version = "'"${VERSION}"'"|' pyproject.to
 # Build the wheel itself.
 RUN uv build --wheel -o /dist/
 
-# B-20: Export `uv.lock` to a frozen `requirements.txt` for the runtime
-# stage. `pip install <wheel>` alone re-resolves transitive deps from
-# PyPI; consuming this file with `--no-deps` (per dep) keeps the
-# transitive tree bit-for-bit identical to what `uv lock` resolved at
-# author time. `--no-emit-project` excludes `pd-ocr-labeler-spa` itself
-# (the wheel installs that). `--no-dev` strips dev/test extras that
-# the runtime doesn't need.
-RUN uv export --frozen --no-emit-project --no-dev --no-hashes \
-    -o /dist/requirements.txt
+# B-20: Export `uv.lock` to a hash-pinned `requirements.lock` for the
+# runtime stage. `pip install <wheel>` alone re-resolves transitive deps
+# from PyPI; consuming this file with `--require-hashes` pins every
+# transitive dep to its exact wheel hash, preventing substitution attacks
+# and drift from what `uv lock` resolved at author time.
+# `--no-emit-project` excludes `pd-ocr-labeler-spa` itself (the wheel
+# installs that). `--no-dev` strips dev/test extras.
+# NOTE: `--no-hashes` is intentionally absent — hashes are required.
+RUN uv export --frozen --no-emit-project --no-dev \
+    -o /dist/requirements.lock
 
 # ──────────────────────────── Stage 3: runtime ──────────────────────────────
 FROM python:3.13.13-slim-bookworm AS runtime
@@ -102,7 +103,7 @@ RUN groupadd -g ${APP_GID} app \
     && useradd -m -u ${APP_UID} -g app -s /bin/bash app
 
 WORKDIR /app
-COPY --from=wheel /dist/*.whl /dist/requirements.txt /tmp/
+COPY --from=wheel /dist/*.whl /dist/requirements.lock /tmp/
 
 # B-21: install-time deps (`git` for pip to clone the pd-book-tools git
 # source; `ca-certificates` for HTTPS) live only inside this single RUN.
@@ -111,21 +112,22 @@ COPY --from=wheel /dist/*.whl /dist/requirements.txt /tmp/
 # beyond what Python wheels need at import time. (Python's `ssl` module
 # uses the certs baked into `certifi` once the wheels are installed.)
 #
-# B-20: install in two passes against the frozen lockfile so neither
-# pass triggers a fresh PyPI resolution:
-#   1. `pip install -r requirements.txt` pulls every transitive dep at
-#      the exact version uv locked. Each line in requirements.txt is a
-#      `==`-pinned spec or a `pkg @ git+…@<sha>` URL, so pip cannot
-#      drift.
+# B-20: install in two passes against the hash-pinned lockfile so
+# neither pass triggers a fresh PyPI resolution and every wheel is
+# verified against its recorded hash:
+#   1. `pip install --require-hashes -r requirements.lock` pulls every
+#      transitive dep at the exact version uv locked AND verifies each
+#      wheel against its sha256 hash, closing the supply-chain gap that
+#      --no-hashes introduced (F-016).
 #   2. `pip install --no-deps <wheel>` adds `pd-ocr-labeler-spa` itself
 #      without re-resolving — its declared deps were already satisfied
 #      by step 1.
 RUN apt-get update \
     && apt-get install --no-install-recommends -y git ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install --no-cache-dir -r /tmp/requirements.txt \
+    && pip install --no-cache-dir --require-hashes -r /tmp/requirements.lock \
     && pip install --no-cache-dir --no-deps /tmp/*.whl \
-    && rm /tmp/*.whl /tmp/requirements.txt \
+    && rm /tmp/*.whl /tmp/requirements.lock \
     && apt-get purge --autoremove -y git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
