@@ -168,6 +168,27 @@ describe("expandSelection (#299)", () => {
     expect(warnSpy).not.toHaveBeenCalled();
   });
 
+  it("resolves selected words by WordMatch.word_index, not array position", () => {
+    const line = makeLine(2, 0, [{ x: 100, y: 200, width: 50, height: 20 }]);
+    line.word_matches[0]!.word_index = 3;
+    const page = makePage([line], {
+      selection_mode: "word",
+      selected_paragraphs: [],
+      selected_lines: [],
+      selected_words: [[2, 3]],
+    });
+
+    const result = expandSelection(page);
+
+    expect(result.words).toEqual([
+      {
+        id: "2-3",
+        bbox: { x: 100, y: 200, width: 50, height: 20 },
+      },
+    ]);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
   it("computes paragraph bbox as union of all constituent word bboxes across lines", () => {
     // paragraph 0: line 0 + line 1
     const page = makePage(

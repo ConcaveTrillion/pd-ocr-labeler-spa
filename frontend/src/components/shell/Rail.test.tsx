@@ -18,6 +18,9 @@ describe("Rail — target + mode selectors (Slice 10 / P1.d,e,f)", () => {
   beforeEach(() => {
     localStorage.clear(); // clear first so reset() reads the default "word" target
     railStore.reset();
+    useUiPrefs.setState({
+      layerVisibility: { block: true, paragraph: true, line: true, word: true },
+    });
   });
 
   // ── Container ──────────────────────────────────────────────────────────────
@@ -162,12 +165,29 @@ describe("Rail — target + mode selectors (Slice 10 / P1.d,e,f)", () => {
     expect(screen.getByTestId("rail-target-para").className).toContain("border-layer-para");
   });
 
-  // ── LAYERS swatches (P1.e — Gap 15) ──────────────────────────────────────
+  // ── LAYERS visibility toggles (P1.e — Gap 15) ────────────────────────────
 
-  it("renders layer legend swatches for Block, Para, Line, Word", () => {
+  it("renders clickable layer toggles for Block, Para, Line, Word", () => {
     render(<Rail />);
-    // LAYERS section has Block, ¶Para, Line, Word labels
-    expect(screen.getByText("¶Para")).toBeInTheDocument();
+    expect(screen.getByTestId("rail-layer-block")).toBeInTheDocument();
+    expect(screen.getByTestId("rail-layer-para")).toBeInTheDocument();
+    expect(screen.getByTestId("rail-layer-line")).toBeInTheDocument();
+    expect(screen.getByTestId("rail-layer-word")).toBeInTheDocument();
+  });
+
+  it("all layer toggles are enabled by default", () => {
+    render(<Rail />);
+    expect(screen.getByTestId("rail-layer-block")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("rail-layer-para")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("rail-layer-line")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("rail-layer-word")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("clicking a layer toggle updates layer visibility", () => {
+    render(<Rail />);
+    fireEvent.click(screen.getByTestId("rail-layer-line"));
+    expect(useUiPrefs.getState().layerVisibility.line).toBe(false);
+    expect(screen.getByTestId("rail-layer-line")).toHaveAttribute("aria-pressed", "false");
   });
 
   // ── Footer buttons (P1.e — Gap 15) ────────────────────────────────────────

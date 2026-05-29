@@ -173,3 +173,23 @@ def test_vitest_config_references_test_tsconfig() -> None:
     assert "tsconfig.test.json" in text, (
         "vitest.config.ts no longer references tsconfig.test.json (B-08 wiring regression)."
     )
+
+
+def test_vitest_config_dedupes_linked_react_runtime() -> None:
+    """Local-linked pdomain-ui must resolve React through this app in Vitest."""
+    text = VITEST_CONFIG.read_text(encoding="utf-8")
+    for pkg in ('"react"', '"react-dom"', '"react-konva"'):
+        assert pkg in text, f"vitest.config.ts missing local-link dedupe entry for {pkg}."
+    assert "dedupe" in text, "vitest.config.ts must configure resolve.dedupe for local links."
+    assert "react/jsx-dev-runtime" in text, (
+        "vitest.config.ts must alias react/jsx-dev-runtime for pdomain-ui's dev-mode JSX dist."
+    )
+    assert "react/jsx-runtime" in text, (
+        "vitest.config.ts must alias react/jsx-runtime for linked pdomain-ui React elements."
+    )
+    assert "jsx-dev-runtime-shim.ts" in text, (
+        "vitest.config.ts must point the jsx-dev-runtime alias at the local shim."
+    )
+    assert "deps" in text and "inline" in text and "@pdomain\\/pdomain-ui" in text, (
+        "vitest.config.ts must inline linked pdomain-ui so aliases apply inside its deps."
+    )

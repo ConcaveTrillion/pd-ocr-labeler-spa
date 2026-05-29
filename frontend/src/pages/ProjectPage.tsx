@@ -73,14 +73,12 @@ import { useMatchesHotkeys } from "../hooks/useMatchesHotkeys";
 import { useUiPrefs, type DrawerTab, type MatchFilter } from "../stores/ui-prefs";
 import { dialogStore, useDialogStore } from "../stores/dialog-store";
 import { selectionStore, type SelectionState } from "../stores/selection-store";
-import { viewportStore, toggleEraseMode, setCanvasZoom } from "../stores/viewport-store";
 import { worklistStore } from "../stores/worklist-store";
 import { pageNoUrl } from "../lib/routes";
 
 import { PageActions } from "../components/PageActions";
 import { Drawer } from "../components/shell/Drawer";
 import { ToolbarActionGrid } from "../components/ToolbarActionGrid";
-import { ImageTabsHeader } from "../components/ImageTabsHeader";
 import { BusyOverlay, ProjectLoadingOverlay } from "../components/BusyOverlay";
 import PageImageCanvas from "../components/PageImageCanvas";
 import { OcrFailedBanner, ImageDriftBanner } from "../components/InlineBanners";
@@ -89,8 +87,6 @@ import { WordMatchView } from "../components/WordMatchView";
 import { PlaintextEditor } from "../components/PlaintextEditor";
 import { WordEditDialog, type DialogTarget } from "../components/WordEditDialog";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { StudioShell } from "../components/shell/StudioShell";
-import { Rail } from "../components/shell/Rail";
 import { RightPanel } from "../components/shell/RightPanel";
 import { WordDetail } from "../components/right-panel/WordDetail";
 import { useBreadcrumbHotkeys } from "../hooks/useBreadcrumbHotkeys";
@@ -129,17 +125,6 @@ function setMatchFilter(filter: MatchFilter) {
   notifyUiPrefs();
 }
 
-function setLayerVisibility(layer: "paragraph" | "line" | "word", visible: boolean) {
-  const current = useUiPrefs.getState().layerVisibility;
-  useUiPrefs.setState({ layerVisibility: { ...current, [layer]: visible } });
-  notifyUiPrefs();
-}
-
-function setSelectionMode(mode: "paragraph" | "line" | "word") {
-  useUiPrefs.setState({ selectionMode: mode });
-  notifyUiPrefs();
-}
-
 function getUiPrefsSnapshot() {
   return useUiPrefs.getState();
 }
@@ -175,17 +160,6 @@ function subscribeSelection(cb: () => void): () => void {
 }
 function getSelectionSnapshot(): SelectionState {
   return selectionStore.getState();
-}
-
-// ─── viewport-store subscriber (erase mode) ─────────────────────────────────
-
-function subscribeViewport(cb: () => void): () => void {
-  return viewportStore.subscribe(() => {
-    cb();
-  });
-}
-function getViewportModeSnapshot(): string {
-  return viewportStore.getState().mode;
 }
 
 // ─── Derived data helpers ───────────────────────────────────────────────────
@@ -257,11 +231,6 @@ export default function ProjectPage() {
     selectionStore.subscribe,
     () => selectionStore.getState().level,
     () => "none" as const,
-  );
-  const vpMode = useSyncExternalStore(
-    subscribeViewport,
-    getViewportModeSnapshot,
-    getViewportModeSnapshot,
   );
   const wordEditState = useDialogStore((s) => s.wordEdit);
   const confirmState = useDialogStore((s) => s.confirm);
@@ -611,15 +580,11 @@ export default function ProjectPage() {
   // ── Slot content ──────────────────────────────────────────────────────
   // IS-2: The App-level HeaderBar now handles the full top chrome via
   // navSlot (ProjectNavigationControls) and actionsSlot (PageActionsCompact).
-  // The StudioShell header zone is left empty so it occupies 0 visual space.
   //
   // PageActions is kept mounted as a hidden div to preserve all driver-
   // contract testids (§2.5: reload-ocr-button, save-page-button, etc.).
   // The driver selects these via [data-testid="..."] — the hidden wrapper
   // does not prevent selection.
-
-  // IS-2: Empty StudioShell header zone — App-level HeaderBar handles chrome.
-  const headerSlot = <></>;
 
   // IS-2: PageActions kept hidden for driver-contract testid preservation.
   // Driver contract §2.5: all page-action testids must be reachable in DOM.
@@ -643,9 +608,6 @@ export default function ProjectPage() {
     </div>
   );
 
-  // Rail slot — wired in Slice 10.
-  const railSlot = <Rail />;
-
   // IS-3: Drawer wired with real Drawer component.
   // lineMatches is already computed above; page is pagePayload.
   // Gap 18: tabCounts populated so count badges render in the drawer header.
@@ -662,8 +624,43 @@ export default function ProjectPage() {
       page={pagePayload ?? undefined}
       projectId={pid}
       pageIndex={idx0}
+      className="border-l border-r-0"
       tabCounts={drawerTabCounts}
     />
+  );
+
+  const topToolbarSlot = (
+    <div
+      data-testid="project-top-toolbar"
+      className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-border-1 bg-bg-surface px-2 text-xs"
+      role="toolbar"
+      aria-label="Page toolbar"
+    >
+      <div className="flex items-center gap-2">
+        <button
+          data-testid="mismatches-only-toggle"
+          aria-pressed={uiPrefs.matchFilterMode === "mismatches_only"}
+          onClick={() => {
+            useUiPrefs.setMatchFilterMode(
+              uiPrefs.matchFilterMode === "all" ? "mismatches_only" : "all",
+            );
+            notifyUiPrefs();
+          }}
+          title="Dim exact and validated word bboxes"
+          className={[
+            "px-2 py-0.5 text-xs rounded border transition-colors",
+            uiPrefs.matchFilterMode === "mismatches_only"
+              ? "bg-accent text-ink-1 border-accent hover:opacity-90"
+              : "bg-bg-raised text-ink-2 border-border-2 hover:bg-bg-raised/80",
+          ].join(" ")}
+        >
+          Mismatches
+        </button>
+      </div>
+      <div className="text-[11px] tabular-nums text-ink-3" data-testid="project-toolbar-page">
+        Page {currentPageNo} / {Math.max(totalPages, 1)}
+      </div>
+    </div>
   );
 
   // IS-4: Canvas slot stripped to image-only layout.
@@ -672,31 +669,7 @@ export default function ProjectPage() {
   // to preserve driver-contract testids (§2.7, §2.8, §2.9, §2.10).
   const canvasSlot = (
     <div className="flex flex-col h-full min-h-0">
-      <ImageTabsHeader
-        layerVisibility={uiPrefs.layerVisibility}
-        selectionMode={uiPrefs.selectionMode}
-        eraseActive={vpMode === "erase"}
-        onLayerToggle={(layer) => {
-          setLayerVisibility(layer, !uiPrefs.layerVisibility[layer]);
-        }}
-        onSelectionModeChange={(mode) => {
-          setSelectionMode(mode);
-        }}
-        onEraseToggle={toggleEraseMode}
-        onZoomFit={() => {
-          setCanvasZoom(0);
-        }}
-        onZoom100={() => {
-          setCanvasZoom(1.0);
-        }}
-        matchFilterMode={uiPrefs.matchFilterMode}
-        onMatchFilterModeToggle={() => {
-          useUiPrefs.setMatchFilterMode(
-            uiPrefs.matchFilterMode === "all" ? "mismatches_only" : "all",
-          );
-          notifyUiPrefs();
-        }}
-      />
+      {topToolbarSlot}
       <div data-testid="image-pane" className="relative flex-1 min-h-0">
         <BusyOverlay activeJob={activeJob} isMutating={isMutating} />
         <PageImageCanvas
@@ -769,21 +742,31 @@ export default function ProjectPage() {
       }}
     />
   ) : null;
+  const rightWidth = selectionLevel === "line" || selectionLevel === "block" ? 640 : 520;
 
   return (
     <div data-testid="project-page" className="h-full">
       <ProjectLoadingOverlay isLoading={isPageLoading} />
 
-      <StudioShell
-        headerHeight={0}
-        header={headerSlot}
-        rail={railSlot}
-        drawer={drawerSlot}
-        canvas={canvasSlot}
-        right={rightSlot}
-        drawerCollapsed={!drawerOpen}
-        rightWidth={selectionLevel === "line" || selectionLevel === "block" ? 640 : 520}
-      />
+      <div
+        data-testid="project-workspace"
+        className="grid h-full min-h-0 bg-bg-page"
+        style={{
+          gridTemplateColumns: `minmax(0, 1fr) ${drawerOpen ? "320px" : "32px"} ${
+            rightPanelOpen ? `${rightWidth}px` : "0px"
+          }`,
+        }}
+      >
+        <div data-testid="project-canvas-column" className="min-w-0 min-h-0 overflow-hidden">
+          {canvasSlot}
+        </div>
+        <div data-testid="project-worklist-column" className="min-w-0 min-h-0 overflow-hidden">
+          {drawerSlot}
+        </div>
+        <div data-testid="project-detail-column" className="min-w-0 min-h-0 overflow-hidden">
+          {rightSlot}
+        </div>
+      </div>
 
       {/* IS-2: hidden PageActions for driver-contract testid preservation §2.5 */}
       {hiddenPageActions}

@@ -21,7 +21,7 @@ vi.mock("../PageImage", () => ({ PageImage: () => null }));
 
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WordDetail } from "./WordDetail";
+import { WordDetail, resolveWord } from "./WordDetail";
 import { clearSelection, selectWord } from "../../stores/selection-store";
 import type { components } from "../../api/types";
 
@@ -71,6 +71,12 @@ function makePage(): PagePayload {
   };
 }
 
+function makePageWithLogicalWordIndex(wordIndex: number): PagePayload {
+  const page = makePage();
+  page.line_matches![0]!.word_matches[0]!.word_index = wordIndex;
+  return page;
+}
+
 function renderWithQuery(ui: React.ReactElement) {
   const qc = makeQueryClient();
   return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>);
@@ -110,5 +116,21 @@ describe("WordDetail (Slice 16)", () => {
     renderWithQuery(<WordDetail page={makePage()} projectId="p1" pageIndex={0} />);
     // P2.a: header now shows "Line N · Word N", not the raw OCR text
     expect(screen.getByTestId("word-header-id")).toHaveTextContent("Line 1 · Word 1");
+  });
+
+  it("resolves selected words by logical word_index, not array position", () => {
+    const word = resolveWord(makePageWithLogicalWordIndex(3), 0, [0, 3]);
+    expect(word?.ocr_text).toBe("hello");
+  });
+
+  it("disables prev/next pager buttons by word order, not logical word_index value", () => {
+    selectWord(0, 3);
+    renderWithQuery(
+      <WordDetail page={makePageWithLogicalWordIndex(3)} projectId="p1" pageIndex={0} />,
+    );
+
+    expect(screen.getByTestId("word-detail")).not.toHaveTextContent(/word not found/i);
+    expect(screen.getByTestId("word-header-prev")).toBeDisabled();
+    expect(screen.getByTestId("word-header-next")).toBeDisabled();
   });
 });

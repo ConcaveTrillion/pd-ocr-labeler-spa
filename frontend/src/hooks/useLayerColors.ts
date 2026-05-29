@@ -38,6 +38,19 @@ const FALLBACKS: LayerColors = {
   word: "#6e9cdf",
 };
 
+const CSS_VAR_RE = /^var\(\s*(--[\w-]+)\s*(?:,\s*([^)]+))?\)$/;
+
+function resolveCssValue(style: CSSStyleDeclaration, value: string, fallback: string): string {
+  const trimmed = value.trim();
+  const match = CSS_VAR_RE.exec(trimmed);
+  if (!match) return trimmed || fallback;
+
+  const token = match[1];
+  if (!token) return fallback;
+  const tokenFallback = match[2]?.trim() ?? fallback;
+  return resolveCssValue(style, style.getPropertyValue(token), tokenFallback);
+}
+
 /**
  * Read the `--layer-*` CSS custom properties from the root element.
  * Returns fallback values when the tokens are not defined (e.g., jsdom without
@@ -46,10 +59,10 @@ const FALLBACKS: LayerColors = {
 function readLayerColors(): LayerColors {
   try {
     const style = getComputedStyle(document.documentElement);
-    const block = style.getPropertyValue("--layer-block").trim() || FALLBACKS.block;
-    const para = style.getPropertyValue("--layer-para").trim() || FALLBACKS.para;
-    const line = style.getPropertyValue("--layer-line").trim() || FALLBACKS.line;
-    const word = style.getPropertyValue("--layer-word").trim() || FALLBACKS.word;
+    const block = resolveCssValue(style, style.getPropertyValue("--layer-block"), FALLBACKS.block);
+    const para = resolveCssValue(style, style.getPropertyValue("--layer-para"), FALLBACKS.para);
+    const line = resolveCssValue(style, style.getPropertyValue("--layer-line"), FALLBACKS.line);
+    const word = resolveCssValue(style, style.getPropertyValue("--layer-word"), FALLBACKS.word);
     return { block, para, line, word };
   } catch {
     return { ...FALLBACKS };

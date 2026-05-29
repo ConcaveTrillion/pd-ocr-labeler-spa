@@ -62,11 +62,13 @@
 // overlay-words Layer shows all word bboxes but dims exact/validated words
 // to MISMATCH_DIM_OPACITY (0.2) via BBoxItem.dimmed.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Rect } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import {
   PageImageCanvas as PdUiPageImageCanvas,
+  rectItemsToDisplay,
+  rectToDisplay,
   type CoordContext,
 } from "@pdomain/pdomain-ui/canvas";
 import type { components } from "../api/types";
@@ -76,7 +78,15 @@ import { expandSelection } from "../lib/selection-expand";
 import { BBoxOverlay, type BBoxItem } from "./BBoxOverlay";
 import { scheduleDragUpdate } from "../lib/rafSchedule";
 import { readCssToken, hexToRgba } from "../hooks/useLayerColors";
-import { setDragRect, clearSelection, selectionStore, selectWord } from "../stores/selection-store";
+import {
+  setDragRect,
+  clearSelection,
+  selectionStore,
+  selectBlock,
+  selectPara,
+  selectLine,
+  selectWord,
+} from "../stores/selection-store";
 import {
   viewportStore,
   exitToSelectMode,
@@ -111,6 +121,8 @@ function resolveModifier(evt: {
 }
 
 type PagePayload = components["schemas"]["PagePayload"];
+type LineMatch = components["schemas"]["LineMatch"];
+type WordMatch = components["schemas"]["WordMatch"];
 
 interface PageImageCanvasProps {
   imageUrl: string;
@@ -202,6 +214,63 @@ function markSelected(items: BBoxItem[]): BBoxItem[] {
   return items.map((item) => ({ ...item, selected: true }));
 }
 
+function itemsToDisplay(items: BBoxItem[], encoded: EncodedDims | null): BBoxItem[] {
+  return rectItemsToDisplay(items, encoded);
+}
+
+function unionBBoxes(bboxes: readonly BBox[]): BBox | null {
+  if (bboxes.length === 0) return null;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const bbox of bboxes) {
+    minX = Math.min(minX, bbox.x);
+    minY = Math.min(minY, bbox.y);
+    maxX = Math.max(maxX, bbox.x + bbox.width);
+    maxY = Math.max(maxY, bbox.y + bbox.height);
+  }
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
+function visibleWordBoxes(words: readonly WordMatch[]): BBox[] {
+  return words.map((word) => word.bbox).filter((bbox) => bbox.width > 0 && bbox.height > 0);
+}
+
+function buildGroupItems(lines: readonly LineMatch[], groupKey: "block_index" | "paragraph_index") {
+  const groups = new Map<number, BBox[]>();
+  for (const line of lines) {
+    const key = line[groupKey];
+    if (key === null || key === undefined) continue;
+    const boxes = groups.get(key) ?? [];
+    boxes.push(...visibleWordBoxes(line.word_matches));
+    groups.set(key, boxes);
+  }
+  return Array.from(groups.entries())
+    .sort(([a], [b]) => a - b)
+    .flatMap(([key, boxes]) => {
+      const bbox = unionBBoxes(boxes);
+      return bbox ? [{ id: String(key), bbox }] : [];
+    });
+}
+
+function buildLineItems(lines: readonly LineMatch[]): BBoxItem[] {
+  return lines.flatMap((line) => {
+    const bbox = unionBBoxes(visibleWordBoxes(line.word_matches));
+    return bbox ? [{ id: String(line.line_index), bbox }] : [];
+  });
+}
+
+function hitTest(items: readonly BBoxItem[], x: number, y: number): BBoxItem | undefined {
+  return items.find(
+    (item) =>
+      x >= item.bbox.x &&
+      x <= item.bbox.x + item.bbox.width &&
+      y >= item.bbox.y &&
+      y <= item.bbox.y + item.bbox.height,
+  );
+}
+
 /**
  * Image viewport canvas — pdomain-ui Konva Stage host with four interaction modes.
  *
@@ -228,15 +297,18 @@ export default function PageImageCanvas({
 }: PageImageCanvasProps) {
   // Drag start coordinates (page-space). Held in state because the drag-preview
   // Rect and the ocr-drag-rect sidecar render from React state.
-  const [dragState, setDragState] = useState<DragState | null>(null);
+  const dragStateRef = useRef<DragState | null>(null);
   const [dragRect, setLocalDragRect] = useState<BBox | null>(null);
   const [mode, setMode] = useState<ViewportMode>(viewportStore.getState().mode);
   const [railTarget, setRailTarget] = useState<RailTarget>(railStore.getState().target);
+  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>(
+    () => useUiPrefs.getState().layerVisibility,
+  );
 
   // clearDrag is defined here (before useViewportHotkeys and the early return)
   // because onCancelMode in useViewportHotkeys calls it.
   function clearDrag() {
-    setDragState(null);
+    dragStateRef.current = null;
     setLocalDragRect(null);
     setDragRect(null);
   }
@@ -256,7 +328,13 @@ export default function PageImageCanvas({
   // Subscribe to rail target changes (Slice 13 — target-scoped bbox opacity).
   useEffect(() => {
     const unsub = railStore.subscribe(() => {
-      setRailTarget(railStore.getState().target);
+      const nextTarget = railStore.getState().target;
+      setRailTarget(nextTarget);
+      if (nextTarget === "para") {
+        useUiPrefs.setState({ selectionMode: "paragraph" });
+      } else if (nextTarget === "line" || nextTarget === "word") {
+        useUiPrefs.setState({ selectionMode: nextTarget });
+      }
     });
     return unsub;
   }, []);
@@ -289,13 +367,15 @@ export default function PageImageCanvas({
     });
   }, []);
 
-  // Subscribe to matchFilterMode from useUiPrefs (Issue #295).
+  // Subscribe to UI prefs used by the canvas.
   const [matchFilterMode, setMatchFilterModeState] = useState(
     () => useUiPrefs.getState().matchFilterMode,
   );
   useEffect(() => {
     return useUiPrefs.subscribe(() => {
-      setMatchFilterModeState(useUiPrefs.getState().matchFilterMode);
+      const state = useUiPrefs.getState();
+      setMatchFilterModeState(state.matchFilterMode);
+      setLayerVisibility(state.layerVisibility);
     });
   }, []);
 
@@ -313,11 +393,11 @@ export default function PageImageCanvas({
     if (!page) return { paragraphs: [], lines: [], words: [] };
     const e = expandSelection(page);
     return {
-      paragraphs: markSelected(e.paragraphs),
-      lines: markSelected(e.lines),
-      words: markSelected(e.words),
+      paragraphs: markSelected(itemsToDisplay(e.paragraphs, encoded)),
+      lines: markSelected(itemsToDisplay(e.lines, encoded)),
+      words: markSelected(itemsToDisplay(e.words, encoded)),
     };
-  }, [page]);
+  }, [page, encoded]);
 
   // Issue #295: Word bbox overlay items for the overlay-words layer.
   const wordOverlayItems = useMemo<BBoxItem[]>(() => {
@@ -330,19 +410,28 @@ export default function PageImageCanvas({
         const isExactAndValidated = word.match_status === "exact" && word.is_validated;
         items.push({
           id: `${line.line_index}-${word.word_index}`,
-          bbox: word.bbox,
+          bbox: encoded ? rectToDisplay(word.bbox, encoded) : word.bbox,
           dimmed: isMismatchOnly ? isExactAndValidated : false,
         });
       }
     }
     return items;
-  }, [page, matchFilterMode]);
+  }, [page, matchFilterMode, encoded]);
+
+  const structuralOverlayItems = useMemo(() => {
+    const lineMatches = page?.line_matches ?? [];
+    return {
+      blocks: itemsToDisplay(buildGroupItems(lineMatches, "block_index"), encoded),
+      paragraphs: itemsToDisplay(buildGroupItems(lineMatches, "paragraph_index"), encoded),
+      lines: itemsToDisplay(buildLineItems(lineMatches), encoded),
+    };
+  }, [page, encoded]);
 
   // Spec 21 §10 viewport hotkeys (#304).
   // Called unconditionally before any early return (Rules of Hooks).
   useViewportHotkeys({
     enabled: true,
-    layerVisibility: useUiPrefs.getState().layerVisibility,
+    layerVisibility,
     onLayerToggle: (layer: keyof LayerVisibility) => {
       useUiPrefs.setState((s) => ({
         layerVisibility: { ...s.layerVisibility, [layer]: !s.layerVisibility[layer] },
@@ -411,27 +500,28 @@ export default function PageImageCanvas({
   function handleStagePointerDown(e: KonvaEventObject<MouseEvent>, ctx: CoordContext) {
     const pos = readStagePos(e, ctx);
     if (!pos) return;
-    setDragState({
+    dragStateRef.current = {
       startX: pos.x,
       startY: pos.y,
       modifier: resolveModifier(e.evt),
-    });
+    };
     setLocalDragRect(null);
   }
 
   function handleStagePointerMove(e: KonvaEventObject<MouseEvent>, ctx: CoordContext) {
-    if (!dragState) return;
+    const start = dragStateRef.current;
+    if (!start) return;
     const pos = readStagePos(e, ctx);
     if (!pos) return;
     scheduleDragUpdate(() => {
-      const rect = computeRect(dragState, pos);
+      const rect = computeRect(start, pos);
       setLocalDragRect(rect);
       setDragRect(rect);
     });
   }
 
   function handleStagePointerUp(e: KonvaEventObject<MouseEvent>, ctx: CoordContext) {
-    const start = dragState;
+    const start = dragStateRef.current;
     if (!start) return;
     const pos = readStagePos(e, ctx);
     if (!pos) {
@@ -446,18 +536,27 @@ export default function PageImageCanvas({
     if (isTrivial) {
       if (mode === "select") {
         const { x: cx, y: cy } = pos;
-        const hit = wordOverlayItems.find(
-          (item) =>
-            cx >= item.bbox.x &&
-            cx <= item.bbox.x + item.bbox.width &&
-            cy >= item.bbox.y &&
-            cy <= item.bbox.y + item.bbox.height,
-        );
-        if (hit) {
+        const hit =
+          railTarget === "block"
+            ? hitTest(structuralOverlayItems.blocks, cx, cy)
+            : railTarget === "para"
+              ? hitTest(structuralOverlayItems.paragraphs, cx, cy)
+              : railTarget === "line"
+                ? hitTest(structuralOverlayItems.lines, cx, cy)
+                : hitTest(wordOverlayItems, cx, cy);
+        if (!hit) return;
+
+        if (railTarget === "block") {
+          selectBlock(hit.id);
+        } else if (railTarget === "para") {
+          selectPara(Number(hit.id));
+        } else if (railTarget === "line") {
+          selectLine(Number(hit.id));
+        } else {
           const parts = hit.id.split("-").map(Number);
           selectWord(parts[0]!, parts[1]!);
-          useUiPrefs.setState({ rightPanelOpen: true });
         }
+        useUiPrefs.setState({ rightPanelOpen: true });
       }
       return;
     }
@@ -517,17 +616,28 @@ export default function PageImageCanvas({
           // overlay-words / selection layers from the previous implementation.
           selection: () => (
             <>
-              {/* Word overlay (#295 — mismatches filter) */}
+              {/* Regular bbox overlays; visibility is controlled by the rail Layers section. */}
               <BBoxOverlay
-                layer="words"
-                items={wordOverlayItems}
-                visible={useUiPrefs.getState().layerVisibility.word}
+                layer="blocks"
+                items={structuralOverlayItems.blocks}
+                visible={layerVisibility.block}
               />
+              <BBoxOverlay
+                layer="paragraphs"
+                items={structuralOverlayItems.paragraphs}
+                visible={layerVisibility.paragraph}
+              />
+              <BBoxOverlay
+                layer="lines"
+                items={structuralOverlayItems.lines}
+                visible={layerVisibility.line}
+              />
+              <BBoxOverlay layer="words" items={wordOverlayItems} visible={layerVisibility.word} />
               {/* Selection highlight overlays (Slice 13 — rail target scoping) */}
               <BBoxOverlay
                 layer="selection-paragraphs"
                 items={expandedSelection.paragraphs}
-                dimmed={railTarget !== "block"}
+                dimmed={railTarget !== "para"}
               />
               <BBoxOverlay
                 layer="selection-lines"
@@ -604,7 +714,7 @@ export default function PageImageCanvas({
           Top-left overlay. Positioned outside the Stage (DOM sibling). */}
       <div
         data-testid="canvas-mode-pill"
-        className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold pointer-events-none select-none"
+        className="absolute top-10 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold pointer-events-none select-none"
         style={{
           backgroundColor: `${modeRectColors[mode]}22`,
           border: `1px solid ${modeRectColors[mode]}88`,
@@ -623,7 +733,7 @@ export default function PageImageCanvas({
           Bottom-left overlay. Positioned outside the Stage (DOM sibling). */}
       <div
         data-testid="canvas-zoom-controls"
-        className="absolute bottom-2 left-2 flex items-center gap-1 pointer-events-auto"
+        className="absolute top-2 left-2 flex items-center gap-1 pointer-events-auto"
         role="group"
         aria-label="Zoom controls"
       >

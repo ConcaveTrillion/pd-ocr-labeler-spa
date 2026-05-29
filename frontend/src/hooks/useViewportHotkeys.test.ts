@@ -13,9 +13,10 @@ import { renderHook } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent } from "@testing-library/react";
 import { useViewportHotkeys } from "./useViewportHotkeys";
-import type { LayerVisibility } from "../components/ImageTabsHeader";
+import type { LayerVisibility } from "../stores/ui-prefs";
 
 const defaultVisibility: LayerVisibility = {
+  block: true,
   paragraph: true,
   line: true,
   word: true,

@@ -40,6 +40,7 @@ import {
   useApplyComponent,
   useErasePixels,
 } from "../../hooks/useWordMutations";
+import { findWordByIndex, getWordOrder } from "../../lib/word-order";
 import type { components } from "../../api/types";
 
 type PagePayload = components["schemas"]["PagePayload"];
@@ -69,15 +70,13 @@ function charFixerHint(ocrText: string | undefined): string {
   return `${n} range${n === 1 ? "" : "s"}`;
 }
 
-function resolveWord(
+export function resolveWord(
   page: PagePayload,
   lineId: number,
   wordId: [number, number],
 ): WordMatch | null {
-  const line = page.line_matches?.find((l) => l.line_index === lineId);
-  if (!line) return null;
   const [, wi] = wordId;
-  return line.word_matches[wi] ?? null;
+  return findWordByIndex(page, lineId, wi);
 }
 
 // ─── WordDetail ───────────────────────────────────────────────────────────
@@ -123,18 +122,17 @@ export function WordDetail({ page, projectId, pageIndex }: WordDetailProps) {
     );
   }
 
-  // Slice 19: derive hasNext from the line length instead of hardcoding true.
-  const currentLine = page.line_matches?.find((l) => l.line_index === lineIdx);
-  const lineLength = currentLine?.word_matches.length ?? 0;
   const wordIdx = word.word_index ?? 0;
-  const hasNextWord = wordIdx < lineLength - 1;
+  const wordOrder = getWordOrder(page, lineIdx, wordIdx);
+  const hasPrevWord = wordOrder.position > 0;
+  const hasNextWord = wordOrder.next !== null;
 
   return (
     <div data-testid="word-detail" className="flex flex-col gap-1">
       {/* P2.a: Word identity header with status pip + pager */}
       <WordHeader
         word={word}
-        hasPrev={wordIdx > 0}
+        hasPrev={hasPrevWord}
         hasNext={hasNextWord}
         onPrev={() => {
           walkSibling("prev", page);

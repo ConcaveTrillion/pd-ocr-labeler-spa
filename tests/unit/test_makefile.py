@@ -175,6 +175,7 @@ def test_makefile_phony_targets_declared() -> None:
         "frontend-build",
         "frontend-test",
         "frontend-dev",
+        "local-frontend-test",
         "openapi-export",
         "lint",
         "format",
@@ -182,6 +183,29 @@ def test_makefile_phony_targets_declared() -> None:
     }
     missing = must_be_phony - declared
     assert not missing, f"targets missing from .PHONY: {sorted(missing)}"
+
+
+def test_local_frontend_test_uses_wrapper_script() -> None:
+    """The local frontend test path must isolate test-time sibling resolution."""
+    text = MAKEFILE.read_text(encoding="utf-8")
+    assert "local-frontend-test:" in text, "local-frontend-test target missing from Makefile."
+    assert "./scripts/local-frontend-test.sh" in text, (
+        "local-frontend-test must run the wrapper that installs pdomain-ui as file: for Vitest."
+    )
+
+
+def test_local_frontend_test_script_restores_link_overlay() -> None:
+    """The wrapper should leave package metadata and local links as it found them."""
+    script = REPO_ROOT / "scripts" / "local-frontend-test.sh"
+    text = script.read_text(encoding="utf-8")
+    assert "@pdomain/pdomain-ui@file:../../pdomain-ui" in text, (
+        "local frontend tests must use file: pdomain-ui so pnpm resolves React peers from the app."
+    )
+    for filename in ("package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"):
+        assert filename in text, f"local-frontend-test.sh must snapshot and restore {filename}."
+    assert "local-frontend-install.sh" in text, (
+        "local-frontend-test.sh must restore the normal pnpm link overlay after tests."
+    )
 
 
 @pytest.mark.skipif(not _have_make(), reason="`make` not on PATH")

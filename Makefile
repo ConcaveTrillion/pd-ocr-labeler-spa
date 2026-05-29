@@ -18,7 +18,7 @@ else
         frontend-lint frontend-format frontend-format-check \
         openapi-export update-pd-deps upgrade-pdomain-book-tools upgrade-deps upgrade-deps-local \
         local-setup local-dev local-check local-upgrade-deps local-run \
-        local-setup-py local-frontend-install local-frontend-build \
+        local-setup-py local-frontend-install local-frontend-build local-frontend-test \
         mise-download mise-trust-worktrees mise-setup mise-doctor \
         docker-build docker-run docker-shell \
         release-patch release-minor release-major _do-release
@@ -127,6 +127,9 @@ local-frontend-build: local-frontend-install ## Vite build using local-linked si
 	@rm -rf src/pdomain_ocr_labeler_spa/static/*
 	cp -r frontend/dist/. src/pdomain_ocr_labeler_spa/static/
 	@echo "Frontend bundled into src/pdomain_ocr_labeler_spa/static/"
+
+local-frontend-test: ## Vitest using local sibling pdomain-ui with test-time peer resolution
+	@./scripts/local-frontend-test.sh
 
 # ---------------------------------------------------------------------------
 # Sibling-dep refresh (spec #363) — update-pd-deps

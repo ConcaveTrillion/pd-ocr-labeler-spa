@@ -1,9 +1,5 @@
 import * as React from "react";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
-import {
-  Accordion as PdAccordion,
-  AccordionItem as PdAccordionItem,
-} from "@pdomain/pdomain-ui/primitives";
 import { ChevronDown } from "@pdomain/pdomain-ui/icons";
 
 import { cn } from "@/lib/utils";
@@ -19,20 +15,20 @@ const tagClasses: Record<AccordionTagVariant, string> = {
 
 const defaultItemClasses = "border border-border-1 rounded-md";
 
-// LabelerAccordionItem: wraps pdomain-ui AccordionItem with the labeler's `tag`
-// variant (colored left-border stripe). When `tag` is absent the default
-// border/rounded style is applied instead.
-type AccordionItemProps = React.ComponentPropsWithoutRef<typeof PdAccordionItem> & {
+// LabelerAccordionItem adds the labeler's `tag` variant. The root/item/trigger
+// all use this package's Radix primitives so their Accordion context matches
+// even when pdomain-ui is linked locally.
+type AccordionItemProps = React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item> & {
   tag?: AccordionTagVariant;
 };
 
 const AccordionItem = React.forwardRef<
-  React.ComponentRef<typeof PdAccordionItem>,
+  React.ComponentRef<typeof AccordionPrimitive.Item>,
   AccordionItemProps
 >(({ className, tag, ...props }, ref) => (
-  <PdAccordionItem
+  <AccordionPrimitive.Item
     ref={ref}
-    className={cn(tag ? tagClasses[tag] : defaultItemClasses, className)}
+    className={cn("acc", tag ? tagClasses[tag] : defaultItemClasses, className)}
     {...props}
   />
 ));
@@ -111,12 +107,7 @@ const AccordionContent = React.forwardRef<
 ));
 AccordionContent.displayName = AccordionPrimitive.Content.displayName;
 
-// Accordion root: adopted from pdomain-ui (replaces AccordionPrimitive.Root directly).
-// Compound namespace export for dot-syntax compatibility.
-// Dot-syntax is kept (not migrated to named imports at callsites) because the
-// 2 callsites both use it and the trigger/content wrappers carry labeler-specific
-// logic. A follow-on refactor can remove the namespace shim when desired.
-const Accordion = Object.assign(PdAccordion, {
+const Accordion = Object.assign(AccordionPrimitive.Root, {
   Item: AccordionItem,
   Trigger: AccordionTrigger,
   Content: AccordionContent,

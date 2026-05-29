@@ -24,6 +24,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "../../ui/button";
 import { ConfirmDialog } from "../../ConfirmDialog";
 import { useMergeWord, useSplitWord, useAdjustWordGap } from "../../../hooks/useWordMutations";
+import { getWordOrder } from "../../../lib/word-order";
 import type { components } from "../../../api/types";
 
 type WordMatch = components["schemas"]["WordMatch"];
@@ -37,12 +38,8 @@ function getNeighborWords(
   lineIndex: number,
   wordIndex: number,
 ): { prev: WordMatch | null; next: WordMatch | null } {
-  const line = page.line_matches?.find((l) => l.line_index === lineIndex);
-  if (!line) return { prev: null, next: null };
-  const words = line.word_matches;
-  const prev = wordIndex > 0 ? (words[wordIndex - 1] ?? null) : null;
-  const next = wordIndex < words.length - 1 ? (words[wordIndex + 1] ?? null) : null;
-  return { prev, next };
+  const order = getWordOrder(page, lineIndex, wordIndex);
+  return { prev: order.prev, next: order.next };
 }
 
 function wordText(w: WordMatch | null): string {
@@ -220,9 +217,14 @@ export function StructureSection({ word, page, projectId, pageIndex }: Structure
       const minDelta = Math.max(-currentGap, -nextBbox.x);
       const clampedDelta = Math.max(delta, minDelta);
       if (Math.round(clampedDelta) === 0) return;
-      adjustGap.mutate({ lineIndex, wordIndex, nextWordBbox: nextBbox, deltaX: clampedDelta });
+      adjustGap.mutate({
+        lineIndex,
+        nextWordIndex: next.word_index ?? 0,
+        nextWordBbox: nextBbox,
+        deltaX: clampedDelta,
+      });
     },
-    [adjustGap, currentGap, hasNext, lineIndex, next?.bbox, wordIndex],
+    [adjustGap, currentGap, hasNext, lineIndex, next?.bbox, next?.word_index],
   );
 
   // ── Split ─────────────────────────────────────────────────────────────────
