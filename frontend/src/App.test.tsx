@@ -15,6 +15,7 @@ import type * as React from "react";
 vi.mock("@pdomain/pdomain-ui/shell", () => ({
   AppShell: ({
     header,
+    rail,
     main,
     children,
   }: {
@@ -22,6 +23,7 @@ vi.mock("@pdomain/pdomain-ui/shell", () => ({
     appDisplayName?: string;
     appIconUrl?: string;
     header?: React.ReactNode;
+    rail?: React.ReactNode;
     main?: React.ReactNode;
     children?: React.ReactNode;
     launcherSlot?: string;
@@ -30,6 +32,7 @@ vi.mock("@pdomain/pdomain-ui/shell", () => ({
   }) => (
     <div data-testid="pdomain-ui-app-shell">
       <div data-testid="pdomain-ui-app-shell-header">{header}</div>
+      <nav data-testid="pdomain-ui-app-shell-rail">{rail}</nav>
       <main className="h-full min-h-0 overflow-hidden" data-testid="pdomain-ui-app-shell-main">
         {main}
       </main>
@@ -48,6 +51,45 @@ vi.mock("@pdomain/pdomain-ui/shell", () => ({
 // loads (it would require('canvas'), a native addon unavailable in jsdom).
 // The react-konva mock below is kept for any other transitive imports.
 vi.mock("@pdomain/pdomain-ui/canvas", () => ({
+  rectToDisplay: (
+    bbox: { x: number; y: number; width: number; height: number },
+    encoded: { scale: number },
+  ) => ({
+    x: bbox.x * encoded.scale,
+    y: bbox.y * encoded.scale,
+    width: bbox.width * encoded.scale,
+    height: bbox.height * encoded.scale,
+  }),
+  rectItemsToDisplay: <T extends { bbox: { x: number; y: number; width: number; height: number } }>(
+    items: T[],
+    encoded: { scale: number } | null,
+  ) =>
+    encoded
+      ? items.map((item) => ({
+          ...item,
+          bbox: {
+            x: item.bbox.x * encoded.scale,
+            y: item.bbox.y * encoded.scale,
+            width: item.bbox.width * encoded.scale,
+            height: item.bbox.height * encoded.scale,
+          },
+        }))
+      : items,
+  RectOverlayLayer: ({
+    layer,
+    items,
+    dimmed,
+  }: {
+    layer: string;
+    items: Array<{ id: string }>;
+    dimmed?: boolean;
+  }) => (
+    <div
+      data-testid={`bbox-overlay-${layer}`}
+      data-item-count={items.length}
+      data-dimmed={dimmed ? "true" : undefined}
+    />
+  ),
   PageImageCanvas: ({
     page,
     children,
@@ -261,6 +303,16 @@ describe("App: routing shell", () => {
     expect(errorAnnouncer).not.toBeNull();
     expect(statusAnnouncer?.getAttribute("role")).toBe("status");
     expect(errorAnnouncer?.getAttribute("role")).toBe("alert");
+  });
+
+  it("uses the shared AppShell rail slot for the OCR rail on project routes", async () => {
+    withProjectSession();
+    window.history.pushState({}, "", "/projects/p1/pages/pageno/1");
+    render(<App />);
+    expect(await screen.findByTestId("rail")).toBeInTheDocument();
+    const railSlot = screen.getByTestId("pdomain-ui-app-shell-rail");
+    expect(railSlot.querySelector('[data-testid="rail"]')).not.toBeNull();
+    window.history.pushState({}, "", "/");
   });
 
   it("IS-2: HeaderBar renders without navSlot or actionsSlot on root route", async () => {

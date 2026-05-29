@@ -10,10 +10,9 @@ event-capture overlay whose coordinate math ignored scroll and recomputed its
 own scale, causing clicks to miss the bboxes.
 
 The shared exercise-/tiny-fixture projects store word bounding boxes in
-normalized 0..1 coordinates, which ``page_to_line_matches`` truncates to zero
-width via ``int()`` — so they render no clickable target. This module therefore
-builds a self-contained one-page project whose word boxes use pixel coordinates
-(``is_normalized`` inferred false), giving a real bbox to click.
+normalized 0..1 coordinates. This module builds a self-contained one-page
+project with normalized OCR boxes so the E2E covers the lift path that must
+scale normalized coordinates into real image/display boxes before painting.
 
 Spec ref: ``docs/architecture/21-konva-renderer.md`` (Konva renderer),
 ``docs/architecture/13-driver-contract.md`` §2 (``image-viewport``).
@@ -29,11 +28,13 @@ import time
 import zlib
 from collections.abc import Iterator
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 
 import httpx
 import pytest
 import uvicorn
+from PIL import Image
 from playwright.sync_api import Page
 
 from pdomain_ocr_labeler_spa.bootstrap import build_app
@@ -86,16 +87,20 @@ def _make_png(width: int, height: int) -> bytes:
     )
 
 
-def _bbox(x1: int, y1: int, x2: int, y2: int) -> dict:
-    return {"top_left": {"x": x1, "y": y1}, "bottom_right": {"x": x2, "y": y2}}
+def _normalized_bbox(x1: int, y1: int, x2: int, y2: int) -> dict:
+    return {
+        "top_left": {"x": x1 / _IMAGE_W, "y": y1 / _IMAGE_H, "is_normalized": True},
+        "bottom_right": {"x": x2 / _IMAGE_W, "y": y2 / _IMAGE_H, "is_normalized": True},
+        "is_normalized": True,
+    }
 
 
 def _build_envelope() -> dict:
-    """One Block → Paragraph → Line → single Word with pixel-coordinate boxes."""
+    """One Block → Paragraph → Line → single Word with normalized boxes."""
     word = {
         "type": "Word",
         "text": "Gutenberg",
-        "bounding_box": _bbox(_WORD_X1, _WORD_Y1, _WORD_X2, _WORD_Y2),
+        "bounding_box": _normalized_bbox(_WORD_X1, _WORD_Y1, _WORD_X2, _WORD_Y2),
         "ocr_confidence": 0.95,
         "word_labels": [],
         "ground_truth_text": "Gutenberg",
@@ -107,7 +112,7 @@ def _build_envelope() -> dict:
         "child_type": "WORDS",
         "block_category": "LINE",
         "block_labels": None,
-        "bounding_box": _bbox(_WORD_X1, _WORD_Y1, _WORD_X2, _WORD_Y2),
+        "bounding_box": _normalized_bbox(_WORD_X1, _WORD_Y1, _WORD_X2, _WORD_Y2),
         "items": [word],
     }
     para = {
@@ -115,7 +120,7 @@ def _build_envelope() -> dict:
         "child_type": "BLOCKS",
         "block_category": "PARAGRAPH",
         "block_labels": None,
-        "bounding_box": _bbox(_WORD_X1, _WORD_Y1, _WORD_X2, _WORD_Y2),
+        "bounding_box": _normalized_bbox(_WORD_X1, _WORD_Y1, _WORD_X2, _WORD_Y2),
         "items": [line],
     }
     block = {
@@ -123,7 +128,7 @@ def _build_envelope() -> dict:
         "child_type": "BLOCKS",
         "block_category": "BLOCK",
         "block_labels": None,
-        "bounding_box": _bbox(_WORD_X1, _WORD_Y1, _WORD_X2, _WORD_Y2),
+        "bounding_box": _normalized_bbox(_WORD_X1, _WORD_Y1, _WORD_X2, _WORD_Y2),
         "items": [para],
     }
     page = {
@@ -174,6 +179,28 @@ def _build_envelope() -> dict:
         "payload": {"page": page, "word_attributes": {}},
         "cached_images": {},
     }
+
+
+def _assert_word_overlay_paints(page: Page, bbox: dict, canvas_box: dict, fit_scale: float) -> None:
+    """The fixture image is white; a painted word overlay tints the bbox interior."""
+    sx = int(canvas_box["x"] + (bbox["x"] + bbox["width"] / 2) * fit_scale)
+    sy = int(canvas_box["y"] + (bbox["y"] + bbox["height"] / 2) * fit_scale)
+
+    image = Image.open(BytesIO(page.screenshot(full_page=True))).convert("RGB")
+    left = max(0, sx - 4)
+    top = max(0, sy - 4)
+    right = min(image.width, sx + 5)
+    bottom = min(image.height, sy + 5)
+
+    pixels = [image.getpixel((x, y)) for y in range(top, bottom) for x in range(left, right)]
+    assert pixels, f"sample point ({sx}, {sy}) fell outside screenshot {image.size}"
+
+    # The source PNG is pure white. The word overlay fill should make at least
+    # part of this sample visibly non-white.
+    assert any(pixel != (255, 255, 255) for pixel in pixels), (
+        f"word bbox overlay did not paint near screen point ({sx}, {sy}); "
+        f"sample={pixels[:5]}, bbox={bbox}, canvas_box={canvas_box}, fit_scale={fit_scale}"
+    )
 
 
 @dataclass
@@ -268,14 +295,24 @@ def test_click_word_bbox_on_image_opens_word_detail(
 
     viewport = page.locator('[data-testid="image-viewport"]').first
     viewport.wait_for(state="visible", timeout=10_000)
-    box = viewport.bounding_box()
-    assert box is not None, "image-viewport must have an on-screen bounding box"
+    stage_canvas = viewport.locator("canvas").first
+    stage_canvas.wait_for(state="visible", timeout=10_000)
+    box = stage_canvas.bounding_box()
+    assert box is not None, "rendered canvas must have an on-screen bounding box"
 
-    # The viewport renders the page (display_width px) at a fit scale. The bbox
-    # is in display-pixel space already; project its centre into screen coords.
+    # The outer image-viewport may be wider or taller than the fitted Konva
+    # stage. Project through the rendered canvas box so tall-page fit scaling
+    # lands on the actual word pixels, not unused viewport space.
     fit_scale = box["width"] / display_width
-    cx = box["x"] + (bbox["x"] + bbox["width"] / 2) * fit_scale
-    cy = box["y"] + (bbox["y"] + bbox["height"] / 2) * fit_scale
+    display_bbox = {
+        "x": bbox["x"] * scale,
+        "y": bbox["y"] * scale,
+        "width": bbox["width"] * scale,
+        "height": bbox["height"] * scale,
+    }
+    cx = box["x"] + (display_bbox["x"] + display_bbox["width"] / 2) * fit_scale
+    cy = box["y"] + (display_bbox["y"] + display_bbox["height"] / 2) * fit_scale
+    _assert_word_overlay_paints(page, display_bbox, box, fit_scale)
 
     page.mouse.click(cx, cy)
 
@@ -289,3 +326,50 @@ def test_click_word_bbox_on_image_opens_word_detail(
         f"WordDetail header {header_text!r} should reference the clicked word "
         f"(line {line_index + 1}, word {word_index + 1}); scale={scale}, fit={fit_scale}"
     )
+
+
+@pytest.mark.e2e
+def test_click_word_in_hierarchy_opens_word_detail_without_blank_page(
+    click_server: ClickServer,
+    page: Page,
+) -> None:
+    """Click the hierarchy word picker; the page must not crash or go blank."""
+    page_errors: list[str] = []
+    page.on("pageerror", lambda exc: page_errors.append(str(exc)))
+
+    page.goto(
+        f"{click_server.base_url}/projects/{_PROJECT_ID}/pages/pageno/1",
+        timeout=20_000,
+    )
+    page.wait_for_selector('[data-testid="project-page"]', timeout=20_000)
+
+    page.locator('[data-testid="drawer-tab-hierarchy"]').first.click()
+    page.wait_for_selector('[data-testid="hierarchy"]', state="visible", timeout=10_000)
+
+    block_nodes = page.locator('[data-testid^="hierarchy-node-block-"]')
+    if block_nodes.count() > 0:
+        first_block = block_nodes.first
+        first_block.click()
+        assert page.locator('[data-testid="project-page"]').count() == 1, page_errors
+        page.keyboard.press("ArrowRight")
+
+    first_para = page.locator('[data-testid^="hierarchy-node-para-"]').first
+    first_para.wait_for(state="visible", timeout=10_000)
+    first_para.click()
+    assert page.locator('[data-testid="project-page"]').count() == 1, page_errors
+    page.keyboard.press("ArrowRight")
+
+    first_line = page.locator('[data-testid^="hierarchy-node-line-"]').first
+    first_line.wait_for(state="visible", timeout=10_000)
+    first_line.click()
+    assert page.locator('[data-testid="project-page"]').count() == 1, page_errors
+    page.keyboard.press("ArrowRight")
+
+    first_word = page.locator('[data-testid^="hierarchy-node-word-"]').first
+    first_word.wait_for(state="visible", timeout=10_000)
+    first_word.click()
+
+    header = page.locator('[data-testid="word-header-id"]').first
+    header.wait_for(state="visible", timeout=10_000)
+    assert page_errors == []
+    assert page.locator('[data-testid="project-page"]').count() == 1

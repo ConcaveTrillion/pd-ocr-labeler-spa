@@ -5,7 +5,7 @@
 // Sections:
 //   MODE  — View / Refine / Annotate / Erase icon-card cells
 //   TARGET — Block / Para / Line / Word cells with layer-color swatches
-//   LAYERS — legend swatches for each layer (read-only, from useLayerColors)
+//   LAYERS — visibility toggles for each layer (from useLayerColors + useUiPrefs)
 //   Footer  — Bulk + Hotkeys buttons
 //
 // Active target button: bg-bg-raised + 2px left accent stripe + layer-color glyph.
@@ -20,7 +20,7 @@ import { railStore, type RailTarget, type RailMode } from "../../stores/rail-sto
 import { useRailHotkeys } from "../../hooks/useRailHotkeys";
 import { useLayerColors } from "../../hooks/useLayerColors";
 import { dialogStore } from "../../stores/dialog-store";
-import { useUiPrefs } from "../../stores/ui-prefs";
+import { useUiPrefs, type LayerVisibility } from "../../stores/ui-prefs";
 import { cn } from "@/lib/utils";
 
 // ─── Mode icon + label lookup ─────────────────────────────────────────────────
@@ -155,23 +155,37 @@ function TargetCell({ target, active, swatchColor, onClick }: TargetCellProps) {
   );
 }
 
-// ─── Layer legend swatch (read-only) ─────────────────────────────────────────
+// ─── Layer visibility toggle ─────────────────────────────────────────────────
 
-interface LayerSwatchRowProps {
+interface LayerToggleRowProps {
+  testId: string;
   label: string;
   color: string;
+  visible: boolean;
+  onToggle: () => void;
 }
 
-function LayerSwatchRow({ label, color }: LayerSwatchRowProps) {
+function LayerToggleRow({ testId, label, color, visible, onToggle }: LayerToggleRowProps) {
   return (
-    <div className="flex items-center gap-2 px-2 py-1 text-[10px] text-ink-3 select-none">
+    <button
+      type="button"
+      data-testid={testId}
+      aria-pressed={visible}
+      aria-label={`${visible ? "Hide" : "Show"} ${label} layer`}
+      title={`${visible ? "Hide" : "Show"} ${label} layer`}
+      onClick={onToggle}
+      className={cn(
+        "flex items-center gap-2 px-2 py-1 text-[10px] select-none text-left transition-colors hover:bg-bg-raised/50",
+        visible ? "text-ink-2" : "text-ink-3 opacity-45",
+      )}
+    >
       <span
         className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
-        style={{ background: color }}
+        style={{ background: color, opacity: visible ? 1 : 0.35 }}
         aria-hidden="true"
       />
       <span>{label}</span>
-    </div>
+    </button>
   );
 }
 
@@ -183,11 +197,25 @@ export function Rail() {
 
   // Subscribe to rail store via useSyncExternalStore for React 18+.
   const state = useSyncExternalStore(railStore.subscribe, railStore.getState, railStore.getState);
+  const layerVisibility = useSyncExternalStore(
+    useUiPrefs.subscribe,
+    () => useUiPrefs.getState().layerVisibility,
+    () => useUiPrefs.getState().layerVisibility,
+  );
 
   const { target, mode, setTarget, setMode } = state;
 
   // Layer colors for swatches.
   const layerColors = useLayerColors();
+
+  function toggleLayer(layer: keyof LayerVisibility) {
+    useUiPrefs.setState((prefs) => ({
+      layerVisibility: {
+        ...prefs.layerVisibility,
+        [layer]: !prefs.layerVisibility[layer],
+      },
+    }));
+  }
 
   return (
     <div
@@ -246,13 +274,45 @@ export function Rail() {
         />
       </div>
 
-      {/* LAYERS legend section */}
+      {/* LAYERS visibility section */}
       <SectionLabel label="LAYERS" />
       <div className="flex flex-col border-b border-border-1 pb-1">
-        <LayerSwatchRow label="Block" color={layerColors.block} />
-        <LayerSwatchRow label="¶Para" color={layerColors.para} />
-        <LayerSwatchRow label="Line" color={layerColors.line} />
-        <LayerSwatchRow label="Word" color={layerColors.word} />
+        <LayerToggleRow
+          testId="rail-layer-block"
+          label="Block"
+          color={layerColors.block}
+          visible={layerVisibility.block}
+          onToggle={() => {
+            toggleLayer("block");
+          }}
+        />
+        <LayerToggleRow
+          testId="rail-layer-para"
+          label="¶Para"
+          color={layerColors.para}
+          visible={layerVisibility.paragraph}
+          onToggle={() => {
+            toggleLayer("paragraph");
+          }}
+        />
+        <LayerToggleRow
+          testId="rail-layer-line"
+          label="Line"
+          color={layerColors.line}
+          visible={layerVisibility.line}
+          onToggle={() => {
+            toggleLayer("line");
+          }}
+        />
+        <LayerToggleRow
+          testId="rail-layer-word"
+          label="Word"
+          color={layerColors.word}
+          visible={layerVisibility.word}
+          onToggle={() => {
+            toggleLayer("word");
+          }}
+        />
       </div>
 
       {/* Footer — Bulk + Hotkeys */}

@@ -91,10 +91,10 @@ export function expandSelection(page: PagePayload): ExpandedSelection {
       );
       continue;
     }
-    const word = line.word_matches[wordIdx];
+    const word = line.word_matches.find((w) => w.word_index === wordIdx);
     if (!word) {
       console.warn(
-        `[selection-expand] word (line=${lineIdx}, word=${wordIdx}) skipped: word_index ${wordIdx} out of range (line has ${line.word_matches.length} words)`,
+        `[selection-expand] word (line=${lineIdx}, word=${wordIdx}) skipped: word_index ${wordIdx} not found in line`,
       );
       continue;
     }

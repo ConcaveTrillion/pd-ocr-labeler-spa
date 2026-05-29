@@ -12,6 +12,7 @@ describe("ui-prefs store", () => {
     useUiPrefs.setState({
       lineFilter: null,
       layerVisibility: {
+        block: true,
         paragraph: true,
         line: true,
         word: true,
@@ -27,6 +28,7 @@ describe("ui-prefs store", () => {
       const store = useUiPrefs.getState();
       expect(store.lineFilter).toBeNull();
       expect(store.layerVisibility).toEqual({
+        block: true,
         paragraph: true,
         line: true,
         word: true,
@@ -102,6 +104,16 @@ describe("ui-prefs store", () => {
       expect(useUiPrefs.getState().layerVisibility.paragraph).toBe(false);
     });
 
+    it("toggles block visibility", () => {
+      useUiPrefs.setState((state) => ({
+        layerVisibility: {
+          ...state.layerVisibility,
+          block: false,
+        },
+      }));
+      expect(useUiPrefs.getState().layerVisibility.block).toBe(false);
+    });
+
     it("toggles line visibility", () => {
       useUiPrefs.setState((state) => ({
         layerVisibility: {
@@ -125,12 +137,14 @@ describe("ui-prefs store", () => {
     it("updates multiple layer visibilities at once", () => {
       useUiPrefs.setState({
         layerVisibility: {
+          block: true,
           paragraph: false,
           line: true,
           word: false,
         },
       });
       const visibility = useUiPrefs.getState().layerVisibility;
+      expect(visibility.block).toBe(true);
       expect(visibility.paragraph).toBe(false);
       expect(visibility.line).toBe(true);
       expect(visibility.word).toBe(false);

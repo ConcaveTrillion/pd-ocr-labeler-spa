@@ -224,6 +224,20 @@ def test_word_bbox_converted_correctly() -> None:
     assert wm.bbox == BBox(x=10, y=20, width=40, height=40)
 
 
+def test_normalized_word_bbox_scaled_to_page_pixels() -> None:
+    bbox = _StubBbox(min_x=0.25, min_y=0.5, max_x=0.5, max_y=0.75, is_normalized=True)
+    word = _StubWord(text="test", ground_truth_text="test", bounding_box=bbox)
+    line = _StubLine(words=[word])
+    page = _StubPage(lines_=[line])
+    page.width = 1600  # type: ignore[attr-defined]
+    page.height = 2000  # type: ignore[attr-defined]
+
+    _, lms = page_to_line_matches(page, 0, _IMAGE)
+
+    wm = lms[0].word_matches[0]
+    assert wm.bbox == BBox(x=400, y=1000, width=400, height=500)
+
+
 class _NoBboxWord:
     """Stub word with no bounding_box attribute at all."""
 

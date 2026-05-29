@@ -147,6 +147,46 @@ def _classify_match_status(
     return MatchStatus.MISMATCH, fuzz_score if fuzz_score is not None else 0.0
 
 
+def _positive_int(value: object) -> int | None:
+    try:
+        parsed = int(value)  # pyright: ignore[reportArgumentType]
+    except Exception:
+        return None
+    return parsed if parsed > 0 else None
+
+
+def _bbox_to_model(
+    bbox_obj: object,
+    *,
+    page_width: int | None,
+    page_height: int | None,
+) -> BBox:
+    """Convert a pdomain-book-tools bbox to source-image pixel coordinates."""
+    min_x = float(getattr(bbox_obj, "minX", 0) or 0)
+    min_y = float(getattr(bbox_obj, "minY", 0) or 0)
+    max_x = float(getattr(bbox_obj, "maxX", 0) or 0)
+    max_y = float(getattr(bbox_obj, "maxY", 0) or 0)
+
+    if bool(getattr(bbox_obj, "is_normalized", False)):
+        if page_width is None or page_height is None:
+            log.warning(
+                "_bbox_to_model: normalized bbox encountered without page dimensions — "
+                "coordinates may collapse to zero"
+            )
+        else:
+            min_x *= page_width
+            max_x *= page_width
+            min_y *= page_height
+            max_y *= page_height
+
+    return BBox(
+        x=round(min_x),
+        y=round(min_y),
+        width=max(0, round(max_x - min_x)),
+        height=max(0, round(max_y - min_y)),
+    )
+
+
 def _word_to_word_match(
     word_index: int,
     line_index: int,
@@ -154,6 +194,8 @@ def _word_to_word_match(
     fuzz_threshold: float = _FUZZ_THRESHOLD,
     char_bboxes_map: dict[str, list[dict[str, int]]] | None = None,
     char_ranges_map: dict[str, list[dict[str, object]]] | None = None,
+    page_width: int | None = None,
+    page_height: int | None = None,
 ) -> WordMatch | None:
     """Convert one ``pdomain_book_tools.ocr.word.Word`` to a ``WordMatch``.
 
@@ -197,12 +239,7 @@ def _word_to_word_match(
                 word_index,
             )
             return None  # Can't build a WordMatch without a bbox.
-        bb = BBox(
-            x=int(getattr(bbox_obj, "minX", 0) or 0),
-            y=int(getattr(bbox_obj, "minY", 0) or 0),
-            width=max(0, int((getattr(bbox_obj, "maxX", 0) or 0) - (getattr(bbox_obj, "minX", 0) or 0))),
-            height=max(0, int((getattr(bbox_obj, "maxY", 0) or 0) - (getattr(bbox_obj, "minY", 0) or 0))),
-        )
+        bb = _bbox_to_model(bbox_obj, page_width=page_width, page_height=page_height)
 
         match_status, fuzz_score = _classify_match_status(
             ocr_text, gt_text, word_obj, fuzz_threshold=fuzz_threshold
@@ -418,6 +455,8 @@ def page_to_line_matches(
 
     try:
         lines = getattr(page, "lines", None) or []
+        page_width = _positive_int(getattr(page, "width", None))
+        page_height = _positive_int(getattr(page, "height", None))
         # Defensive: skip non-iterable (e.g. Mock without __iter__)
         try:
             iter(lines)
@@ -456,6 +495,8 @@ def page_to_line_matches(
                         fuzz_threshold=fuzz_threshold,
                         char_bboxes_map=char_bboxes_map,
                         char_ranges_map=char_ranges_map,
+                        page_width=page_width,
+                        page_height=page_height,
                     )
                     if wm is not None:
                         word_matches.append(wm)

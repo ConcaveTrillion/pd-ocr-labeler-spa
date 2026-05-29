@@ -13,5 +13,6 @@ minimumReleaseAgeExclude:
 # linked @pdomain/pdomain-ui shares one React instance (matches
 # pdomain-ocr-simple-gui) — avoids duplicate-React broken hooks.
 overrides:
-  react: $react
-  react-dom: $react-dom
+  react: ^19.0.0
+  react-dom: ^19.0.0
+  "@pdomain/pdomain-ui": link:../../pdomain-ui

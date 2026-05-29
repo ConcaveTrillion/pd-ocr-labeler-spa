@@ -27,7 +27,7 @@
 // §6/§8 bumps to 3 px via the `selected` branch on BBoxItem.
 
 import { memo } from "react";
-import { Rect } from "react-konva";
+import { RectOverlayLayer, type RectOverlayItem } from "@pdomain/pdomain-ui/canvas";
 import type { BBox } from "../lib/coords";
 import {
   useLayerColors,
@@ -39,6 +39,7 @@ import {
 
 /** Layer name type. */
 export type LayerName =
+  | "blocks"
   | "paragraphs"
   | "lines"
   | "words"
@@ -62,6 +63,11 @@ export type { LayerColorSpec };
  * Source: image_tabs.py:280-285,500-535.
  */
 export const LAYER_COLORS: Record<LayerName, LayerColorSpec> = {
+  blocks: {
+    fill: "rgba(168,144,116,0.20)",
+    stroke: "rgba(168,144,116,0.65)",
+    strokeWidth: 1,
+  },
   paragraphs: {
     fill: "rgba(34,197,94,0.20)",
     stroke: "rgba(22,163,74,0.65)",
@@ -107,7 +113,7 @@ export const SELECTION_STROKE_WIDTH = 3;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
-export interface BBoxItem {
+export interface BBoxItem extends RectOverlayItem {
   /** 0-based flat index within the layer's array (used as React key). */
   id: string;
   bbox: BBox;
@@ -168,6 +174,8 @@ function resolveLayerColorSpec(
   layerColors: ReturnType<typeof useLayerColors>,
 ): LayerColorSpec {
   switch (layer) {
+    case "blocks":
+      return hexToLayerColorSpec(layerColors.block);
     case "paragraphs":
       return hexToLayerColorSpec(layerColors.para);
     case "lines":
@@ -195,46 +203,18 @@ function BBoxOverlayInner({ layer, items, visible = true, dimmed = false }: BBox
   // Resolve theme-aware colors: CSS vars for paragraphs/lines/words; hardcoded
   // for drag-rect and selection layers (no CSS token exists for these).
   const colors = resolveLayerColorSpec(layer, layerColors);
-  // Vite injects `import.meta.env.MODE` at build time. The frontend tsconfig
-  // doesn't pull in vite/client typings (which would polute every file with
-  // an `env` global), so we read it through a local narrow cast.
-  const mode = (import.meta as unknown as { env?: { MODE?: string } }).env?.MODE;
-  const isDevOrTest = mode !== "production";
-  const layerOpacity = dimmed ? DIMMED_OPACITY : 1;
 
   return (
-    <>
-      {items.map((item) => {
-        // Per-item dimming (Mismatches-only filter, Issue #295) overrides
-        // layer-level dimming. If neither applies, use full opacity.
-        const opacity = item.dimmed ? MISMATCH_DIM_OPACITY : layerOpacity;
-        return (
-          <Rect
-            key={item.id}
-            x={item.bbox.x}
-            y={item.bbox.y}
-            width={item.bbox.width}
-            height={item.bbox.height}
-            fill={colors.fill}
-            stroke={colors.stroke}
-            strokeWidth={item.selected ? SELECTION_STROKE_WIDTH : colors.strokeWidth}
-            opacity={opacity}
-            listening={false}
-            perfectDrawEnabled={false}
-          />
-        );
-      })}
-      {isDevOrTest && (
-        <div
-          data-testid={`bbox-overlay-${layer}`}
-          data-layer={layer}
-          data-item-count={items.length}
-          data-dimmed={dimmed ? "true" : undefined}
-          style={{ position: "absolute", visibility: "hidden", pointerEvents: "none" }}
-          aria-hidden="true"
-        />
-      )}
-    </>
+    <RectOverlayLayer
+      layer={layer}
+      items={items}
+      colors={colors}
+      visible={visible}
+      dimmed={dimmed}
+      selectionStrokeWidth={SELECTION_STROKE_WIDTH}
+      layerDimmedOpacity={DIMMED_OPACITY}
+      itemDimmedOpacity={MISMATCH_DIM_OPACITY}
+    />
   );
 }
 

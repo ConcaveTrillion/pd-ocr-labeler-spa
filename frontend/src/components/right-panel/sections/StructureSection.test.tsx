@@ -59,6 +59,26 @@ function makePage(wordCount = 3): PagePayload {
   };
 }
 
+function makeSparseWordIndexPage(): PagePayload {
+  const words = [makeWord(0, 3, "alpha"), makeWord(0, 7, "bravo"), makeWord(0, 9, "charlie")];
+  words[0]!.bbox = { x: 0, y: 0, width: 10, height: 10 };
+  words[1]!.bbox = { x: 20, y: 0, width: 10, height: 10 };
+  words[2]!.bbox = { x: 40, y: 0, width: 10, height: 10 };
+  return {
+    ...makePage(0),
+    line_matches: [
+      {
+        ...makePage(0).line_matches![0]!,
+        ocr_line_text: "alpha bravo charlie",
+        ground_truth_line_text: "alpha bravo charlie",
+        word_matches: words,
+        exact_count: words.length,
+        total_word_count: words.length,
+      },
+    ],
+  };
+}
+
 const PAGE_RESPONSE = makePage();
 
 function makeQueryClient() {
@@ -137,6 +157,15 @@ describe("StructureSection (Slice 18 + P3.d / Gap 37)", () => {
   it("shows 'none' for next when word is last", () => {
     renderSection(makeWord(0, 2)); // last word in 3-word line
     expect(screen.getByTestId("structure-next-word")).toHaveTextContent("none");
+  });
+
+  it("finds neighbors by sorted logical word_index, not array position", () => {
+    const page = makeSparseWordIndexPage();
+    renderSection(page.line_matches![0]!.word_matches[1]!, page);
+
+    expect(screen.getByTestId("structure-prev-word")).toHaveTextContent("alpha");
+    expect(screen.getByTestId("structure-current-word")).toHaveTextContent("bravo");
+    expect(screen.getByTestId("structure-next-word")).toHaveTextContent("charlie");
   });
 
   // ── Merge preview row ──────────────────────────────────────────────────────
@@ -266,6 +295,26 @@ describe("StructureSection (Slice 18 + P3.d / Gap 37)", () => {
 
     const { fireEvent } = await import("@testing-library/react");
     renderSection(makeWord(0, 1));
+    const slider = screen.getByTestId("structure-gap-slider");
+    fireEvent.change(slider, { target: { value: "5" } });
+    fireEvent.mouseUp(slider, { target: { value: "5" } });
+
+    await waitFor(() => expect(reboxHandler).toHaveBeenCalledOnce());
+  });
+
+  it("committing the gap slider targets the next logical word_index when ids are sparse", async () => {
+    const page = makeSparseWordIndexPage();
+    const reboxHandler = vi.fn(async ({ request }: { request: Request }) => {
+      const body = (await request.json()) as {
+        bbox: { x: number; y: number; width: number; height: number };
+      };
+      expect(body.bbox.x).toBe(45);
+      return HttpResponse.json(page);
+    });
+    server.use(http.post("/api/projects/p1/pages/0/words/0/9/rebox", reboxHandler));
+
+    const { fireEvent } = await import("@testing-library/react");
+    renderSection(page.line_matches![0]!.word_matches[1]!, page);
     const slider = screen.getByTestId("structure-gap-slider");
     fireEvent.change(slider, { target: { value: "5" } });
     fireEvent.mouseUp(slider, { target: { value: "5" } });

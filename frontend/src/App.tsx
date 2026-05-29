@@ -35,6 +35,7 @@ import HeaderBar from "./components/HeaderBar";
 import type { PageMetrics } from "./components/HeaderBar";
 import ProjectNavigationControls from "./components/ProjectNavigationControls";
 import { PageActionsCompact } from "./components/PageActionsCompact";
+import { Rail } from "./components/shell/Rail";
 import RootPage from "./pages/RootPage";
 import ProjectPage from "./pages/ProjectPage";
 import { ROUTES } from "./lib/routes";
@@ -175,9 +176,9 @@ function AppInner() {
      *   main     ← Routes block + accessible live regions
      *   children ← modal dialogs (AppShell renders children outside grid)
      *
-     * rail / drawer / rightPanel are not used at the App level — they are
-     * filled by StudioShell inside ProjectPage for the per-page layout.
-     * StudioShell continues to manage the 5-zone canvas grid.
+     * rail is filled on project routes with the OCR target/tool rail. Drawer
+     * and rightPanel are not used at the AppShell level; ProjectPage owns its
+     * interior canvas/worklist/detail layout inside main.
      *
      * launcherSlot="header": pdomain-ui AppShell injects LauncherSlot into the
      * header zone. The SuiteSiblingsProvider (wrapped in App()) supplies the
@@ -228,6 +229,7 @@ function AppInner() {
             />
           </>
         }
+        rail={onProjectRoute ? <Rail /> : undefined}
         main={
           <main className="h-full min-h-0 overflow-hidden">
             <Routes>

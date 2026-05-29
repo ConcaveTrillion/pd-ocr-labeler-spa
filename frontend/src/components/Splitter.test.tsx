@@ -12,7 +12,7 @@ import { useUiPrefs } from "../stores/ui-prefs";
 function resetPrefs() {
   useUiPrefs.setState({
     lineFilter: null,
-    layerVisibility: { paragraph: true, line: true, word: true },
+    layerVisibility: { block: true, paragraph: true, line: true, word: true },
     splitterRatio: 0.5,
     selectionMode: "paragraph",
   });

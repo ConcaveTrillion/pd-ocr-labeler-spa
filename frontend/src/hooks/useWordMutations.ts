@@ -359,14 +359,14 @@ export function useSetCharBboxes(projectId: string, pageIndex: number) {
 /**
  * Adjust the inter-word gap by shifting the next word's bbox via rebox.
  *
- * The gap between word `wi` and word `wi+1` is:
- *   gap = word[wi+1].bbox.x − (word[wi].bbox.x + word[wi].bbox.width)
+ * The gap between the current word and next word is:
+ *   gap = next.bbox.x - (current.bbox.x + current.bbox.width)
  *
- * Adjusting by `deltaX` pixels shifts word `wi+1` left (negative) or right
+ * Adjusting by `deltaX` pixels shifts the next word left (negative) or right
  * (positive), widening or narrowing the gap.  The caller is responsible for
  * clamping `deltaX` so the resulting gap stays non-negative.
  *
- * Delegates to ``useReboxWord`` on word ``wi+1``.
+ * Delegates to ``useReboxWord`` on the next word's logical ``word_index``.
  */
 export function useAdjustWordGap(projectId: string, pageIndex: number) {
   const reboxMutation = useReboxWord(projectId, pageIndex);
@@ -374,13 +374,14 @@ export function useAdjustWordGap(projectId: string, pageIndex: number) {
   return {
     mutate: ({
       lineIndex,
-      wordIndex,
+      nextWordIndex,
       nextWordBbox,
       deltaX,
     }: {
       lineIndex: number;
-      wordIndex: number;
-      /** The next word's (wi+1) current bounding box. */
+      /** The next word's logical word_index. */
+      nextWordIndex: number;
+      /** The next word's current bounding box. */
       nextWordBbox: BBox;
       /** Pixels to shift the next word. Positive = increase gap, negative = decrease. */
       deltaX: number;
@@ -388,7 +389,7 @@ export function useAdjustWordGap(projectId: string, pageIndex: number) {
       if (Math.round(deltaX) === 0) return;
       reboxMutation.mutate({
         lineIndex,
-        wordIndex: wordIndex + 1, // rebox the NEXT word
+        wordIndex: nextWordIndex,
         bbox: {
           x: nextWordBbox.x + deltaX,
           y: nextWordBbox.y,

@@ -29,6 +29,7 @@ import { createStore } from "zustand/vanilla";
 import { useSyncExternalStore } from "react";
 
 export interface LayerVisibility {
+  block: boolean;
   paragraph: boolean;
   line: boolean;
   word: boolean;
@@ -165,6 +166,7 @@ function setupSystemListener(theme: ThemePreference, notifyFn: () => void) {
 const INITIAL_PREFS: UiPrefsState = {
   lineFilter: null,
   layerVisibility: {
+    block: true,
     paragraph: true,
     line: true,
     word: true,

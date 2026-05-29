@@ -42,6 +42,45 @@ vi.mock("react-router-dom", async (importOriginal) => {
 // bundles react-konva. Mock pdomain-ui/canvas first to prevent konva's Node.js
 // entry from trying to require('canvas'), a native addon not in jsdom.
 vi.mock("@pdomain/pdomain-ui/canvas", () => ({
+  rectToDisplay: (
+    bbox: { x: number; y: number; width: number; height: number },
+    encoded: { scale: number },
+  ) => ({
+    x: bbox.x * encoded.scale,
+    y: bbox.y * encoded.scale,
+    width: bbox.width * encoded.scale,
+    height: bbox.height * encoded.scale,
+  }),
+  rectItemsToDisplay: <T extends { bbox: { x: number; y: number; width: number; height: number } }>(
+    items: T[],
+    encoded: { scale: number } | null,
+  ) =>
+    encoded
+      ? items.map((item) => ({
+          ...item,
+          bbox: {
+            x: item.bbox.x * encoded.scale,
+            y: item.bbox.y * encoded.scale,
+            width: item.bbox.width * encoded.scale,
+            height: item.bbox.height * encoded.scale,
+          },
+        }))
+      : items,
+  RectOverlayLayer: ({
+    layer,
+    items,
+    dimmed,
+  }: {
+    layer: string;
+    items: Array<{ id: string }>;
+    dimmed?: boolean;
+  }) => (
+    <div
+      data-testid={`bbox-overlay-${layer}`}
+      data-item-count={items.length}
+      data-dimmed={dimmed ? "true" : undefined}
+    />
+  ),
   PageImageCanvas: ({
     page,
     children,
@@ -184,14 +223,13 @@ describe("ProjectPage — real shell (spec 22 §3, #314)", () => {
     expect(await screen.findByTestId("project-page")).toBeInTheDocument();
   });
 
-  it("renders the StudioShell wrapper with all 5 zones (Slice 8)", async () => {
+  it("renders the project workspace without the nested local StudioShell", async () => {
     renderProjectPage();
-    expect(await screen.findByTestId("studio-shell")).toBeInTheDocument();
-    expect(screen.getByTestId("studio-shell-header")).toBeInTheDocument();
-    expect(screen.getByTestId("studio-shell-rail")).toBeInTheDocument();
-    expect(screen.getByTestId("studio-shell-drawer")).toBeInTheDocument();
-    expect(screen.getByTestId("studio-shell-canvas")).toBeInTheDocument();
-    expect(screen.getByTestId("studio-shell-right")).toBeInTheDocument();
+    expect(await screen.findByTestId("project-workspace")).toBeInTheDocument();
+    expect(screen.queryByTestId("studio-shell")).toBeNull();
+    expect(screen.getByTestId("project-canvas-column")).toBeInTheDocument();
+    expect(screen.getByTestId("project-worklist-column")).toBeInTheDocument();
+    expect(screen.getByTestId("project-detail-column")).toBeInTheDocument();
   });
 
   it("removes the legacy source-folder + nav stubs from inside ProjectPage", async () => {
@@ -266,13 +304,19 @@ describe("ProjectPage — real shell (spec 22 §3, #314)", () => {
     expect(screen.queryByTestId("splitter")).toBeNull();
   });
 
-  it("IS-4: canvas slot has ImageTabsHeader and image-pane directly (no splitter)", async () => {
+  it("uses a top toolbar without duplicate layer, target, erase, or zoom controls", async () => {
     renderProjectPage();
-    expect(await screen.findByTestId("layer-paragraphs-checkbox")).toBeInTheDocument();
-    expect(screen.getByTestId("layer-lines-checkbox")).toBeInTheDocument();
-    expect(screen.getByTestId("layer-words-checkbox")).toBeInTheDocument();
-    expect(screen.getByTestId("selection-mode-paragraph")).toBeInTheDocument();
-    expect(screen.getByTestId("erase-pixels-button")).toBeInTheDocument();
+    expect(await screen.findByTestId("project-top-toolbar")).toBeInTheDocument();
+    expect(screen.queryByTestId("layer-paragraphs-checkbox")).toBeNull();
+    expect(screen.queryByTestId("layer-lines-checkbox")).toBeNull();
+    expect(screen.queryByTestId("layer-words-checkbox")).toBeNull();
+    expect(screen.queryByTestId("selection-mode-paragraph")).toBeNull();
+    expect(screen.queryByTestId("selection-mode-line")).toBeNull();
+    expect(screen.queryByTestId("selection-mode-word")).toBeNull();
+    expect(screen.queryByTestId("erase-pixels-button")).toBeNull();
+    expect(screen.queryByTestId("zoom-fit-button")).toBeNull();
+    expect(screen.queryByTestId("zoom-100-button")).toBeNull();
+    expect(screen.getByTestId("mismatches-only-toggle")).toBeInTheDocument();
     expect(screen.getByTestId("image-pane")).toBeInTheDocument();
   });
 
@@ -384,15 +428,12 @@ describe("ProjectPage — real shell (spec 22 §3, #314)", () => {
     expect(imagePaneEl.contains(screen.getByTestId("busy-overlay"))).toBe(true);
   });
 
-  it("IS-4: inline-banners is in the canvas zone (sibling of image-pane after IS-4 strip)", async () => {
+  it("IS-4: inline-banners is in the canvas column (sibling of image-pane after IS-4 strip)", async () => {
     renderProjectPage();
     // inline-banners container is always present (even with no active banners).
     const bannersEl = await screen.findByTestId("inline-banners");
     expect(bannersEl).toBeInTheDocument();
-    // IS-4: inline-banners is now a sibling of image-pane (not inside it),
-    // both children of the canvas flex column. The studio-shell-canvas zone
-    // contains both.
-    const canvasZone = screen.getByTestId("studio-shell-canvas");
+    const canvasZone = screen.getByTestId("project-canvas-column");
     expect(canvasZone.contains(bannersEl)).toBe(true);
   });
 
@@ -403,23 +444,20 @@ describe("ProjectPage — real shell (spec 22 §3, #314)", () => {
     expect(await screen.findByTestId("drawer")).toBeInTheDocument();
   });
 
-  it("IS-3: StudioShell drawerCollapsed reflects drawerOpen from useUiPrefs", async () => {
+  it("IS-3: the worklist column reflects drawerOpen from useUiPrefs", async () => {
     renderProjectPage();
-    await screen.findByTestId("studio-shell");
-    // Default drawerOpen=true → drawerCollapsed=false → data-collapsed absent.
-    const drawerZone = screen.getByTestId("studio-shell-drawer");
-    expect(drawerZone.getAttribute("data-collapsed")).toBeNull();
+    await screen.findByTestId("project-worklist-column");
+    expect(screen.getByTestId("drawer")).toHaveAttribute("data-open", "true");
   });
 
-  it("IS-6: clicking drawer-collapse-btn sets drawerCollapsed=true on StudioShell", async () => {
+  it("IS-6: clicking drawer-collapse-btn collapses the right-side worklist", async () => {
     renderProjectPage();
     await screen.findByTestId("drawer");
     // Default: open. Collapse button is inside the Drawer header.
     const collapseBtn = screen.getByTestId("drawer-collapse-btn");
     fireEvent.click(collapseBtn);
     await waitFor(() => {
-      const drawerZone = screen.getByTestId("studio-shell-drawer");
-      expect(drawerZone.getAttribute("data-collapsed")).toBe("true");
+      expect(screen.getByTestId("drawer")).toHaveAttribute("data-open", "false");
     });
   });
 
@@ -434,8 +472,7 @@ describe("ProjectPage — real shell (spec 22 §3, #314)", () => {
     // Expand.
     fireEvent.click(screen.getByTestId("drawer-expand-btn"));
     await waitFor(() => {
-      const drawerZone = screen.getByTestId("studio-shell-drawer");
-      expect(drawerZone.getAttribute("data-collapsed")).toBeNull();
+      expect(screen.getByTestId("drawer")).toHaveAttribute("data-open", "true");
     });
   });
 

@@ -15,9 +15,18 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "react/jsx-runtime": path.resolve(__dirname, "./node_modules/react/jsx-runtime.js"),
+      "react/jsx-dev-runtime": path.resolve(__dirname, "./src/jsx-dev-runtime-shim.ts"),
+      react: path.resolve(__dirname, "./node_modules/react"),
+      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
+      "react-konva": path.resolve(__dirname, "./node_modules/react-konva"),
     },
+    dedupe: ["react", "react-dom", "react-konva"],
   },
   test: {
+    deps: {
+      inline: [/@pdomain\/pdomain-ui/, /@radix-ui\//],
+    },
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],

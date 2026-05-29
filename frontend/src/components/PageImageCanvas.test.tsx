@@ -60,7 +60,103 @@ const mockStageScale = vi.hoisted(() => ({ value: 1 }));
 
 vi.mock("@pdomain/pdomain-ui/canvas", async () => {
   const { useEffect, useRef } = await import("react");
+  const isNormalizedRect = (bbox: { x: number; y: number; width: number; height: number }) =>
+    bbox.x >= 0 &&
+    bbox.y >= 0 &&
+    bbox.width >= 0 &&
+    bbox.height >= 0 &&
+    bbox.x <= 1 &&
+    bbox.y <= 1 &&
+    bbox.width <= 1 &&
+    bbox.height <= 1 &&
+    bbox.x + bbox.width <= 1.000_001 &&
+    bbox.y + bbox.height <= 1.000_001;
+
+  const rectToDisplay = (
+    bbox: { x: number; y: number; width: number; height: number },
+    encoded: {
+      display_width: number;
+      display_height: number;
+      scale: number;
+    },
+  ) => {
+    if (isNormalizedRect(bbox)) {
+      return {
+        x: bbox.x * encoded.display_width,
+        y: bbox.y * encoded.display_height,
+        width: bbox.width * encoded.display_width,
+        height: bbox.height * encoded.display_height,
+      };
+    }
+    return {
+      x: bbox.x * encoded.scale,
+      y: bbox.y * encoded.scale,
+      width: bbox.width * encoded.scale,
+      height: bbox.height * encoded.scale,
+    };
+  };
+
+  const rectItemsToDisplay = <
+    T extends { bbox: { x: number; y: number; width: number; height: number } },
+  >(
+    items: T[],
+    encoded: { display_width: number; display_height: number; scale: number } | null,
+  ) =>
+    encoded ? items.map((item) => ({ ...item, bbox: rectToDisplay(item.bbox, encoded) })) : items;
+
   return {
+    rectToDisplay,
+    rectItemsToDisplay,
+    RectOverlayLayer: ({
+      layer,
+      items,
+      colors,
+      dimmed,
+      selectionStrokeWidth = 3,
+      layerDimmedOpacity = 0.3,
+      itemDimmedOpacity = 0.2,
+    }: {
+      layer: string;
+      items: Array<{
+        id: string;
+        bbox: { x: number; y: number; width: number; height: number };
+        selected?: boolean;
+        dimmed?: boolean;
+      }>;
+      colors: { fill: string; stroke: string; strokeWidth: number };
+      dimmed?: boolean;
+      selectionStrokeWidth?: number;
+      layerDimmedOpacity?: number;
+      itemDimmedOpacity?: number;
+    }) => {
+      const layerOpacity = dimmed ? layerDimmedOpacity : 1;
+      return (
+        <>
+          {items.map((item) => (
+            <div
+              key={item.id}
+              data-testid={`rect-overlay-${layer}-${item.id}`}
+              data-x={item.bbox.x}
+              data-y={item.bbox.y}
+              data-width={item.bbox.width}
+              data-height={item.bbox.height}
+              data-fill={colors.fill}
+              data-stroke={colors.stroke}
+              data-stroke-width={item.selected ? selectionStrokeWidth : colors.strokeWidth}
+              data-opacity={item.dimmed ? itemDimmedOpacity : layerOpacity}
+            />
+          ))}
+          <div
+            key={`bbox-overlay-${layer}-sidecar`}
+            data-testid={`bbox-overlay-${layer}`}
+            data-layer={layer}
+            data-item-count={items.length}
+            data-dimmed={dimmed ? "true" : undefined}
+            aria-hidden="true"
+          />
+        </>
+      );
+    },
     PageImageCanvas: ({
       page,
       children,
@@ -336,12 +432,13 @@ afterEach(() => {
   });
   useUiPrefs.setState({
     lineFilter: null,
-    layerVisibility: { paragraph: true, line: true, word: true },
+    layerVisibility: { block: true, paragraph: true, line: true, word: true },
     splitterRatio: 0.5,
     selectionMode: "paragraph",
     matchFilter: "unvalidated",
     rightPanelOpen: false,
   });
+  railStore.getState().setTarget("word");
   mockUseImageState.image = undefined;
   mockUseImageState.status = "loading";
   mockStageScale.value = 1;
@@ -369,6 +466,10 @@ function simulateDrag(
   fireEvent.mouseDown(overlay, { clientX: from.x, clientY: from.y, ...opts });
   fireEvent.mouseMove(overlay, { clientX: to.x, clientY: to.y, ...opts });
   fireEvent.mouseUp(overlay, { clientX: to.x, clientY: to.y, ...opts });
+}
+
+function sourceToDisplayPoint(x: number, y: number): { x: number; y: number } {
+  return { x: x * encoded.scale, y: y * encoded.scale };
 }
 
 // ── spec-21-A2 (#297): Stage scaffold ─────────────────────────────────────────
@@ -852,6 +953,53 @@ describe("PageImageCanvas — selection layer rendering (spec-21-A5, #300)", () 
     );
   });
 
+  it("renders all layer overlay bboxes from the page by default", () => {
+    const first = makeLine(0, 0, [
+      { x: 10, y: 20, width: 30, height: 5 },
+      { x: 45, y: 21, width: 20, height: 4 },
+    ]);
+    first.block_index = 0;
+    const second = makeLine(1, 1, [{ x: 100, y: 60, width: 50, height: 10 }]);
+    second.block_index = 1;
+    const page = makePage([first, second], undefined);
+
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} page={page} />);
+
+    expect(screen.getByTestId("bbox-overlay-blocks").getAttribute("data-item-count")).toBe("2");
+    expect(screen.getByTestId("bbox-overlay-paragraphs").getAttribute("data-item-count")).toBe("2");
+    expect(screen.getByTestId("bbox-overlay-lines").getAttribute("data-item-count")).toBe("2");
+    expect(screen.getByTestId("bbox-overlay-words").getAttribute("data-item-count")).toBe("3");
+
+    const firstBlock = screen.getByTestId("rect-overlay-blocks-0");
+    expect(firstBlock).toHaveAttribute("data-x", "5");
+    expect(firstBlock).toHaveAttribute("data-y", "10");
+    expect(firstBlock).toHaveAttribute("data-width", "27.5");
+    expect(firstBlock).toHaveAttribute("data-height", "2.5");
+  });
+
+  it("layer visibility hides overlays independently of the active rail target", () => {
+    const first = makeLine(0, 0, [
+      { x: 10, y: 20, width: 30, height: 5 },
+      { x: 45, y: 21, width: 20, height: 4 },
+    ]);
+    first.block_index = 0;
+    const page = makePage([first], undefined);
+
+    railStore.getState().setTarget("line");
+    useUiPrefs.setState((state) => ({
+      layerVisibility: {
+        ...state.layerVisibility,
+        line: false,
+      },
+    }));
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} page={page} />);
+
+    expect(screen.getByTestId("bbox-overlay-blocks").getAttribute("data-item-count")).toBe("1");
+    expect(screen.getByTestId("bbox-overlay-paragraphs").getAttribute("data-item-count")).toBe("1");
+    expect(screen.queryByTestId("bbox-overlay-lines")).toBeNull();
+    expect(screen.getByTestId("bbox-overlay-words").getAttribute("data-item-count")).toBe("2");
+  });
+
   it("selected line populates bbox-overlay-selection-lines with item-count=1 and a Rect with stroke width 3 (acceptance criterion)", () => {
     const page = makePage(
       [
@@ -873,7 +1021,7 @@ describe("PageImageCanvas — selection layer rendering (spec-21-A5, #300)", () 
     expect(sidecar.getAttribute("data-item-count")).toBe("1");
 
     const selectionLayer = screen.getByTestId("konva-layer-selection");
-    const rects = selectionLayer.querySelectorAll('[data-testid="konva-rect"]');
+    const rects = selectionLayer.querySelectorAll('[data-testid^="rect-overlay-selection-lines-"]');
     // One selection-lines rect (the selected line bbox)
     const selectionRects = Array.from(rects).filter(
       (r) => r.getAttribute("data-stroke-width") === String(SELECTION_STROKE_WIDTH),
@@ -908,23 +1056,96 @@ describe("PageImageCanvas — selection layer rendering (spec-21-A5, #300)", () 
   });
 });
 
-// ── Word click → selectWord (canvas entry point wiring) ─────────────────────
+// ── Target click → selection action (canvas entry point wiring) ─────────────
 
-describe("PageImageCanvas — word bbox click → selectWord", () => {
-  it("clicking within a word bbox in select mode calls selectWord(lineIdx, wordIdx)", () => {
+describe("PageImageCanvas — target bbox click → selection action", () => {
+  it("scales source-image word bboxes into display space for hit-testing", () => {
     const page = makePage([makeLine(2, 0, [{ x: 100, y: 200, width: 50, height: 20 }])]);
     page.line_matches![0].word_matches[0].word_index = 3;
 
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} page={page} />);
     const overlay = getOverlay();
 
-    // Click inside the bbox (x=125, y=210 is within 100..150, 200..220)
-    fireEvent.mouseDown(overlay, { clientX: 125, clientY: 210 });
-    fireEvent.mouseUp(overlay, { clientX: 125, clientY: 210 });
+    // encoded.scale=0.5, so source bbox 100..150 × 200..220 renders at
+    // display bbox 50..75 × 100..110.
+    fireEvent.mouseDown(overlay, { clientX: 62.5, clientY: 105 });
+    fireEvent.mouseUp(overlay, { clientX: 62.5, clientY: 105 });
 
     const sel = selectionStore.getState();
     expect(sel.level).toBe("word");
     expect(sel.selectedWords).toEqual([[2, 3]]);
+  });
+
+  it("clicking within a word bbox in select mode calls selectWord(lineIdx, wordIdx)", () => {
+    const page = makePage([makeLine(2, 0, [{ x: 100, y: 200, width: 50, height: 20 }])]);
+    page.line_matches![0].word_matches[0].word_index = 3;
+
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} page={page} />);
+    const overlay = getOverlay();
+    const point = sourceToDisplayPoint(125, 210);
+
+    // Click inside the source bbox (125, 210), projected to display space.
+    fireEvent.mouseDown(overlay, { clientX: point.x, clientY: point.y });
+    fireEvent.mouseUp(overlay, { clientX: point.x, clientY: point.y });
+
+    const sel = selectionStore.getState();
+    expect(sel.level).toBe("word");
+    expect(sel.selectedWords).toEqual([[2, 3]]);
+  });
+
+  it("clicking with line target selects the hit line", () => {
+    const page = makePage([
+      makeLine(7, 0, [
+        { x: 100, y: 200, width: 50, height: 20 },
+        { x: 160, y: 200, width: 40, height: 20 },
+      ]),
+    ]);
+    railStore.getState().setTarget("line");
+
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} page={page} />);
+    const overlay = getOverlay();
+    const point = sourceToDisplayPoint(125, 210);
+
+    fireEvent.mouseDown(overlay, { clientX: point.x, clientY: point.y });
+    fireEvent.mouseUp(overlay, { clientX: point.x, clientY: point.y });
+
+    const sel = selectionStore.getState();
+    expect(sel.level).toBe("line");
+    expect(sel.selectedLines).toEqual([7]);
+  });
+
+  it("clicking with paragraph target selects the hit paragraph", () => {
+    const page = makePage([makeLine(2, 4, [{ x: 100, y: 200, width: 50, height: 20 }])]);
+    railStore.getState().setTarget("para");
+
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} page={page} />);
+    const overlay = getOverlay();
+    const point = sourceToDisplayPoint(125, 210);
+
+    fireEvent.mouseDown(overlay, { clientX: point.x, clientY: point.y });
+    fireEvent.mouseUp(overlay, { clientX: point.x, clientY: point.y });
+
+    const sel = selectionStore.getState();
+    expect(sel.level).toBe("para");
+    expect(sel.selectedParagraphs).toEqual([4]);
+  });
+
+  it("clicking with block target selects the hit block", () => {
+    const line = makeLine(2, 0, [{ x: 100, y: 200, width: 50, height: 20 }]);
+    line.block_index = 9;
+    const page = makePage([line]);
+    railStore.getState().setTarget("block");
+
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} page={page} />);
+    const overlay = getOverlay();
+    const point = sourceToDisplayPoint(125, 210);
+
+    fireEvent.mouseDown(overlay, { clientX: point.x, clientY: point.y });
+    fireEvent.mouseUp(overlay, { clientX: point.x, clientY: point.y });
+
+    const sel = selectionStore.getState();
+    expect(sel.level).toBe("block");
+    expect(sel.path.blockId).toBe("9");
   });
 
   it("clicking within a word bbox opens the right panel (rightPanelOpen=true)", () => {
@@ -933,9 +1154,10 @@ describe("PageImageCanvas — word bbox click → selectWord", () => {
 
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} page={page} />);
     const overlay = getOverlay();
+    const point = sourceToDisplayPoint(25, 15);
 
-    fireEvent.mouseDown(overlay, { clientX: 25, clientY: 15 });
-    fireEvent.mouseUp(overlay, { clientX: 25, clientY: 15 });
+    fireEvent.mouseDown(overlay, { clientX: point.x, clientY: point.y });
+    fireEvent.mouseUp(overlay, { clientX: point.x, clientY: point.y });
 
     expect(useUiPrefs.getState().rightPanelOpen).toBe(true);
   });
@@ -972,9 +1194,10 @@ describe("PageImageCanvas — word bbox click → selectWord", () => {
 
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} page={page} />);
     const overlay = getOverlay();
+    const point = sourceToDisplayPoint(25, 15);
 
-    fireEvent.mouseDown(overlay, { clientX: 25, clientY: 15 });
-    fireEvent.mouseUp(overlay, { clientX: 25, clientY: 15 });
+    fireEvent.mouseDown(overlay, { clientX: point.x, clientY: point.y });
+    fireEvent.mouseUp(overlay, { clientX: point.x, clientY: point.y });
 
     const sel = selectionStore.getState();
     expect(sel.level).toBe("none");
@@ -999,11 +1222,11 @@ describe("PageImageCanvas — word bbox click → selectWord", () => {
 
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} page={page} />);
     const overlay = getOverlay();
+    const displayPoint = sourceToDisplayPoint(125, 210);
 
-    // Stage-space pointer (250, 420) ÷ scale 2 = page-space (125, 210),
-    // which is inside the word bbox 100..150 × 200..220.
-    fireEvent.mouseDown(overlay, { clientX: 250, clientY: 420 });
-    fireEvent.mouseUp(overlay, { clientX: 250, clientY: 420 });
+    // Stage-space pointer ÷ scale 2 = display-space point inside the word bbox.
+    fireEvent.mouseDown(overlay, { clientX: displayPoint.x * 2, clientY: displayPoint.y * 2 });
+    fireEvent.mouseUp(overlay, { clientX: displayPoint.x * 2, clientY: displayPoint.y * 2 });
 
     const sel = selectionStore.getState();
     expect(sel.level).toBe("word");
@@ -1012,17 +1235,17 @@ describe("PageImageCanvas — word bbox click → selectWord", () => {
 
   it("does NOT hit when the raw (un-divided) stage pointer would fall inside the bbox", () => {
     // Guard against a regression that forgets the ÷ ctx.scale: the raw pointer
-    // (125, 210) lands in the bbox, but the page-space coord at scale 2 is
-    // (62.5, 105), which is OUTSIDE the bbox — so no selection must occur.
+    // lands in the display bbox, but the page-space coord at scale 2 is outside.
     mockStageScale.value = 2;
     const page = makePage([makeLine(2, 0, [{ x: 100, y: 200, width: 50, height: 20 }])]);
     page.line_matches![0].word_matches[0].word_index = 3;
 
     render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} page={page} />);
     const overlay = getOverlay();
+    const displayPoint = sourceToDisplayPoint(125, 210);
 
-    fireEvent.mouseDown(overlay, { clientX: 125, clientY: 210 });
-    fireEvent.mouseUp(overlay, { clientX: 125, clientY: 210 });
+    fireEvent.mouseDown(overlay, { clientX: displayPoint.x, clientY: displayPoint.y });
+    fireEvent.mouseUp(overlay, { clientX: displayPoint.x, clientY: displayPoint.y });
 
     const sel = selectionStore.getState();
     expect(sel.level).toBe("none");
@@ -1095,6 +1318,14 @@ describe("PageImageCanvas — zoom controls (P5.d)", () => {
     expect(screen.getByTestId("canvas-zoom-controls")).toBeInTheDocument();
     expect(screen.getByTestId("canvas-zoom-fit")).toBeInTheDocument();
     expect(screen.getByTestId("canvas-zoom-100")).toBeInTheDocument();
+  });
+
+  it("positions zoom controls as a top-left canvas overlay", () => {
+    render(<PageImageCanvas imageUrl="/test.jpg" encoded={encoded} />);
+    const controls = screen.getByTestId("canvas-zoom-controls");
+    expect(controls.className).toMatch(/\btop-2\b/);
+    expect(controls.className).toMatch(/\bleft-2\b/);
+    expect(controls.className).not.toMatch(/\bbottom-2\b/);
   });
 
   it("100% button is initially active (aria-pressed=true) and Fit is inactive", () => {

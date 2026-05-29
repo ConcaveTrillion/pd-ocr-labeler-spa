@@ -10,6 +10,15 @@ it("returns valid LayerColors keys on initial render", () => {
   expect(result.current).toHaveProperty("word");
 });
 
+it("resolves layer alias CSS variables to paintable hex values", () => {
+  document.documentElement.style.setProperty("--word", "#123456");
+  document.documentElement.style.setProperty("--layer-word", "var(--word)");
+
+  const { result } = renderHook(() => useLayerColors());
+
+  expect(result.current.word).toBe("#123456");
+});
+
 it("re-reads colors when data-theme attribute changes", async () => {
   const { result, rerender } = renderHook(() => useLayerColors());
 

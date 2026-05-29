@@ -1,12 +1,11 @@
 import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
-import { Tabs as PdTabs } from "@pdomain/pdomain-ui/primitives";
 
 import { cn } from "@/lib/utils";
 
-// Tabs root: pdomain-ui re-exports TabsPrimitive.Root unchanged.
-// Using pdomain-ui's wrapper to track the shared primitive layer.
-const Tabs = PdTabs;
+// Root/list/trigger/content all use this package's Radix primitives so their
+// Tabs context matches even when pdomain-ui is linked locally.
+const Tabs = TabsPrimitive.Root;
 
 // TabsList: kept as a labeler-specific wrapper on raw Radix.
 // pdomain-ui's TabsList adds the semantic CSS class 'tabs' (from pdomain-ui's
