@@ -23,7 +23,7 @@ Load-bearing invariants (each has a regression here):
   drifts, ``uv build --wheel`` in the ``wheel`` stage fails (good
   failure mode, but the test catches it pre-build).
 * The runtime ``ENTRYPOINT``/``CMD`` invokes the canonical console
-  script from ``[project.scripts]`` (``pd-ocr-labeler-ui``).
+  script from ``[project.scripts]`` (``pdomain-ocr-labeler-ui``).
 * ``EXPOSE 8080`` matches the labeler's default port (specs/15 §3).
 * ``.dockerignore`` exists and excludes the obvious local-noise paths
   (``.git``, ``__pycache__``, ``frontend/node_modules``, ``.venv``)
@@ -178,14 +178,14 @@ def _console_script_name() -> str:
     with PYPROJECT_TOML.open("rb") as fh:
         data = tomllib.load(fh)
     scripts = data["project"]["scripts"]
-    # specs/15 §2 names `pd-ocr-labeler-ui` as the canonical end-user
+    # specs/15 §2 names `pdomain-ocr-labeler-ui` as the canonical end-user
     # entrypoint. Other scripts may exist later; this one is the one
     # the container should boot.
-    assert "pd-ocr-labeler-ui" in scripts, (
-        "pyproject.toml [project.scripts] must declare pd-ocr-labeler-ui "
+    assert "pdomain-ocr-labeler-ui" in scripts, (
+        "pyproject.toml [project.scripts] must declare pdomain-ocr-labeler-ui "
         "(docs/architecture/15-deployment-dev.md §2)."
     )
-    return "pd-ocr-labeler-ui"
+    return "pdomain-ocr-labeler-ui"
 
 
 def test_runtime_entrypoint_invokes_console_script() -> None:

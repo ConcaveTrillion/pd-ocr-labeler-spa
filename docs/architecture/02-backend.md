@@ -145,7 +145,7 @@ class Settings(BaseSettings):
     poll_interval_seconds: float = 0.5
 
     # OCR
-    hf_repo: str = "CT2534/pd-ocr-models"
+    hf_repo: str = "pdomain/pdomain-ocr-models"
     no_prefetch: bool = False
 
     mode: Literal["normal", "api_only"] = "normal"   # api_only skips SPA mount

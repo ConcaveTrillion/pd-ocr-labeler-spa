@@ -4,7 +4,7 @@ Covers the five acceptance bullets:
   1. `make setup` invokes uv sync + pre-commit install
   2. `make lint` includes ruff, eslint, and tsc --noEmit
   3. `upgrade-deps` refuses-with-message when dev-local detected
-  4. `upgrade-deps-local` recipe writes the .pd-dev-local marker
+  4. `upgrade-deps-local` recipe writes the .pdomain-dev-local marker
   5. `make build` (via spa_check.py) raises when static/index.html absent
 """
 
@@ -158,16 +158,16 @@ def test_upgrade_deps_declared_phony() -> None:
 @pytest.mark.skipif(not _have_make(), reason="`make` not on PATH")
 def test_upgrade_deps_refuses_when_pd_dev_local_set() -> None:
     """`make upgrade-deps` must exit non-zero and print a refusal message
-    when PD_DEV_LOCAL=1 is set in the environment (probe 3 of 3)."""
+    when PDOMAIN_DEV_LOCAL=1 is set in the environment (probe 3 of 3)."""
     result = subprocess.run(
         ["make", "-C", str(REPO_ROOT), "upgrade-deps"],
         capture_output=True,
         text=True,
         timeout=30,
-        env={**__import__("os").environ, "PD_DEV_LOCAL": "1"},
+        env={**__import__("os").environ, "PDOMAIN_DEV_LOCAL": "1"},
     )
     assert result.returncode != 0, (
-        f"`make upgrade-deps` should exit non-zero when PD_DEV_LOCAL=1 "
+        f"`make upgrade-deps` should exit non-zero when PDOMAIN_DEV_LOCAL=1 "
         f"(exited {result.returncode}):\n{result.stdout}"
     )
     combined = result.stdout + result.stderr
@@ -179,8 +179,8 @@ def test_upgrade_deps_refuses_when_pd_dev_local_set() -> None:
 @pytest.mark.skipif(not _have_make(), reason="`make` not on PATH")
 def test_upgrade_deps_refuses_when_marker_present() -> None:
     """`make upgrade-deps` must exit non-zero and print a refusal message
-    when .venv/.pd-dev-local marker exists (probe 2 of 3)."""
-    marker = REPO_ROOT / ".venv" / ".pd-dev-local"
+    when .venv/.pdomain-dev-local marker exists (probe 2 of 3)."""
+    marker = REPO_ROOT / ".venv" / ".pdomain-dev-local"
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.touch()
     try:
@@ -191,7 +191,7 @@ def test_upgrade_deps_refuses_when_marker_present() -> None:
             timeout=30,
         )
         assert result.returncode != 0, (
-            f"`make upgrade-deps` should exit non-zero when .venv/.pd-dev-local exists "
+            f"`make upgrade-deps` should exit non-zero when .venv/.pdomain-dev-local exists "
             f"(exited {result.returncode}):\n{result.stdout}"
         )
         combined = result.stdout + result.stderr
@@ -203,7 +203,7 @@ def test_upgrade_deps_refuses_when_marker_present() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Bullet 4: upgrade-deps-local recipe writes the .pd-dev-local marker
+# Bullet 4: upgrade-deps-local recipe writes the .pdomain-dev-local marker
 # ---------------------------------------------------------------------------
 
 
@@ -216,9 +216,11 @@ def test_upgrade_deps_local_declared_phony() -> None:
 
 def test_upgrade_deps_local_recipe_writes_pd_dev_local_marker() -> None:
     """The upgrade-deps-local recipe must contain a command that writes
-    the .venv/.pd-dev-local marker file."""
+    the .venv/.pdomain-dev-local marker file."""
     text = MAKEFILE.read_text()
-    assert ".pd-dev-local" in text, "Makefile upgrade-deps-local recipe must write .venv/.pd-dev-local marker"
+    assert ".pdomain-dev-local" in text, (
+        "Makefile upgrade-deps-local recipe must write .venv/.pdomain-dev-local marker"
+    )
 
 
 # ---------------------------------------------------------------------------

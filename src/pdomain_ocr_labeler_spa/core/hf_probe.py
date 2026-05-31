@@ -26,7 +26,7 @@ from datetime import UTC, datetime
 logger = logging.getLogger(__name__)
 
 
-HF_DEFAULT_REPO = "CT2534/pd-ocr-models"
+HF_DEFAULT_REPO = "pdomain/pdomain-ocr-models"
 """Default Hugging Face repository for OCR weights.
 
 Mirrors legacy ``HF_DEFAULT_REPO``. The detection / recognition

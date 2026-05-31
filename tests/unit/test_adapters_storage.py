@@ -233,7 +233,7 @@ def test_filesystem_storage_init_does_not_create_root_directory(tmp_path: Path) 
 
     ``bootstrap.build_app`` constructs ``FilesystemStorage(...)`` for
     its image cache. With default ``Settings()``, the cache root is
-    ``Path.home() / ".cache" / "pd-ocr-labeler"`` — and the previous
+    ``Path.home() / ".cache" / "pdomain-ocr-labeler-spa"`` — and the previous
     impl mkdir'd it on construction. That meant any ``build_app()``
     invocation (e.g. the README smoke test, ``make openapi-export``
     on a fresh container, an introspection probe) silently created

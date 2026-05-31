@@ -180,7 +180,7 @@ auto-save overwrites the previous cached envelope for that page.
   "project_id": "the_four_men",
   "source_path": "/abs/path/to/project_dir",
   "version": "1.0",
-  "source_lib": "doctr-pd-labeled",
+  "source_lib": "doctr-pdomain-labeled",
   "total_pages": 42,
   "saved_pages": 12,
   "current_page_index": 5,

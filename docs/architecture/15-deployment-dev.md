@@ -28,7 +28,7 @@ curl -fsSL https://raw.githubusercontent.com/<org>/pdomain-ocr-labeler-spa/main/
 1. Verify `uv` is installed; bail with installation hint otherwise.
 2. Fetch the latest GitHub Release wheel via the GitHub API.
 3. `uv tool install <wheel> --reinstall`.
-4. Print "`pd-ocr-labeler-ui` is on your PATH; run with `pd-ocr-labeler-ui [project_dir]`."
+4. Print "`pdomain-ocr-labeler-ui` is on your PATH; run with `pdomain-ocr-labeler-ui [project_dir]`."
 
 ### Windows
 
@@ -48,12 +48,12 @@ Declared in `pyproject.toml`:
 
 ```toml
 [project.scripts]
-pd-ocr-labeler-ui = "pdomain_ocr_labeler_spa.__main__:main"
+pdomain-ocr-labeler-ui = "pdomain_ocr_labeler_spa.__main__:main"
 pdomain-ocr-labeler-spa-export = "pdomain_ocr_labeler_spa.operations.export.cli:main"
 pdomain-ocr-labeler-spa-prefetch = "pdomain_ocr_labeler_spa.prefetch:main"
 ```
 
-The legacy `pd-ocr-labeler-ui` console script name is preserved so
+The legacy `pdomain-ocr-labeler-ui` console script name is preserved so
 end users can swap binaries without re-learning the command. The
 other two scripts get the `-spa-` suffix to avoid collision with
 legacy when both are installed.
@@ -65,11 +65,11 @@ period — hard cut", we drop the suffix and shadow the legacy.)
 
 ## 3. Boot
 
-`pd-ocr-labeler-ui` (no args) runs the server on `127.0.0.1:8080`,
+`pdomain-ocr-labeler-ui` (no args) runs the server on `127.0.0.1:8080`,
 auto-opens the user's browser to `http://localhost:8080`.
 
 ```
-pd-ocr-labeler-ui [project_dir]
+pdomain-ocr-labeler-ui [project_dir]
   --data-root PATH            Override Settings.data_root (env: PDLABELER_DATA_ROOT)
   --projects-root PATH        Override config.yaml source_projects_root
   --host TEXT                 Default 127.0.0.1
@@ -298,7 +298,7 @@ FROM python:3.13-slim
 COPY --from=wheel /dist/*.whl /tmp/
 RUN pip install /tmp/*.whl && rm /tmp/*.whl
 EXPOSE 8080
-ENTRYPOINT ["pd-ocr-labeler-ui", "--host", "0.0.0.0", "--no-browser"]
+ENTRYPOINT ["pdomain-ocr-labeler-ui", "--host", "0.0.0.0", "--no-browser"]
 ```
 
 For local Docker dev:
@@ -527,11 +527,11 @@ recipe above.
       editable-vs-wheel state is the load-bearing signal. If editable
       → dev-local.
    2. Fallback marker file inside the venv (e.g.
-      `.venv/.pd-dev-local`). The companion `upgrade-deps-local`
+      `.venv/.pdomain-dev-local`). The companion `upgrade-deps-local`
       target (15.3) writes this after a successful dev-local restore;
       the marker is honored on subsequent runs in case the editable
       probe is unavailable.
-   3. Last-resort env var: `PD_DEV_LOCAL=1` forces dev-local.
+   3. Last-resort env var: `PDOMAIN_DEV_LOCAL=1` forces dev-local.
 3. **UX — refuse-with-message default.** When dev-local is detected,
    `make upgrade-deps` must **not** run `uv sync`. It must print a
    clear message naming the detected dev-local state, citing the
@@ -540,7 +540,7 @@ recipe above.
    `uv lock --upgrade`, then `uv sync --group dev`, then re-applies
    the dev-local restore (editable sibling installs, GPU torch index,
    `doctr` from git, etc.), then writes/refreshes the
-   `.venv/.pd-dev-local` marker.
+   `.venv/.pdomain-dev-local` marker.
 5. **Canonical-mode behavior unchanged.** When no dev-local state is
    detected, `make upgrade-deps` behaves exactly as the naive recipe:
    `uv lock --upgrade && uv sync --group dev`. No new prompts.
@@ -577,6 +577,6 @@ detect-and-refuse contract.
   refusal message, and names the probe that fired.
 - `make upgrade-deps-local` in either mode produces a dev-local venv
   with editable siblings + GPU torch + `doctr`-from-git intact, and
-  leaves `.venv/.pd-dev-local` present.
-- `PD_DEV_LOCAL=1 make upgrade-deps` refuses on a venv that probes as
+  leaves `.venv/.pdomain-dev-local` present.
+- `PDOMAIN_DEV_LOCAL=1 make upgrade-deps` refuses on a venv that probes as
   canonical.

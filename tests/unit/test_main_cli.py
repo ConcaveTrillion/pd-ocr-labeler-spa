@@ -3,7 +3,7 @@
 Specs:
 
 - ``docs/architecture/15-deployment-dev.md §3`` names the canonical CLI flag set
-  (mirrors legacy ``pd-ocr-labeler-ui`` plus pgdp-prep's
+  (mirrors legacy ``pdomain-ocr-labeler-ui`` plus pgdp-prep's
   ``--frontend-dev``).
 - ``docs/architecture/02-backend.md §3`` makes Settings the single, frozen source
   of truth — built **once** in ``main()`` from CLI overrides layered on
@@ -415,7 +415,7 @@ def test_main_opens_browser_in_default_mode(monkeypatch: pytest.MonkeyPatch, tmp
         rc = main(["--data-root", str(tmp_path)])
         # Wait for the daemon poller thread to finish before asserting.
         for t in _threading.enumerate():
-            if t.name == "pd-ocr-labeler-browser-opener":
+            if t.name == "pdomain-ocr-labeler-spa-browser-opener":
                 t.join(timeout=2.0)
 
     assert rc == 0
@@ -694,7 +694,7 @@ def test_module_main_block_calls_main() -> None:
 
 
 def test_console_script_target_resolves_to_main() -> None:
-    """``pyproject.toml [project.scripts] pd-ocr-labeler-ui`` must point at
+    """``pyproject.toml [project.scripts] pdomain-ocr-labeler-ui`` must point at
     ``pdomain_ocr_labeler_spa.__main__:main``. Anti-drift pin: if the script
     target moves, this assertion catches it before users see broken
     binaries.
@@ -705,7 +705,7 @@ def test_console_script_target_resolves_to_main() -> None:
     with (repo_root / "pyproject.toml").open("rb") as fh:
         cfg = tomllib.load(fh)
     scripts = cfg["project"]["scripts"]
-    assert scripts["pd-ocr-labeler-ui"] == "pdomain_ocr_labeler_spa.__main__:main"
+    assert scripts["pdomain-ocr-labeler-ui"] == "pdomain_ocr_labeler_spa.__main__:main"
 
 
 # ── Argv default ─────────────────────────────────────────────────────────
@@ -719,7 +719,7 @@ def test_main_with_none_argv_reads_sys_argv(monkeypatch: pytest.MonkeyPatch, tmp
 
     monkeypatch.chdir(tmp_path)
 
-    monkeypatch.setattr(sys, "argv", ["pd-ocr-labeler-ui", "--no-browser", "--data-root", str(tmp_path)])
+    monkeypatch.setattr(sys, "argv", ["pdomain-ocr-labeler-ui", "--no-browser", "--data-root", str(tmp_path)])
     with (
         patch.object(main_mod, "uvicorn"),
         patch.object(main_mod, "webbrowser"),

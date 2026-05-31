@@ -32,7 +32,7 @@ from pdomain_ocr_labeler_spa.settings import Settings
         # Job runner (line 138) — consumer M3-deferred (B-63)
         ("poll_interval_seconds", 0.5),
         # OCR (lines 141-142) — consumers M3-deferred (B-63)
-        ("hf_repo", "CT2534/pd-ocr-models"),
+        ("hf_repo", "pdomain/pdomain-ocr-models"),
         ("no_prefetch", False),
         # Mode flag (line 144)
         ("mode", "normal"),

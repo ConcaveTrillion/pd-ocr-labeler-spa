@@ -51,7 +51,7 @@ make run
 ### Backend only (no frontend bundle needed)
 
 ```sh
-uv run pd-ocr-labeler-ui --no-browser --port 8080
+uv run pdomain-ocr-labeler-ui --no-browser --port 8080
 curl http://127.0.0.1:8080/healthz
 ```
 

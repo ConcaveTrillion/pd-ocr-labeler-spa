@@ -102,6 +102,6 @@ curl -fsSL -o "$WHEEL_FILE" "$WHEEL_URL"
 uv tool install --reinstall "$WHEEL_FILE"
 
 echo ""
-echo "Done! Run: pd-ocr-labeler-ui --help"
-echo "If 'pd-ocr-labeler-ui' is not found, add uv's tool bin to your PATH:"
+echo "Done! Run: pdomain-ocr-labeler-ui --help"
+echo "If 'pdomain-ocr-labeler-ui' is not found, add uv's tool bin to your PATH:"
 echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""

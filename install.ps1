@@ -147,6 +147,6 @@ try {
 }
 
 Write-Host ""
-Write-Host "Done! Run: pd-ocr-labeler-ui --help"
-Write-Host "If 'pd-ocr-labeler-ui' is not found, add uv's tool bin to your PATH:"
+Write-Host "Done! Run: pdomain-ocr-labeler-ui --help"
+Write-Host "If 'pdomain-ocr-labeler-ui' is not found, add uv's tool bin to your PATH:"
 Write-Host "  `$env:Path = `"`$HOME\.local\bin;`" + `$env:Path"

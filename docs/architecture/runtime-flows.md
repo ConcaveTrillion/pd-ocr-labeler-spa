@@ -12,7 +12,7 @@ Major data and control flows through the system. For module ownership see
 ## Flow 1: App startup
 
 ```
-pd-ocr-labeler-ui
+pdomain-ocr-labeler-ui
   └─ __main__.py:main()
        ├─ parse CLI args
        ├─ build Settings (from env + args)

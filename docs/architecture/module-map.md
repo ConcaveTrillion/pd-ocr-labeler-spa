@@ -16,7 +16,7 @@ Source-level structure and ownership. For goals, non-goals, and tech stack see
 |--------|------|
 | `bootstrap.py` | FastAPI app factory `build_app(settings)` — wires logging → adapters → AppState → carriers → lifespan → middleware → routers → mounts |
 | `settings.py` | `Settings(BaseSettings)`, env prefix `PDLABELER_`, all runtime config |
-| `__main__.py` | CLI entry point (`pd-ocr-labeler-ui [project_dir] [options]`), uvicorn launcher |
+| `__main__.py` | CLI entry point (`pdomain-ocr-labeler-ui [project_dir] [options]`), uvicorn launcher |
 
 ### `api/` — FastAPI routers
 
@@ -141,7 +141,7 @@ Major groups:
 
 | Entry point | Module | Notes |
 |-------------|--------|-------|
-| `pd-ocr-labeler-ui` (console script) | `__main__:main` | CLI launch; parses args, calls uvicorn |
+| `pdomain-ocr-labeler-ui` (console script) | `__main__:main` | CLI launch; parses args, calls uvicorn |
 | `pdomain-ocr-labeler-spa-export` | `core.jobs.handlers.export_cli:main` | Headless export CLI |
 | `build_app(settings)` | `bootstrap:build_app` | FastAPI factory for uvicorn + tests |
 

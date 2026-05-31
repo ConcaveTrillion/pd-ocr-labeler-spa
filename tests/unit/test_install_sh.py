@@ -21,7 +21,7 @@ Load-bearing invariants (each has a regression here):
 * Bash shebang + ``set -euo pipefail`` so a partial install fails
   loudly instead of half-finishing.
 * Names the canonical ``[project.scripts]`` entrypoint
-  (``pd-ocr-labeler-ui``) so users know what to type next. Sourced
+  (``pdomain-ocr-labeler-ui``) so users know what to type next. Sourced
   live from ``pyproject.toml``, so a script-rename can't drift.
 * References Python's pinned major from ``mise.toml`` (3.13) so a
   future Python bump fails this test before it ships a confusing
@@ -59,15 +59,15 @@ def _entrypoint_name() -> str:
     """Read the canonical UI console-script name from pyproject.toml.
 
     The repo ships multiple scripts (UI + headless export CLI); this helper
-    returns the UI script (``pd-ocr-labeler-ui``) which is what the installer
+    returns the UI script (``pdomain-ocr-labeler-ui``) which is what the installer
     tells users to type after installation.
     """
     data = tomllib.loads(PYPROJECT_TOML.read_text())
     scripts = data["project"]["scripts"]
-    assert "pd-ocr-labeler-ui" in scripts, (
-        f"Expected 'pd-ocr-labeler-ui' in [project.scripts], got {list(scripts)}"
+    assert "pdomain-ocr-labeler-ui" in scripts, (
+        f"Expected 'pdomain-ocr-labeler-ui' in [project.scripts], got {list(scripts)}"
     )
-    return "pd-ocr-labeler-ui"
+    return "pdomain-ocr-labeler-ui"
 
 
 def _python_major_minor_from_mise() -> str:

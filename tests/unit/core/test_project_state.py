@@ -81,7 +81,7 @@ def test_project_minimal_construction(tmp_path: Path) -> None:
     assert proj.total_pages == 0
     assert proj.current_page_index == 0  # spec default
     assert proj.version == "1.0"  # spec default
-    assert proj.source_lib == "doctr-pd-labeled"  # spec default
+    assert proj.source_lib == "doctr-pdomain-labeled"  # spec default
     assert proj.saved_pages == 0  # spec default
     assert proj.include_images is True  # spec default
     assert proj.copied_images is False  # spec default

@@ -77,7 +77,7 @@ def test_makefile_run_target_dry_runs_and_invokes_ui() -> None:
     `make run` is the user-facing "just run the labeler" target —
     distinct from `make dev` (which expects Vite on :5173). It must:
     - Ensure the SPA bundle exists (depend on / call `frontend-build`).
-    - Launch `pd-ocr-labeler-ui` without `--reload` and without
+    - Launch `pdomain-ocr-labeler-ui` without `--reload` and without
       `--frontend-dev` (we are SERVING the bundle, not developing it).
 
     Asserting on the dry-run output keeps the test fast and lets us
@@ -100,7 +100,7 @@ def test_makefile_run_target_dry_runs_and_invokes_ui() -> None:
     assert "frontend-build" in out or "Building frontend" in out, (
         f"`make -n run` should ensure the SPA is built before serving:\n{out}"
     )
-    assert "pd-ocr-labeler-ui" in out, f"`make -n run` should launch pd-ocr-labeler-ui:\n{out}"
+    assert "pdomain-ocr-labeler-ui" in out, f"`make -n run` should launch pdomain-ocr-labeler-ui:\n{out}"
     # Must NOT enable reload or frontend-dev — those are `make dev`'s job.
     assert "--reload" not in out, f"`make run` must not enable --reload:\n{out}"
     assert "--frontend-dev" not in out, f"`make run` must not enable --frontend-dev:\n{out}"

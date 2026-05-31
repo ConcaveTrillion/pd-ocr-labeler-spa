@@ -18,7 +18,7 @@ Design:
   coexist (rare, but cheap) and makes "switch back to a previous
   selection" a cache hit.
 - The cache itself is **I/O-free**: it never walks ``<data_root>/
-  pd-ml-models``, never calls ``huggingface_hub``. Resolution of
+  pdomain-ml-models``, never calls ``huggingface_hub``. Resolution of
   detection/recognition file paths is delegated to a
   ``WeightsResolver`` callable (slice will land in the
   ``LocalDoctrPageLoader`` wiring step). The default resolver returns

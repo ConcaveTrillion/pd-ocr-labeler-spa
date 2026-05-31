@@ -66,7 +66,7 @@ return a helpful 404 explaining how to populate `static/`.
 ```sh
 make test            # pytest — main backend feedback loop
 make lint            # ruff check
-uv run pd-ocr-labeler-ui --no-browser --port 8080
+uv run pdomain-ocr-labeler-ui --no-browser --port 8080
 curl http://127.0.0.1:8080/healthz
 curl http://127.0.0.1:8080/env.js
 ```

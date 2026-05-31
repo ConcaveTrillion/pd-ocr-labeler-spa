@@ -1,7 +1,7 @@
 """Resolve and render the torch device DocTR / pdomain_book_tools will use.
 
 Used by ``__main__.main`` to print a single startup line so users running
-``make run`` (or any direct ``pd-ocr-labeler-ui`` invocation) can see
+``make run`` (or any direct ``pdomain-ocr-labeler-ui`` invocation) can see
 whether torch picked up the local GPU before they kick off a real OCR
 pass.
 
@@ -12,7 +12,7 @@ Design constraints (small but load-bearing):
   funnels into a CPU-flavored fallback string.
 - **Lazy torch import.** torch is heavy and is pulled in via
   pdomain_book_tools rather than this repo directly; keep test collection
-  fast and ``pd-ocr-labeler-ui --version`` torch-free by deferring
+  fast and ``pdomain-ocr-labeler-ui --version`` torch-free by deferring
   the import inside the function body.
 - **Pure render.** Returns a string; logging / printing is the
   caller's responsibility. Keeps the helper trivially testable

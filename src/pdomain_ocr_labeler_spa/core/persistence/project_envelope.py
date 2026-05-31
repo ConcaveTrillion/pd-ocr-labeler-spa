@@ -80,7 +80,7 @@ _IMAGE_EXTS = (".png", ".jpg", ".jpeg")
 # default we read is False.
 _LEGACY_DEFAULTS: dict[str, Any] = {
     "version": "1.0",
-    "source_lib": "doctr-pd-labeled",
+    "source_lib": "doctr-pdomain-labeled",
     "saved_pages": 0,
     "current_page_index": 0,
     "include_images": True,

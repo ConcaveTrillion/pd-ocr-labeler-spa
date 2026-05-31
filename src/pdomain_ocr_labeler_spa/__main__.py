@@ -1,6 +1,6 @@
-"""Console entry point: ``pd-ocr-labeler-ui``.
+"""Console entry point: ``pdomain-ocr-labeler-ui``.
 
-Mirrors the legacy ``pd-ocr-labeler-ui`` flag set
+Mirrors the legacy ``pdomain-ocr-labeler-ui`` flag set
 (``pd-ocr-labeler/pd_ocr_labeler/cli.py:13-62``) plus pgdp-prep's
 ``--frontend-dev`` and the new SPA-side ``--data-root`` override.
 
@@ -98,7 +98,7 @@ def _tcp_port(value: str) -> int:
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        prog="pd-ocr-labeler-ui",
+        prog="pdomain-ocr-labeler-ui",
         description="Run the pdomain-ocr-labeler-spa server (FastAPI + bundled SPA).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
@@ -375,7 +375,7 @@ def main(argv: list[str] | None = None) -> int:
         threading.Thread(
             target=_open_when_ready,
             args=(url, host, port),
-            name="pd-ocr-labeler-browser-opener",
+            name="pdomain-ocr-labeler-spa-browser-opener",
             daemon=True,
         ).start()
 

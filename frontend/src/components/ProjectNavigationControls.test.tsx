@@ -47,7 +47,7 @@ function mockProject(projectId: string, totalPages: number) {
         image_paths,
         ground_truth_map: {},
         version: "1.0",
-        source_lib: "doctr-pd-labeled",
+        source_lib: "doctr-pdomain-labeled",
         total_pages: totalPages,
         saved_pages: 0,
         current_page_index: 0,

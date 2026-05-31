@@ -151,4 +151,4 @@ USER app
 # Port 8080 is non-privileged; no extra capabilities are needed.
 EXPOSE 8080
 
-ENTRYPOINT ["pd-ocr-labeler-ui", "--host", "0.0.0.0", "--no-browser"]
+ENTRYPOINT ["pdomain-ocr-labeler-ui", "--host", "0.0.0.0", "--no-browser"]

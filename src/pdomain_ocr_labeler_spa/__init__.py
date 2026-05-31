@@ -1,7 +1,7 @@
 """pdomain-ocr-labeler-spa — FastAPI + React SPA replacement for pd-ocr-labeler.
 
 The package ships as a single wheel with the prebuilt SPA bundled under
-``pdomain_ocr_labeler_spa/static/``. The console script ``pd-ocr-labeler-ui``
+``pdomain_ocr_labeler_spa/static/``. The console script ``pdomain-ocr-labeler-ui``
 boots a uvicorn server that serves both the REST API and the SPA. See
 ``docs/architecture/00-overview.md`` for the full architecture.
 """

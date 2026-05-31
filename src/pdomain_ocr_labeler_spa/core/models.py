@@ -37,7 +37,7 @@ class Project(BaseModel):
     image_paths: list[Path]
     ground_truth_map: dict[str, str]
     version: str = "1.0"
-    source_lib: str = "doctr-pd-labeled"
+    source_lib: str = "doctr-pdomain-labeled"
     total_pages: int
     saved_pages: int = 0
     current_page_index: int = 0

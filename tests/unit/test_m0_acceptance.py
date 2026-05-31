@@ -63,7 +63,11 @@ def test_m0_acceptance_doc_covers_each_spec_acceptance_clause() -> None:
 
     We extract the spec's M0 acceptance bullets, pull every
     backticked ``make <target>`` and `pd-ocr-labeler-ui ...`
-    invocation out, and assert each appears in the doc."""
+    invocation out, and assert each appears in the doc.
+
+    Note: the archived M0-acceptance doc and `specs/16-milestones.md`
+    predate the pdomain-* rename and still use the legacy
+    ``pd-ocr-labeler-ui`` token, so this pin keeps the legacy name."""
     expected_tokens = (
         "make setup",
         "make test",

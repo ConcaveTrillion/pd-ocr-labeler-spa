@@ -112,7 +112,7 @@ def _dockerfile_expose_port() -> int:
 
 
 def test_settings_port_matches_dockerfile_expose() -> None:
-    """`Settings().port` is what `pd-ocr-labeler-ui` binds to inside
+    """`Settings().port` is what `pdomain-ocr-labeler-ui` binds to inside
     the container; the Dockerfile EXPOSE line documents that port for
     `docker run -P` and image-introspection tools. The two must agree
     or `docker run -P` maps the wrong port and the labeler is

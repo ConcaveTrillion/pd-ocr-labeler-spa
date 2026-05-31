@@ -37,7 +37,7 @@ class Project(BaseModel):
     image_paths: list[Path]     # sorted list of page image files
     ground_truth_map: dict[str, str]  # normalized mapping
     version: str = "1.0"
-    source_lib: str = "doctr-pd-labeled"
+    source_lib: str = "doctr-pdomain-labeled"
     total_pages: int            # == len(image_paths)
     saved_pages: int = 0
     current_page_index: int = 0
@@ -590,7 +590,7 @@ Top of `<labeled-projects>/<project_id>/project.json`:
   "project_id": "...",
   "source_path": "...",
   "version": "1.0",
-  "source_lib": "doctr-pd-labeled",
+  "source_lib": "doctr-pdomain-labeled",
   "total_pages": 42,
   "saved_pages": 12,
   "current_page_index": 5,
@@ -699,7 +699,7 @@ other's cache entries.
 ### YAML config
 
 `<config_root>/config.yaml` (note: `<config_root>` already includes the
-`pd-ocr-labeler/` app-name suffix per §5's path table):
+`pdomain-ocr-labeler-spa/` app-name suffix per §5's path table):
 
 ```yaml
 # Root directory containing OCR project subdirectories.
@@ -731,9 +731,9 @@ emits anything the legacy can't read.
 
 | Function | Linux | macOS | Windows |
 |---|---|---|---|
-| `config_root` | `${XDG_CONFIG_HOME:-~/.config}/pd-ocr-labeler/` | `~/Library/Application Support/pd-ocr-labeler/` | `%APPDATA%/pd-ocr-labeler/` |
-| `data_root` | `${XDG_DATA_HOME:-~/.local/share}/pd-ocr-labeler/` | same as config_root | `%LOCALAPPDATA%/pd-ocr-labeler/` |
-| `cache_root` | `${XDG_CACHE_HOME:-~/.cache}/pd-ocr-labeler/` | `~/Library/Caches/pd-ocr-labeler/` | `%LOCALAPPDATA%/pd-ocr-labeler/cache/` |
+| `config_root` | `${XDG_CONFIG_HOME:-~/.config}/pdomain-ocr-labeler-spa/` | `~/Library/Application Support/pdomain-ocr-labeler-spa/` | `%APPDATA%/pdomain-ocr-labeler-spa/` |
+| `data_root` | `${XDG_DATA_HOME:-~/.local/share}/pdomain-ocr-labeler-spa/` | same as config_root | `%LOCALAPPDATA%/pdomain-ocr-labeler-spa/` |
+| `cache_root` | `${XDG_CACHE_HOME:-~/.cache}/pdomain-ocr-labeler-spa/` | `~/Library/Caches/pdomain-ocr-labeler-spa/` | `%LOCALAPPDATA%/pdomain-ocr-labeler-spa/cache/` |
 | `default_source_projects_root` | `<data>/source-pgdp-data/output/` | same | same |
 | `logs_root` | `<data>/logs/` | same | same |
 | `page_image_cache_root` | `<cache>/page-images/` | same | same |
@@ -741,9 +741,11 @@ emits anything the legacy can't read.
 | `project_backups_root` | `<data>/project-backups/` | same | same |
 
 Same rules as legacy `persistence_paths_operations.py`. The directory
-*name* is intentionally `pd-ocr-labeler` (not `-spa`) — see
-[D-003](../../specs/17-decisions.md). Override via `PDLABELER_DATA_ROOT`, etc.,
-in [`02-backend.md`](02-backend.md).
+*name* is `pdomain-ocr-labeler-spa`. (Pre-cut-over, [D-003](../../specs/17-decisions.md)
+kept the legacy `pd-ocr-labeler` name to share a data root with the
+NiceGUI labeler; the cut-over is complete and the legacy is superseded,
+so the SPA now owns its own `pdomain-`-prefixed root.) Override via
+`PDLABELER_DATA_ROOT`, etc., in [`02-backend.md`](02-backend.md).
 
 ---
 

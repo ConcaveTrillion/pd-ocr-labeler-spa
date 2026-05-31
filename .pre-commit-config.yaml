@@ -79,7 +79,7 @@ repos:
     hooks:
     # B-11 + B-17: refresh hatch-vcs derived version after any
     # ref-changing op so `pdomain_ocr_labeler_spa.__version__` and
-    # `pd-ocr-labeler-ui --version` stay aligned with HEAD/tag state.
+    # `pdomain-ocr-labeler-ui --version` stay aligned with HEAD/tag state.
     #
     # All three hook stages share a single shell entry point
     # (`scripts/refresh_version_git_hook.sh`) which shells out to

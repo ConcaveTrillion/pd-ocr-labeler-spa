@@ -34,7 +34,7 @@ def local_models_root(tmp_path: Path) -> Path:
             recognition/
               myprofile-recognition-v1.pt
     """
-    root = tmp_path / "pd-ml-models"
+    root = tmp_path / "pdomain-ml-models"
     det_dir = root / "myprofile" / "detection"
     reco_dir = root / "myprofile" / "recognition"
     det_dir.mkdir(parents=True)
@@ -47,7 +47,7 @@ def local_models_root(tmp_path: Path) -> Path:
 @pytest.fixture
 def local_models_root_with_vocab(tmp_path: Path) -> Path:
     """Like ``local_models_root`` but recognition weights come with a vocab sidecar."""
-    root = tmp_path / "pd-ml-models"
+    root = tmp_path / "pdomain-ml-models"
     det_dir = root / "profvocab" / "detection"
     reco_dir = root / "profvocab" / "recognition"
     det_dir.mkdir(parents=True)

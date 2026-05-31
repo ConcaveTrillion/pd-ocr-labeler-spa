@@ -3070,7 +3070,7 @@ export interface components {
             version: string;
             /**
              * Source Lib
-             * @default doctr-pd-labeled
+             * @default doctr-pdomain-labeled
              */
             source_lib: string;
             /** Total Pages */

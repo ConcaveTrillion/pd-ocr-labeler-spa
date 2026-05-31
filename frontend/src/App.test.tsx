@@ -186,7 +186,7 @@ function withProjectSession() {
         image_paths: ["page_001.png", "page_002.png"],
         ground_truth_map: {},
         version: "1.0",
-        source_lib: "doctr-pd-labeled",
+        source_lib: "doctr-pdomain-labeled",
         total_pages: 2,
         saved_pages: 0,
         current_page_index: 0,

@@ -88,7 +88,7 @@ def _make_project(tmp_path: Path) -> Project:
         ],
         ground_truth_map={"001.png": "page one", "002.png": "page two"},
         version="1.0",
-        source_lib="doctr-pd-labeled",
+        source_lib="doctr-pdomain-labeled",
         total_pages=2,
         saved_pages=1,
         current_page_index=1,
@@ -163,7 +163,7 @@ def test_project_from_dict_reads_legacy_default_int(tmp_path: Path) -> None:
     """
     legacy_dict = {
         "version": "1.0",
-        "source_lib": "doctr-pd-labeled",
+        "source_lib": "doctr-pdomain-labeled",
         "project_id": "legacy_book",
         "source_path": str(tmp_path / "legacy_book"),
         "total_pages": 5,
@@ -189,7 +189,7 @@ def test_project_from_dict_reads_legacy_nonzero_int(tmp_path: Path) -> None:
     """
     legacy_dict = {
         "version": "1.0",
-        "source_lib": "doctr-pd-labeled",
+        "source_lib": "doctr-pdomain-labeled",
         "project_id": "legacy_book",
         "source_path": str(tmp_path / "legacy_book"),
         "total_pages": 5,
@@ -216,7 +216,7 @@ def test_project_from_dict_preserves_metadata(tmp_path: Path) -> None:
     """
     legacy_dict = {
         "version": "1.0",
-        "source_lib": "doctr-pd-labeled",
+        "source_lib": "doctr-pdomain-labeled",
         "project_id": "the_four_men",
         "source_path": "/some/abs/path/to/the_four_men",
         "total_pages": 42,
@@ -260,7 +260,7 @@ def test_project_from_dict_uses_legacy_defaults_for_missing_keys(tmp_path: Path)
         ground_truth_map={},
     )
     assert project.version == "1.0"
-    assert project.source_lib == "doctr-pd-labeled"
+    assert project.source_lib == "doctr-pdomain-labeled"
     assert project.saved_pages == 0
     assert project.current_page_index == 0
     assert project.include_images is True
@@ -314,7 +314,7 @@ def test_read_project_metadata_returns_dict_on_success(tmp_path: Path) -> None:
     """
     persisted = {
         "version": "1.0",
-        "source_lib": "doctr-pd-labeled",
+        "source_lib": "doctr-pdomain-labeled",
         "project_id": "x",
         "source_path": str(tmp_path),
         "total_pages": 3,
@@ -419,7 +419,7 @@ def test_build_project_from_directory_uses_project_json_when_present(tmp_path: P
     _seed_image(project_root / "003.png")
     saved = {
         "version": "1.0",
-        "source_lib": "doctr-pd-labeled",
+        "source_lib": "doctr-pdomain-labeled",
         "project_id": "saved_book",
         "source_path": str(project_root),
         "total_pages": 3,

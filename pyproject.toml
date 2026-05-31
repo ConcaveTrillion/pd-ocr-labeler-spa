@@ -43,10 +43,8 @@ modal = [
 ]
 
 [project.scripts]
-# Console script name preserved verbatim from the legacy `pd-ocr-labeler`
-# so end users can swap binaries without re-learning the command.
-# See specs/15-deployment-dev.md §2.
-pd-ocr-labeler-ui = "pdomain_ocr_labeler_spa.__main__:main"
+# Console script for the SPA server. See specs/15-deployment-dev.md §2.
+pdomain-ocr-labeler-ui = "pdomain_ocr_labeler_spa.__main__:main"
 pdomain-ocr-labeler-spa-export = "pdomain_ocr_labeler_spa.core.jobs.handlers.export_cli:main"
 
 [project.urls]

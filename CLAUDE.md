@@ -19,7 +19,7 @@ milestone-by-milestone implementation (M0…M9). Architecture: `docs/architectur
 | `make frontend-build AI=1` | builds SPA into `src/pdomain_ocr_labeler_spa/static/` |
 | `make openapi-export AI=1` | exports `/openapi.json` → regenerates `frontend/src/api/types.ts` |
 | `make build AI=1` | builds the wheel (requires populated `static/`) |
-| `make run` | builds SPA if missing, then `pd-ocr-labeler-ui` (production-style) |
+| `make run` | builds SPA if missing, then `pdomain-ocr-labeler-ui` (production-style) |
 | `make ci AI=1` | setup + test + frontend-test + build |
 | `make docker-build` | builds the production Docker image |
 | `make local-setup` | clone any missing sibling pd-* repos |
@@ -30,7 +30,7 @@ milestone-by-milestone implementation (M0…M9). Architecture: `docs/architectur
 | `make local-frontend-install` | `pnpm install` + restore `pnpm link` overlays for npm siblings |
 | `make local-frontend-build` | Vite build via local-link-preserving path (depends on `local-frontend-install`) |
 | `make local-run` | run SPA against local-dev workspace — re-applies Python editables + rebuilds SPA via local path (does NOT call `make run`; avoids registry `pnpm install --frozen-lockfile` that would discard `pnpm link`) |
-| `make update-pd-deps` | bump pd-* sibling deps to registry latest; leaves diff for review |
+| `make update-pdomain-deps` | bump pd-* sibling deps to registry latest; leaves diff for review |
 
 See [workspace `docs/process/local-dev.md`](../docs/process/local-dev.md) for the canonical local-dev pattern (spec #362).
 

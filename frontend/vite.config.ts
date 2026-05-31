@@ -6,7 +6,7 @@ import react from "@vitejs/plugin-react";
 
 // FastAPI proxies /api/* and /image-cache/* during `npm run dev`. The dev
 // server runs on :5173; the user starts FastAPI separately with
-// `pd-ocr-labeler-ui --frontend-dev http://localhost:5173`.
+// `pdomain-ocr-labeler-ui --frontend-dev http://localhost:5173`.
 //
 // Backend port is read from `.pdlabeler-port` (written by the server on every
 // start, issue #323). Falls back to 8080 if the file is absent so a first

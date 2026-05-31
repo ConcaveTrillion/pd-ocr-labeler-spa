@@ -16,7 +16,7 @@ Behaviour pins:
   * ``last_modified`` is a naive ``datetime`` → tz-aware UTC.
   * ``last_modified`` is a tz-aware ``datetime`` → returned as-is.
   * ``revision`` and ``timeout`` kwargs forwarded to ``model_info``.
-  * Default repo is ``CT2534/pd-ocr-models`` (legacy
+  * Default repo is ``pdomain/pdomain-ocr-models`` (legacy
     ``HF_DEFAULT_REPO``); default timeout is 5.0 seconds.
 """
 
@@ -67,7 +67,7 @@ def _install_fake_hfapi(
 def test_default_repo_constant_matches_legacy():
     # Legacy `HF_DEFAULT_REPO` is the source of truth; if upstream
     # republishes, the spa must follow in lockstep.
-    assert HF_DEFAULT_REPO == "CT2534/pd-ocr-models"
+    assert HF_DEFAULT_REPO == "pdomain/pdomain-ocr-models"
 
 
 def test_returns_none_when_huggingface_hub_missing(monkeypatch):

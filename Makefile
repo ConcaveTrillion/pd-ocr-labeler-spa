@@ -16,7 +16,7 @@ else
         pre-commit-check test integration e2e exercise-real build clean ci dev run \
         frontend-install frontend-build frontend-dev frontend-test frontend-knip \
         frontend-lint frontend-format frontend-format-check \
-        openapi-export update-pd-deps upgrade-pdomain-book-tools upgrade-deps upgrade-deps-local \
+        openapi-export update-pdomain-deps upgrade-pdomain-book-tools upgrade-deps upgrade-deps-local \
         local-setup local-dev local-check local-upgrade-deps local-run \
         local-setup-py local-frontend-install local-frontend-build local-frontend-test \
         mise-download mise-trust-worktrees mise-setup mise-doctor \
@@ -52,11 +52,11 @@ refresh-version: ## Force hatch-vcs to re-derive version from current git state
 	@# wheel builds on the bundled index.html being present.
 	@mkdir -p src/pdomain_ocr_labeler_spa/static
 	@UV_LINK_MODE=copy uv pip install -e . --reinstall-package pdomain-ocr-labeler-spa
-	@uv run pd-ocr-labeler-ui --version 2>/dev/null || true
+	@uv run pdomain-ocr-labeler-ui --version 2>/dev/null || true
 
-install: ## Install pd-ocr-labeler-ui as a uv tool from local source
+install: ## Install pdomain-ocr-labeler-ui as a uv tool from local source
 	uv tool install --reinstall .
-	@echo "pd-ocr-labeler-ui installed. Run: pd-ocr-labeler-ui --version"
+	@echo "pdomain-ocr-labeler-ui installed. Run: pdomain-ocr-labeler-ui --version"
 
 uninstall: ## Remove the installed pdomain-ocr-labeler-spa uv tool
 	@uv tool uninstall pdomain-ocr-labeler-spa || true
@@ -74,13 +74,13 @@ upgrade-deps: ## Upgrade dependency lockfile (refuses in a dev-local venv)
 		echo "  Use 'make upgrade-deps-local' to upgrade and re-install editable."; \
 		exit 1; \
 	fi
-	@if [ -f .venv/.pd-dev-local ]; then \
-		echo "upgrade-deps refused: .venv/.pd-dev-local marker present (probe 2)."; \
+	@if [ -f .venv/.pdomain-dev-local ]; then \
+		echo "upgrade-deps refused: .venv/.pdomain-dev-local marker present (probe 2)."; \
 		echo "  Use 'make upgrade-deps-local' to upgrade and preserve dev-local state."; \
 		exit 1; \
 	fi
-	@if [ "$${PD_DEV_LOCAL:-0}" = "1" ]; then \
-		echo "upgrade-deps refused: PD_DEV_LOCAL=1 in environment (probe 3)."; \
+	@if [ "$${PDOMAIN_DEV_LOCAL:-0}" = "1" ]; then \
+		echo "upgrade-deps refused: PDOMAIN_DEV_LOCAL=1 in environment (probe 3)."; \
 		echo "  Use 'make upgrade-deps-local' to upgrade and preserve dev-local state."; \
 		exit 1; \
 	fi
@@ -132,19 +132,19 @@ local-frontend-test: ## Vitest using local sibling pdomain-ui with test-time pee
 	@./scripts/local-frontend-test.sh
 
 # ---------------------------------------------------------------------------
-# Sibling-dep refresh (spec #363) — update-pd-deps
+# Sibling-dep refresh (spec #363) — update-pdomain-deps
 # ---------------------------------------------------------------------------
 # Queries pdomain-index-pip + pdomain-index-npm for each sibling, bumps minimum-version
 # pins in pyproject.toml and frontend/package.json, then leaves the diff for
 # human review. Does NOT commit. Idempotent.
-# See ../docs/process/update-pd-deps.md for full workflow.
+# See ../docs/process/update-pdomain-deps.md for full workflow.
 
-update-pd-deps: ## Bump all sibling pd-* deps (Python + npm) to registry latest; leaves diff for review
-	@./scripts/update-pd-deps.sh
+update-pdomain-deps: ## Bump all sibling pd-* deps (Python + npm) to registry latest; leaves diff for review
+	@./scripts/update-pdomain-deps.sh
 
-upgrade-pdomain-book-tools: ## DEPRECATED: use update-pd-deps
-	@echo "warning: 'upgrade-pdomain-book-tools' is deprecated; use 'make update-pd-deps'"
-	@$(MAKE) --no-print-directory update-pd-deps
+upgrade-pdomain-book-tools: ## DEPRECATED: use update-pdomain-deps
+	@echo "warning: 'upgrade-pdomain-book-tools' is deprecated; use 'make update-pdomain-deps'"
+	@$(MAKE) --no-print-directory update-pdomain-deps
 
 # ---------------------------------------------------------------------------
 # Optional: mise-managed tool versions (mirrors pdomain-prep-for-pgdp pattern)
@@ -358,7 +358,7 @@ exercise-real: ## Run Playwright exercise against the 8-page exercise-fixture pr
 		--tb=short
 
 dev: ## Run uvicorn with --reload against a Vite dev server on :5173
-	uv run pd-ocr-labeler-ui --reload --frontend-dev http://localhost:5173
+	uv run pdomain-ocr-labeler-ui --reload --frontend-dev http://localhost:5173
 
 # ---------------------------------------------------------------------------
 # `make run` — single-command "just use the labeler" entry point
@@ -374,14 +374,14 @@ dev: ## Run uvicorn with --reload against a Vite dev server on :5173
 # `make run` repeatedly shouldn't pay the npm-install + vite-build cost
 # every invocation. To force a rebuild, run `make frontend-build` first.
 
-run: ## Build SPA if missing, then serve via pd-ocr-labeler-ui (production-style; opens browser)
+run: ## Build SPA if missing, then serve via pdomain-ocr-labeler-ui (production-style; opens browser)
 	@if [ ! -f src/pdomain_ocr_labeler_spa/static/index.html ]; then \
 		echo "SPA bundle missing; running frontend-build first..."; \
 		$(MAKE) --no-print-directory frontend-build; \
 	else \
 		echo "SPA bundle present at src/pdomain_ocr_labeler_spa/static/index.html (run 'make frontend-build' to refresh)."; \
 	fi
-	uv run pd-ocr-labeler-ui
+	uv run pdomain-ocr-labeler-ui
 
 build: frontend-build ## Build the wheel (with frontend bundled)
 	# `--wheel` skips the sdist step. The build hook in

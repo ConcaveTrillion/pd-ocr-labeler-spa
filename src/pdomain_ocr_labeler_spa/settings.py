@@ -61,9 +61,9 @@ class Settings(BaseSettings):
     request_id_header: str = "X-Request-ID"
 
     # ── OS-aware roots (docs/architecture/01-data-models.md §5) ──────────────────────────
-    config_root: Path = Field(default_factory=lambda: Path.home() / ".config" / "pd-ocr-labeler")
-    data_root: Path = Field(default_factory=lambda: Path.home() / "pd-ocr-labeler")
-    cache_root: Path = Field(default_factory=lambda: Path.home() / ".cache" / "pd-ocr-labeler")
+    config_root: Path = Field(default_factory=lambda: Path.home() / ".config" / "pdomain-ocr-labeler-spa")
+    data_root: Path = Field(default_factory=lambda: Path.home() / "pdomain-ocr-labeler-spa")
+    cache_root: Path = Field(default_factory=lambda: Path.home() / ".cache" / "pdomain-ocr-labeler-spa")
 
     # ── Project discovery (docs/architecture/02-backend.md §3 lines 130-132) ─────────────
     # Both fields are CLI-overridable seams; their consumers land in M2
@@ -82,7 +82,7 @@ class Settings(BaseSettings):
 
     When set, project discovery + restore overrides session_state's
     ``last_project_path`` and eagerly loads this dir. Same contract as
-    legacy ``pd-ocr-labeler-ui [project_dir]`` (legacy
+    legacy ``pdomain-ocr-labeler-ui [project_dir]`` (legacy
     ``cli.py:18-23``).
     """
 
@@ -115,7 +115,7 @@ class Settings(BaseSettings):
     # Consumers land in M3 (OCR predictor cache + model prefetch). The
     # `hf_repo` default mirrors legacy `pd-ocr-labeler/...` — see
     # spec §3 for the canonical name.
-    hf_repo: str = "CT2534/pd-ocr-models"
+    hf_repo: str = "pdomain/pdomain-ocr-models"
     """HuggingFace repo for OCR model weights — M3-deferred consumer."""
 
     no_prefetch: bool = False

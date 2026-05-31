@@ -39,8 +39,8 @@ from ..ocr.predictor import ResolvedWeights, WeightsResolver
 logger = logging.getLogger(__name__)
 
 # HF filenames — legacy model_selection_operations.py lines 18-19.
-_HF_DETECTION_FILENAME = "detection/pd-all-detection-model-finetuned.pt"
-_HF_RECOGNITION_FILENAME = "recognition/pd-all-recognition-model-finetuned.pt"
+_HF_DETECTION_FILENAME = "detection/pdomain-all-detection-model-finetuned.pt"
+_HF_RECOGNITION_FILENAME = "recognition/pdomain-all-recognition-model-finetuned.pt"
 
 
 def build_weights_resolver(local_models_root: Path) -> WeightsResolver:

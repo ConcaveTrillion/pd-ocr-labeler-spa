@@ -178,7 +178,7 @@ def test_save_then_load_round_trip(tmp_path: Path) -> None:
 def test_save_creates_data_root_if_missing(tmp_path: Path) -> None:
     """``save_session_state`` mkdir's the data root on first call.
 
-    Cold install: ``~/.local/share/pd-ocr-labeler/`` doesn't exist
+    Cold install: ``~/.local/share/pdomain-ocr-labeler-spa/`` doesn't exist
     yet on first run; the save must succeed without the user pre-creating it.
     """
     fresh = tmp_path / "first-run-data-root"

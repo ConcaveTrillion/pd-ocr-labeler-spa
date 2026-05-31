@@ -40,7 +40,7 @@ A React SPA with a typed FastAPI backend gives:
 
 ## What changes for end users
 
-Almost nothing. The same `pd-ocr-labeler-ui` console script keeps
+Almost nothing. The same `pdomain-ocr-labeler-ui` console script keeps
 working; the page tree under `/`, `/project/{id}`, and
 `/project/{id}/page/{n}` remains stable; every `data-testid` carries
 over (see [`docs/architecture/13-driver-contract.md`](docs/architecture/13-driver-contract.md)).
@@ -144,7 +144,7 @@ make run       # builds the SPA if missing, then serves via FastAPI
 
 `make run` is the single-command "I just want to use it" target — it
 builds the SPA bundle into `src/pdomain_ocr_labeler_spa/static/` if it
-doesn't exist yet, then launches `pd-ocr-labeler-ui` (no `--reload`,
+doesn't exist yet, then launches `pdomain-ocr-labeler-ui` (no `--reload`,
 no Vite). At startup the server prints a one-line `device: …` banner
 (e.g. `device: cuda:0 (NVIDIA …)` or `device: cpu`) so you can confirm
 whether torch picked up the local GPU before kicking off OCR. The
