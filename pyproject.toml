@@ -165,8 +165,7 @@ ignore = [
 "tests/*" = ["E741"]
 # CLI scripts and fixture scripts — print() is the output mechanism.
 # RUF002: intentional Unicode (×) in dimension docstrings.
-# N999: hyphenated filenames (e.g. ai-filter-log.py) are valid script names.
-"scripts/*.py" = ["T201", "S603", "S607", "ANN", "D", "RUF002", "N999"]
+"scripts/*.py" = ["T201", "S603", "S607", "ANN", "D", "RUF002"]
 # Headless export CLI console script — print() for user-facing output
 "src/pdomain_ocr_labeler_spa/core/jobs/handlers/export_cli.py" = ["T201"]
 # Tests: assert is the idiom (S101); magic numbers common (PLR2004);
